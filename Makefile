@@ -207,6 +207,107 @@ genproto:
 	$(foreach file,$(PROTO_FILES),$(call exec-command,$(PROTOC) $(file)))
 	$(MAKE) fmt
 
+# ---------------------------------------------------------------------------
+# Performance rig — local benchmarking targets
+#
+# Targets in this section drive the fanout / pdata clone / pipeline
+# benchmarks introduced for the fanout-clone performance work. See
+# docs/performance.md for the workflow and perf/README.md for the
+# baseline storage convention.
+# ---------------------------------------------------------------------------
+
+# Flag presets — overridable from the command line.
+PERF_BENCH_FLAGS       ?= -benchmem -benchtime=2s -count=5 -timeout=20m
+PERF_BENCH_QUICK_FLAGS ?= -benchmem -benchtime=200ms -count=1 -timeout=10m
+PERF_BASELINE_FLAGS    ?= -benchmem -benchtime=5s -count=10 -timeout=30m
+
+PERF_FANOUT_PATTERN   := ^Benchmark(Metrics|Traces|Logs)Fanout$$
+PERF_CLONE_PATTERN    := ^BenchmarkCopyTo(Metrics|Traces|Logs)$$
+PERF_PIPELINE_PATTERN := ^BenchmarkPipelineFanout(Metrics|Traces|Logs)$$
+
+# Default baseline output directory. Override with BASELINE_DIR=...
+BASELINE_DIR ?= perf/baselines/$(shell date -u +%Y-%m-%d)-$(shell git rev-parse --short HEAD 2>/dev/null || echo nogit)
+
+.PHONY: perf-bench-fanout
+perf-bench-fanout:
+	@cd internal/fanoutconsumer && $(GOCMD) test -run=^$$ -bench='$(PERF_FANOUT_PATTERN)' $(PERF_BENCH_FLAGS) ./...
+
+.PHONY: perf-bench-clone
+perf-bench-clone:
+	@cd pdata && $(GOCMD) test -run=^$$ -bench='$(PERF_CLONE_PATTERN)' $(PERF_BENCH_FLAGS) ./pmetric/... ./ptrace/... ./plog/...
+
+.PHONY: perf-bench-pipeline
+perf-bench-pipeline:
+	@cd service && $(GOCMD) test -run=^$$ -bench='$(PERF_PIPELINE_PATTERN)' $(PERF_BENCH_FLAGS) ./internal/graph/...
+
+# perf-bench runs the full local rig (fanout + clone + pipeline) and tees
+# the combined output to perf/last-run/bench.txt. Tight enough to iterate
+# on a change locally.
+.PHONY: perf-bench
+perf-bench:
+	@mkdir -p perf/last-run
+	@( \
+	  $(MAKE) -s perf-bench-fanout && \
+	  $(MAKE) -s perf-bench-clone && \
+	  $(MAKE) -s perf-bench-pipeline \
+	) 2>&1 | tee perf/last-run/bench.txt
+	@echo "Done. Combined output: perf/last-run/bench.txt"
+
+# perf-bench-quick uses a much shorter benchtime for sub-30s feedback.
+# Numbers are noisy — useful for confirming a change compiles and is in
+# the right direction, not for shipping deltas.
+.PHONY: perf-bench-quick
+perf-bench-quick:
+	@PERF_BENCH_FLAGS='$(PERF_BENCH_QUICK_FLAGS)' $(MAKE) -s perf-bench
+
+# perf-baseline captures a stable bench output plus metadata into
+# perf/baselines/YYYY-MM-DD-<shortsha>/. pprof binaries are NOT captured
+# by this target — see docs/performance.md for the steady-state recipe
+# via cmd/perftestbed.
+.PHONY: perf-baseline
+perf-baseline:
+	@mkdir -p $(BASELINE_DIR)
+	@PERF_BENCH_FLAGS='$(PERF_BASELINE_FLAGS)' $(MAKE) -s perf-bench
+	@cp perf/last-run/bench.txt $(BASELINE_DIR)/bench.txt
+	@$(MAKE) -s perf-baseline-metadata > $(BASELINE_DIR)/metadata.yaml
+	@echo "Baseline captured in $(BASELINE_DIR)"
+
+.PHONY: perf-baseline-metadata
+perf-baseline-metadata:
+	@echo "captured_at: $$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	@echo "git_sha: $$(git rev-parse HEAD 2>/dev/null || echo nogit)"
+	@echo "git_branch: $$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo nogit)"
+	@echo "go_version: $$($(GOCMD) version | awk '{print $$3}')"
+	@echo "goos: $$($(GOCMD) env GOOS)"
+	@echo "goarch: $$($(GOCMD) env GOARCH)"
+	@echo "host: $$(hostname -s 2>/dev/null || echo unknown)"
+	@echo "flags: \"$(PERF_BASELINE_FLAGS)\""
+
+# perf-compare runs perf-bench at HEAD and compares against a stored
+# baseline using benchstat. Install via:
+#   $(GOCMD) install golang.org/x/perf/cmd/benchstat@latest
+.PHONY: perf-compare
+perf-compare:
+	@if [ -z "$(BASELINE)" ]; then \
+	  echo "Usage: make perf-compare BASELINE=perf/baselines/<dir>"; \
+	  exit 1; \
+	fi
+	@if [ ! -f "$(BASELINE)/bench.txt" ]; then \
+	  echo "Missing $(BASELINE)/bench.txt — capture a baseline first with 'make perf-baseline'"; \
+	  exit 1; \
+	fi
+	@$(MAKE) -s perf-bench
+	@echo "---"
+	@echo "benchstat $(BASELINE)/bench.txt vs perf/last-run/bench.txt"
+	@benchstat $(BASELINE)/bench.txt perf/last-run/bench.txt
+
+# perftestbed builds the steady-state profile binary. The pprof endpoint
+# is exposed on localhost:6060 by default; see cmd/perftestbed/main.go.
+.PHONY: perftestbed
+perftestbed:
+	@cd cmd/perftestbed && $(GOCMD) build -o ../../bin/perftestbed .
+	@echo "Built bin/perftestbed"
+
 ALL_MOD_PATHS := "" $(ALL_MODULES:.%=%)
 
 .PHONY: prepare-contrib
