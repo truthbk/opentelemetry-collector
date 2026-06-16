@@ -30,6 +30,11 @@ coverage.txt
 **/benchmark.txt
 benchmarks.txt
 
+# Performance rig: keep checked-in baselines as text-only.
+# pprof binaries are large and stored externally (developer machine).
+perf/last-run/
+perf/baselines/**/*.pprof
+
 # Wix
 *.wixobj
 *.wixpdb
