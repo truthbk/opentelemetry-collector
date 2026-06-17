@@ -6,7 +6,6 @@ package fanoutconsumer
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"testing"
 
 	"go.opentelemetry.io/collector/consumer"
@@ -31,49 +30,12 @@ type metricsShape struct {
 	gen  func() pmetric.Metrics
 }
 
-// generateRichMetrics builds a batch designed to exercise every nested
-// container path: rmCount × smCount × 1 IntGauge with dpCount data points
-// each carrying attrCount string attributes.
-//
-// The default 100×5×50×10 shape mirrors the example used in the
-// "cost of a fanout clone" analysis (250k+ wrapper allocations per
-// CopyTo); see docs/performance.md.
-func generateRichMetrics(rmCount, smCount, dpCount, attrCount int) pmetric.Metrics {
-	md := pmetric.NewMetrics()
-	md.ResourceMetrics().EnsureCapacity(rmCount)
-	for r := range rmCount {
-		rm := md.ResourceMetrics().AppendEmpty()
-		attrs := rm.Resource().Attributes()
-		attrs.PutStr("host.name", "host-"+strconv.Itoa(r))
-		attrs.PutStr("service.name", "bench")
-		rm.ScopeMetrics().EnsureCapacity(smCount)
-		for s := range smCount {
-			sm := rm.ScopeMetrics().AppendEmpty()
-			sm.Scope().SetName("scope-" + strconv.Itoa(s))
-			metric := sm.Metrics().AppendEmpty()
-			metric.SetName("benchmark.metric")
-			gauge := metric.SetEmptyGauge()
-			gauge.DataPoints().EnsureCapacity(dpCount)
-			for d := range dpCount {
-				dp := gauge.DataPoints().AppendEmpty()
-				dp.SetIntValue(int64(d))
-				dpAttrs := dp.Attributes()
-				for a := range attrCount {
-					dpAttrs.PutStr("attr_"+strconv.Itoa(a),
-						fmt.Sprintf("v-%d-%d-%d-%d", r, s, d, a))
-				}
-			}
-		}
-	}
-	return md
-}
-
 func metricsShapes() []metricsShape {
 	return []metricsShape{
 		{"small_10", func() pmetric.Metrics { return testdata.GenerateMetrics(10) }},
 		{"medium_1k", func() pmetric.Metrics { return testdata.GenerateMetrics(1000) }},
 		{"large_10k", func() pmetric.Metrics { return testdata.GenerateMetrics(10000) }},
-		{"rich_100x5x50x10", func() pmetric.Metrics { return generateRichMetrics(100, 5, 50, 10) }},
+		{"rich_100x5x50x10", func() pmetric.Metrics { return testdata.GenerateMetricsManyResources(100, 5, 50, 10) }},
 	}
 }
 

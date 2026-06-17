@@ -21,7 +21,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"strconv"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -231,7 +230,7 @@ func buildMetrics(shape string) (pmetric.Metrics, error) {
 	case "large_10k":
 		return testdata.GenerateMetrics(10000), nil
 	case "rich_100x5x50x10":
-		return genRichMetrics(100, 5, 50, 10), nil
+		return testdata.GenerateMetricsManyResources(100, 5, 50, 10), nil
 	default:
 		return pmetric.Metrics{}, fmt.Errorf("unknown shape %q", shape)
 	}
@@ -246,7 +245,7 @@ func buildTraces(shape string) (ptrace.Traces, error) {
 	case "large_10k":
 		return testdata.GenerateTraces(10000), nil
 	case "rich_100x5x50x10":
-		return genRichTraces(100, 5, 50, 10), nil
+		return testdata.GenerateTracesManyResources(100, 5, 50, 10), nil
 	default:
 		return ptrace.Traces{}, fmt.Errorf("unknown shape %q", shape)
 	}
@@ -261,88 +260,10 @@ func buildLogs(shape string) (plog.Logs, error) {
 	case "large_10k":
 		return testdata.GenerateLogs(10000), nil
 	case "rich_100x5x50x10":
-		return genRichLogs(100, 5, 50, 10), nil
+		return testdata.GenerateLogsManyResources(100, 5, 50, 10), nil
 	default:
 		return plog.Logs{}, fmt.Errorf("unknown shape %q", shape)
 	}
-}
-
-func genRichMetrics(rmCount, smCount, dpCount, attrCount int) pmetric.Metrics {
-	md := pmetric.NewMetrics()
-	md.ResourceMetrics().EnsureCapacity(rmCount)
-	for r := range rmCount {
-		rm := md.ResourceMetrics().AppendEmpty()
-		rm.Resource().Attributes().PutStr("host.name", "host-"+strconv.Itoa(r))
-		rm.Resource().Attributes().PutStr("service.name", "bench")
-		rm.ScopeMetrics().EnsureCapacity(smCount)
-		for s := range smCount {
-			sm := rm.ScopeMetrics().AppendEmpty()
-			sm.Scope().SetName("scope-" + strconv.Itoa(s))
-			m := sm.Metrics().AppendEmpty()
-			m.SetName("benchmark.metric")
-			gauge := m.SetEmptyGauge()
-			gauge.DataPoints().EnsureCapacity(dpCount)
-			for d := range dpCount {
-				dp := gauge.DataPoints().AppendEmpty()
-				dp.SetIntValue(int64(d))
-				for a := range attrCount {
-					dp.Attributes().PutStr("attr_"+strconv.Itoa(a),
-						fmt.Sprintf("v-%d-%d-%d-%d", r, s, d, a))
-				}
-			}
-		}
-	}
-	return md
-}
-
-func genRichTraces(rsCount, ssCount, spanCount, attrCount int) ptrace.Traces {
-	td := ptrace.NewTraces()
-	td.ResourceSpans().EnsureCapacity(rsCount)
-	for r := range rsCount {
-		rs := td.ResourceSpans().AppendEmpty()
-		rs.Resource().Attributes().PutStr("host.name", "host-"+strconv.Itoa(r))
-		rs.Resource().Attributes().PutStr("service.name", "bench")
-		rs.ScopeSpans().EnsureCapacity(ssCount)
-		for s := range ssCount {
-			ss := rs.ScopeSpans().AppendEmpty()
-			ss.Scope().SetName("scope-" + strconv.Itoa(s))
-			ss.Spans().EnsureCapacity(spanCount)
-			for sp := range spanCount {
-				span := ss.Spans().AppendEmpty()
-				span.SetName("benchmark.span")
-				for a := range attrCount {
-					span.Attributes().PutStr("attr_"+strconv.Itoa(a),
-						fmt.Sprintf("v-%d-%d-%d-%d", r, s, sp, a))
-				}
-			}
-		}
-	}
-	return td
-}
-
-func genRichLogs(rlCount, slCount, recordCount, attrCount int) plog.Logs {
-	ld := plog.NewLogs()
-	ld.ResourceLogs().EnsureCapacity(rlCount)
-	for r := range rlCount {
-		rl := ld.ResourceLogs().AppendEmpty()
-		rl.Resource().Attributes().PutStr("host.name", "host-"+strconv.Itoa(r))
-		rl.Resource().Attributes().PutStr("service.name", "bench")
-		rl.ScopeLogs().EnsureCapacity(slCount)
-		for s := range slCount {
-			sl := rl.ScopeLogs().AppendEmpty()
-			sl.Scope().SetName("scope-" + strconv.Itoa(s))
-			sl.LogRecords().EnsureCapacity(recordCount)
-			for rec := range recordCount {
-				lr := sl.LogRecords().AppendEmpty()
-				lr.Body().SetStr("benchmark log line")
-				for a := range attrCount {
-					lr.Attributes().PutStr("attr_"+strconv.Itoa(a),
-						fmt.Sprintf("v-%d-%d-%d-%d", r, s, rec, a))
-				}
-			}
-		}
-	}
-	return ld
 }
 
 // ---- consumer mixes --------------------------------------------------------

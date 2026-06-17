@@ -6,7 +6,6 @@ package fanoutconsumer
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"testing"
 
 	"go.opentelemetry.io/collector/consumer"
@@ -29,42 +28,12 @@ type logsShape struct {
 	gen  func() plog.Logs
 }
 
-// generateRichLogs builds a batch designed to exercise every nested
-// container path: rlCount × slCount × recordCount with attrCount string
-// attributes per record. Mirrors the "rich" metrics/traces shape.
-func generateRichLogs(rlCount, slCount, recordCount, attrCount int) plog.Logs {
-	ld := plog.NewLogs()
-	ld.ResourceLogs().EnsureCapacity(rlCount)
-	for r := range rlCount {
-		rl := ld.ResourceLogs().AppendEmpty()
-		attrs := rl.Resource().Attributes()
-		attrs.PutStr("host.name", "host-"+strconv.Itoa(r))
-		attrs.PutStr("service.name", "bench")
-		rl.ScopeLogs().EnsureCapacity(slCount)
-		for s := range slCount {
-			sl := rl.ScopeLogs().AppendEmpty()
-			sl.Scope().SetName("scope-" + strconv.Itoa(s))
-			sl.LogRecords().EnsureCapacity(recordCount)
-			for rec := range recordCount {
-				lr := sl.LogRecords().AppendEmpty()
-				lr.Body().SetStr("benchmark log line")
-				recAttrs := lr.Attributes()
-				for a := range attrCount {
-					recAttrs.PutStr("attr_"+strconv.Itoa(a),
-						fmt.Sprintf("v-%d-%d-%d-%d", r, s, rec, a))
-				}
-			}
-		}
-	}
-	return ld
-}
-
 func logsShapes() []logsShape {
 	return []logsShape{
 		{"small_10", func() plog.Logs { return testdata.GenerateLogs(10) }},
 		{"medium_1k", func() plog.Logs { return testdata.GenerateLogs(1000) }},
 		{"large_10k", func() plog.Logs { return testdata.GenerateLogs(10000) }},
-		{"rich_100x5x50x10", func() plog.Logs { return generateRichLogs(100, 5, 50, 10) }},
+		{"rich_100x5x50x10", func() plog.Logs { return testdata.GenerateLogsManyResources(100, 5, 50, 10) }},
 	}
 }
 

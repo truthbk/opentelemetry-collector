@@ -6,7 +6,6 @@ package fanoutconsumer
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"testing"
 
 	"go.opentelemetry.io/collector/consumer"
@@ -29,43 +28,12 @@ type tracesShape struct {
 	gen  func() ptrace.Traces
 }
 
-// generateRichTraces builds a batch designed to exercise every nested
-// container path: rsCount × ssCount × spanCount with attrCount string
-// attributes per span. Mirrors the "rich" metrics shape so the two
-// signal benchmarks are comparable.
-func generateRichTraces(rsCount, ssCount, spanCount, attrCount int) ptrace.Traces {
-	td := ptrace.NewTraces()
-	td.ResourceSpans().EnsureCapacity(rsCount)
-	for r := range rsCount {
-		rs := td.ResourceSpans().AppendEmpty()
-		attrs := rs.Resource().Attributes()
-		attrs.PutStr("host.name", "host-"+strconv.Itoa(r))
-		attrs.PutStr("service.name", "bench")
-		rs.ScopeSpans().EnsureCapacity(ssCount)
-		for s := range ssCount {
-			ss := rs.ScopeSpans().AppendEmpty()
-			ss.Scope().SetName("scope-" + strconv.Itoa(s))
-			ss.Spans().EnsureCapacity(spanCount)
-			for sp := range spanCount {
-				span := ss.Spans().AppendEmpty()
-				span.SetName("benchmark.span")
-				spanAttrs := span.Attributes()
-				for a := range attrCount {
-					spanAttrs.PutStr("attr_"+strconv.Itoa(a),
-						fmt.Sprintf("v-%d-%d-%d-%d", r, s, sp, a))
-				}
-			}
-		}
-	}
-	return td
-}
-
 func tracesShapes() []tracesShape {
 	return []tracesShape{
 		{"small_10", func() ptrace.Traces { return testdata.GenerateTraces(10) }},
 		{"medium_1k", func() ptrace.Traces { return testdata.GenerateTraces(1000) }},
 		{"large_10k", func() ptrace.Traces { return testdata.GenerateTraces(10000) }},
-		{"rich_100x5x50x10", func() ptrace.Traces { return generateRichTraces(100, 5, 50, 10) }},
+		{"rich_100x5x50x10", func() ptrace.Traces { return testdata.GenerateTracesManyResources(100, 5, 50, 10) }},
 	}
 }
 

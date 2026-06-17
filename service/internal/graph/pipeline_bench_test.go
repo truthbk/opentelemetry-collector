@@ -111,83 +111,6 @@ func receiverFor(b *testing.B, g *Graph, signal pipeline.Signal) *testcomponents
 	return nil
 }
 
-func genRichMetricsBench(rmCount, smCount, dpCount, attrCount int) pmetric.Metrics {
-	md := pmetric.NewMetrics()
-	md.ResourceMetrics().EnsureCapacity(rmCount)
-	for r := range rmCount {
-		rm := md.ResourceMetrics().AppendEmpty()
-		rm.Resource().Attributes().PutStr("host.name", "host-"+strconv.Itoa(r))
-		rm.Resource().Attributes().PutStr("service.name", "bench")
-		rm.ScopeMetrics().EnsureCapacity(smCount)
-		for s := range smCount {
-			sm := rm.ScopeMetrics().AppendEmpty()
-			sm.Scope().SetName("scope-" + strconv.Itoa(s))
-			m := sm.Metrics().AppendEmpty()
-			m.SetName("benchmark.metric")
-			gauge := m.SetEmptyGauge()
-			gauge.DataPoints().EnsureCapacity(dpCount)
-			for d := range dpCount {
-				dp := gauge.DataPoints().AppendEmpty()
-				dp.SetIntValue(int64(d))
-				for a := range attrCount {
-					dp.Attributes().PutStr("attr_"+strconv.Itoa(a),
-						fmt.Sprintf("v-%d-%d-%d-%d", r, s, d, a))
-				}
-			}
-		}
-	}
-	return md
-}
-
-func genRichTracesBench(rsCount, ssCount, spanCount, attrCount int) ptrace.Traces {
-	td := ptrace.NewTraces()
-	td.ResourceSpans().EnsureCapacity(rsCount)
-	for r := range rsCount {
-		rs := td.ResourceSpans().AppendEmpty()
-		rs.Resource().Attributes().PutStr("host.name", "host-"+strconv.Itoa(r))
-		rs.Resource().Attributes().PutStr("service.name", "bench")
-		rs.ScopeSpans().EnsureCapacity(ssCount)
-		for s := range ssCount {
-			ss := rs.ScopeSpans().AppendEmpty()
-			ss.Scope().SetName("scope-" + strconv.Itoa(s))
-			ss.Spans().EnsureCapacity(spanCount)
-			for sp := range spanCount {
-				span := ss.Spans().AppendEmpty()
-				span.SetName("benchmark.span")
-				for a := range attrCount {
-					span.Attributes().PutStr("attr_"+strconv.Itoa(a),
-						fmt.Sprintf("v-%d-%d-%d-%d", r, s, sp, a))
-				}
-			}
-		}
-	}
-	return td
-}
-
-func genRichLogsBench(rlCount, slCount, recordCount, attrCount int) plog.Logs {
-	ld := plog.NewLogs()
-	ld.ResourceLogs().EnsureCapacity(rlCount)
-	for r := range rlCount {
-		rl := ld.ResourceLogs().AppendEmpty()
-		rl.Resource().Attributes().PutStr("host.name", "host-"+strconv.Itoa(r))
-		rl.Resource().Attributes().PutStr("service.name", "bench")
-		rl.ScopeLogs().EnsureCapacity(slCount)
-		for s := range slCount {
-			sl := rl.ScopeLogs().AppendEmpty()
-			sl.Scope().SetName("scope-" + strconv.Itoa(s))
-			sl.LogRecords().EnsureCapacity(recordCount)
-			for rec := range recordCount {
-				lr := sl.LogRecords().AppendEmpty()
-				lr.Body().SetStr("benchmark log line")
-				for a := range attrCount {
-					lr.Attributes().PutStr("attr_"+strconv.Itoa(a),
-						fmt.Sprintf("v-%d-%d-%d-%d", r, s, rec, a))
-				}
-			}
-		}
-	}
-	return ld
-}
 
 // BenchmarkPipelineFanoutMetrics measures the end-to-end cost of pushing
 // one pmetric.Metrics batch through a fully-built graph
@@ -211,7 +134,7 @@ func BenchmarkPipelineFanoutMetrics(b *testing.B) {
 	}{
 		{"small_10", func() pmetric.Metrics { return testdata.GenerateMetrics(10) }},
 		{"medium_1k", func() pmetric.Metrics { return testdata.GenerateMetrics(1000) }},
-		{"rich_100x5x50x10", func() pmetric.Metrics { return genRichMetricsBench(100, 5, 50, 10) }},
+		{"rich_100x5x50x10", func() pmetric.Metrics { return testdata.GenerateMetricsManyResources(100, 5, 50, 10) }},
 	}
 	ns := []int{1, 2, 4, 8}
 	mutators := []bool{false, true}
@@ -247,7 +170,7 @@ func BenchmarkPipelineFanoutTraces(b *testing.B) {
 	}{
 		{"small_10", func() ptrace.Traces { return testdata.GenerateTraces(10) }},
 		{"medium_1k", func() ptrace.Traces { return testdata.GenerateTraces(1000) }},
-		{"rich_100x5x50x10", func() ptrace.Traces { return genRichTracesBench(100, 5, 50, 10) }},
+		{"rich_100x5x50x10", func() ptrace.Traces { return testdata.GenerateTracesManyResources(100, 5, 50, 10) }},
 	}
 	ns := []int{1, 2, 4, 8}
 	mutators := []bool{false, true}
@@ -283,7 +206,7 @@ func BenchmarkPipelineFanoutLogs(b *testing.B) {
 	}{
 		{"small_10", func() plog.Logs { return testdata.GenerateLogs(10) }},
 		{"medium_1k", func() plog.Logs { return testdata.GenerateLogs(1000) }},
-		{"rich_100x5x50x10", func() plog.Logs { return genRichLogsBench(100, 5, 50, 10) }},
+		{"rich_100x5x50x10", func() plog.Logs { return testdata.GenerateLogsManyResources(100, 5, 50, 10) }},
 	}
 	ns := []int{1, 2, 4, 8}
 	mutators := []bool{false, true}
