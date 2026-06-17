@@ -55,16 +55,13 @@ Each baseline's `metadata.yaml` records the captured state:
 
 ```yaml
 captured_at: 2026-06-17T14:32:08Z
-git_sha: 2e5c71d11
-git_branch: feat/cmd-schemagen
-go_version: go1.25.0
+git_sha: ef31443a2922d05fa26f582ff62dbcea06c246dc
+git_branch: perf/local-rig
+go_version: go1.26.3
 goos: darwin
 goarch: arm64
 host: jaime-laptop
-flags:
-  - -benchmem
-  - -count=10
-  - -benchtime=5s
+flags: "-benchmem -count=10 -benchtime=5s"
 notes: |
   Free-form text describing the run context.
 ```

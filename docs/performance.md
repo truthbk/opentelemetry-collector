@@ -7,7 +7,7 @@ paths and capturing extractable profiles. It lives in three places:
 | --- | --- |
 | `internal/fanoutconsumer/*_bench_test.go` | Per-signal fanout dispatch (`NewMetrics`/`NewTraces`/`NewLogs`) across a grid of consumer counts × mutator mixes × batch shapes. |
 | `pdata/{pmetric,ptrace,plog}/clone_bench_test.go` | The raw cost of `CopyTo` for the same shape grid. The "intrinsic clone cost" reference. |
-| `service/internal/graph/pipeline_bench_test.go` | End-to-end pipeline: `nopreceiver` → optional `batchprocessor` → fanout → N × `nopexporter`. Validates that microbench wins land at the pipeline level too. |
+| `service/internal/graph/pipeline_bench_test.go` | End-to-end pipeline: `examplereceiver` → optional mutating `exampleprocessor` → fanout → N × `exampleexporter`. Validates that microbench wins land at the pipeline level too. |
 | `cmd/perftestbed/` | Standalone binary for steady-state load + live `pprof` attach. |
 
 Use this rig to:
@@ -44,7 +44,7 @@ make perf-baseline      # populates perf/baselines/YYYY-MM-DD-<shortsha>/
 Compare current state against a stored baseline:
 
 ```sh
-make perf-compare BASELINE=perf/baselines/2026-06-17-2e5c71d/
+make perf-compare BASELINE=perf/baselines/2026-06-17-ef31443a2/
 ```
 
 ## Running a specific benchmark by hand
@@ -93,7 +93,7 @@ elsewhere.
 Add `-cpuprofile` / `-memprofile` to any `go test -bench` invocation:
 
 ```sh
-go test -bench='BenchmarkPipelineFanout/N=4/batch=true' \
+go test -bench='BenchmarkPipelineFanoutMetrics/N=4/mutator=true/shape=rich_100x5x50x10' \
         -benchmem -benchtime=10s -count=1 \
         -cpuprofile=/tmp/cpu.pprof \
         -memprofile=/tmp/mem.pprof \
@@ -126,15 +126,18 @@ QPS), use the standalone binary:
 
 ```sh
 go build -o /tmp/perftestbed ./cmd/perftestbed/
-/tmp/perftestbed --signal=metrics --fanout=4 --batch=true --duration=120s &
+/tmp/perftestbed --signal=metrics --fanout=4 \
+                 --mutator-mix=one_mut_rest_ro \
+                 --shape=rich_100x5x50x10 \
+                 --duration=120s &
 # Live attach from a second shell:
 go tool pprof -seconds=60 http://localhost:6060/debug/pprof/profile
 go tool pprof -alloc_objects http://localhost:6060/debug/pprof/allocs
 ```
 
 The binary registers `net/http/pprof` handlers on `localhost:6060` and
-exits cleanly after `--duration`. See `cmd/perftestbed/README.md` for
-the full flag set.
+exits cleanly after `--duration`. Run `./perftestbed --help` for the
+full flag set.
 
 This is intentionally only a developer tool — production deployments
 should keep using the dedicated `pprofextension` from the contrib repo.
@@ -169,7 +172,7 @@ change), trust it — don't ship "wins" inside the noise floor.
 Captured baselines live under `perf/baselines/YYYY-MM-DD-<shortsha>/`:
 
 ```
-perf/baselines/2026-06-17-2e5c71d/
+perf/baselines/2026-06-17-ef31443a2/
 ├── README.md      ← notes: hardware, intent, where pprofs were uploaded
 ├── metadata.yaml  ← git sha, Go version, host, flags
 └── bench.txt      ← raw benchstat-readable output
