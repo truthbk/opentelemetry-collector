@@ -8,15 +8,15 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 )
 
-// ShareLogs — see ShareMetrics.
+// ShareLogs — see ShareMetrics for the full doc + Phase 1 limitation.
 func ShareLogs(ld plog.Logs) plog.Logs {
 	if !FeatureGate.IsEnabled() {
 		return ld
 	}
-	cloned := plog.NewLogs()
-	ld.CopyTo(cloned)
-	internal.GetLogsState(internal.LogsWrapper(cloned)).IncCowRefs()
-	return cloned
+	sourceOrig := internal.GetLogsOrig(internal.LogsWrapper(ld))
+	sharedState := internal.NewState()
+	sharedState.IncCowRefs()
+	return plog.Logs(internal.NewLogsWrapper(sourceOrig, sharedState))
 }
 
 // ReleaseLogs — see ReleaseMetrics.

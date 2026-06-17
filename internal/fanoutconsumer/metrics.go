@@ -75,12 +75,15 @@ func (msc *metricsConsumer) ConsumeMetrics(ctx context.Context, md pmetric.Metri
 	return errs
 }
 
-// cloneMetrics returns an independent copy of md. When the pdata.cow
-// feature gate is enabled, the clone goes through cow.ShareMetrics so a
-// future deferred-clone design (see perf/rfc/pdata-cow.md) can repurpose
-// this call site without further fanout changes. Under the current
-// eager-clone semantics ShareMetrics is functionally identical to a
-// direct CopyTo.
+// cloneMetrics returns a wrapper independent of md. Under the pdata.cow
+// feature gate, the call goes through cow.ShareMetrics which produces a
+// share wrapper at the same backing orig tree but with its own State —
+// no proto allocation happens here, the deferred clone is up to the
+// downstream consumer's first mutation (Phase 1: consumers that declare
+// MutatesData but don't actually mutate skip the clone entirely;
+// consumers that DO mutate without Phase 2's codegen-injected detach
+// will write to the source — see ShareMetrics's doc for the contract).
+// Gate-off path stays the unconditional CopyTo.
 func cloneMetrics(md pmetric.Metrics) pmetric.Metrics {
 	if cow.FeatureGate.IsEnabled() {
 		return cow.ShareMetrics(md)

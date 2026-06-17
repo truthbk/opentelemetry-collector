@@ -8,15 +8,15 @@ import (
 	"go.opentelemetry.io/collector/pdata/ptrace"
 )
 
-// ShareTraces — see ShareMetrics.
+// ShareTraces — see ShareMetrics for the full doc + Phase 1 limitation.
 func ShareTraces(td ptrace.Traces) ptrace.Traces {
 	if !FeatureGate.IsEnabled() {
 		return td
 	}
-	cloned := ptrace.NewTraces()
-	td.CopyTo(cloned)
-	internal.GetTracesState(internal.TracesWrapper(cloned)).IncCowRefs()
-	return cloned
+	sourceOrig := internal.GetTracesOrig(internal.TracesWrapper(td))
+	sharedState := internal.NewState()
+	sharedState.IncCowRefs()
+	return ptrace.Traces(internal.NewTracesWrapper(sourceOrig, sharedState))
 }
 
 // ReleaseTraces — see ReleaseMetrics.

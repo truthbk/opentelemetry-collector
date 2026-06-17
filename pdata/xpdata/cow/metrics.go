@@ -8,50 +8,50 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric"
 )
 
-// ShareMetrics returns an independent pmetric.Metrics that the caller
-// can mutate without affecting md.
+// ShareMetrics returns a pmetric.Metrics wrapper that points at the same
+// backing orig tree as md, but with its OWN freshly-allocated *State.
+// This is the "deferred clone" semantics of Alternative A (see
+// perf/rfc/pdata-cow.md):
 //
-// # Current behaviour: eager clone
+//   - No allocation of the orig tree (the expensive part). The returned
+//     wrapper shares all of md's resource/scope/metric/datapoint
+//     structures by pointer.
+//   - The new State has cowRefs set to 1, identifying this wrapper as a
+//     share. Detach (at the wrapper's first mutating call, once the
+//     codegen migration lands) examines this counter to decide whether
+//     to clone the orig.
+//   - The source's State is untouched. A MarkReadOnly broadcast on the
+//     source does not affect this share's mutability.
 //
-// Under the pdata.cow feature gate as currently shipped, ShareMetrics
-// does an eager CopyTo — the returned wrapper has its own State and
-// orig tree, and `cowRefs` is bumped only for observability bookkeeping.
-// This matches today's fanout `cloneMetrics(md)` semantics; ShareMetrics
-// is a renamed, gated entry point that future deferred-clone work can
-// repurpose without API changes.
-//
-// The original deferred-clone design (Alternative A in perf/rfc/pdata-
-// cow.md) was prototyped under pdata/internal/cowproto and benched in
-// pdata/xpdata/internal/cowprotobench. The wrapper-layer overhead
-// measured 22-67% on deep-path access while the deferred-clone benefit
-// fires only in narrow post-O2 scenarios — net production impact was
-// flat-to-negative. The pivot to eager-clone preserves the gate, the
-// xpdata/cow API surface, the State.cowRefs/generation fields, and the
-// observability hooks as scaffolding for a future engagement that
-// designs a working deferred mechanism (e.g. per-subtree COW).
-//
-// Pairs with ReleaseMetrics: every successful ShareMetrics must be
-// balanced by exactly one ReleaseMetrics (typically `defer
-// cow.ReleaseMetrics(shared)` immediately after the call).
+// CURRENT LIMITATION (Phase 1 validation, before codegen migration):
+// Auto-detach-on-mutation is NOT wired into the leaf wrapper accessors.
+// A consumer that DECLARES MutatesData=true but does not actually mutate
+// (the audit's "false-positive mutator" — e.g. a transform/filter
+// processor on a no-match batch) works correctly: no mutation, no
+// corruption, the clone today's fanout would have done is skipped. A
+// consumer that ACTUALLY mutates writes to the source's backing tree
+// (corruption). Phase 2 adds the codegen migration that makes auto-
+// detach safe for real mutators; Phase 1 is for measuring whether the
+// deferred-clone benefit is real at the pipeline level before
+// committing to that work.
 //
 // When the pdata.cow feature gate is disabled, ShareMetrics returns md
-// unchanged — callers are expected to fall back to their pre-gate
-// cloning strategy (cloneMetrics in fanout, etc.) on the gate-off path.
+// unchanged.
 func ShareMetrics(md pmetric.Metrics) pmetric.Metrics {
 	if !FeatureGate.IsEnabled() {
 		return md
 	}
-	cloned := pmetric.NewMetrics()
-	md.CopyTo(cloned)
-	internal.GetMetricsState(internal.MetricsWrapper(cloned)).IncCowRefs()
-	return cloned
+	sourceOrig := internal.GetMetricsOrig(internal.MetricsWrapper(md))
+	sharedState := internal.NewState()
+	sharedState.IncCowRefs()
+	return pmetric.Metrics(internal.NewMetricsWrapper(sourceOrig, sharedState))
 }
 
-// ReleaseMetrics decrements the cowRefs counter on the cloned wrapper's
-// State. Under the eager-clone semantics this is purely bookkeeping —
-// the cloned State has its own refcount and isn't observed by the
-// source — but the explicit Release is preserved so call sites match
-// the eventual deferred-clone API shape.
+// ReleaseMetrics decrements the cowRefs counter on the share's State.
+// Under Phase 1 share-semantics, this is bookkeeping for observability
+// (IsSharedMetrics, future pdata_cow_detach_total counter). The
+// orig-tree ownership is GC-driven — when no wrapper references the
+// source's orig, it gets collected naturally.
 //
 // ReleaseMetrics is a no-op when the pdata.cow feature gate is disabled.
 func ReleaseMetrics(md pmetric.Metrics) {
@@ -61,10 +61,8 @@ func ReleaseMetrics(md pmetric.Metrics) {
 	internal.GetMetricsState(internal.MetricsWrapper(md)).DecCowRefs()
 }
 
-// IsSharedMetrics reports whether the backing State has at least one
-// outstanding COW share. Under the eager-clone semantics this is only
-// true between a successful ShareMetrics and its paired ReleaseMetrics
-// — useful for observability or contract assertions in test code.
+// IsSharedMetrics reports whether the wrapper's State carries an active
+// COW share (cowRefs > 0).
 //
 // Returns false when the pdata.cow feature gate is disabled.
 func IsSharedMetrics(md pmetric.Metrics) bool {

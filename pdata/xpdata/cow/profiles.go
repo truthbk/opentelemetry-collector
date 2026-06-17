@@ -8,15 +8,15 @@ import (
 	"go.opentelemetry.io/collector/pdata/pprofile"
 )
 
-// ShareProfiles — see ShareMetrics.
+// ShareProfiles — see ShareMetrics for the full doc + Phase 1 limitation.
 func ShareProfiles(pd pprofile.Profiles) pprofile.Profiles {
 	if !FeatureGate.IsEnabled() {
 		return pd
 	}
-	cloned := pprofile.NewProfiles()
-	pd.CopyTo(cloned)
-	internal.GetProfilesState(internal.ProfilesWrapper(cloned)).IncCowRefs()
-	return cloned
+	sourceOrig := internal.GetProfilesOrig(internal.ProfilesWrapper(pd))
+	sharedState := internal.NewState()
+	sharedState.IncCowRefs()
+	return pprofile.Profiles(internal.NewProfilesWrapper(sourceOrig, sharedState))
 }
 
 // ReleaseProfiles — see ReleaseMetrics.
