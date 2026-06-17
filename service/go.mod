@@ -13,6 +13,7 @@ require (
 	go.opentelemetry.io/collector/component/componenttest v0.152.0
 	go.opentelemetry.io/collector/config/confighttp v0.152.0
 	go.opentelemetry.io/collector/config/confignet v1.58.0
+	go.opentelemetry.io/collector/config/configoptional v1.58.0
 	go.opentelemetry.io/collector/config/configtelemetry v0.152.0
 	go.opentelemetry.io/collector/confmap v1.58.0
 	go.opentelemetry.io/collector/confmap/xconfmap v0.152.0
@@ -24,6 +25,7 @@ require (
 	go.opentelemetry.io/collector/consumer/consumertest v0.152.0
 	go.opentelemetry.io/collector/consumer/xconsumer v0.152.0
 	go.opentelemetry.io/collector/exporter v1.58.0
+	go.opentelemetry.io/collector/exporter/exporterhelper v0.152.0
 	go.opentelemetry.io/collector/exporter/exportertest v0.152.0
 	go.opentelemetry.io/collector/exporter/xexporter v0.152.0
 	go.opentelemetry.io/collector/extension v1.58.0
@@ -84,6 +86,7 @@ require (
 	github.com/google/go-tpm v0.9.8 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
 	github.com/hashicorp/go-version v1.9.0 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.6 // indirect
@@ -114,10 +117,11 @@ require (
 	go.opentelemetry.io/collector/config/configcompression v1.58.0 // indirect
 	go.opentelemetry.io/collector/config/configmiddleware v1.58.0 // indirect
 	go.opentelemetry.io/collector/config/configopaque v1.58.0 // indirect
-	go.opentelemetry.io/collector/config/configoptional v1.58.0 // indirect
+	go.opentelemetry.io/collector/config/configretry v1.58.0 // indirect
 	go.opentelemetry.io/collector/config/configtls v1.58.0 // indirect
 	go.opentelemetry.io/collector/extension/extensionauth v1.58.0 // indirect
 	go.opentelemetry.io/collector/extension/extensionmiddleware v0.152.0 // indirect
+	go.opentelemetry.io/collector/extension/xextension v0.152.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0 // indirect
 	go.opentelemetry.io/contrib/zpages v0.68.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.19.0 // indirect
