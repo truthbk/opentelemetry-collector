@@ -5,6 +5,7 @@ package testcomponents // import "go.opentelemetry.io/collector/service/internal
 
 import (
 	"context"
+	"strings"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -33,29 +34,35 @@ func createExporterDefaultConfig() component.Config {
 	return &struct{}{}
 }
 
-func createTracesExporter(context.Context, exporter.Settings, component.Config) (exporter.Traces, error) {
-	return &ExampleExporter{}, nil
+func createTracesExporter(_ context.Context, set exporter.Settings, _ component.Config) (exporter.Traces, error) {
+	return &ExampleExporter{mutatesData: strings.HasPrefix(set.ID.Name(), "batched")}, nil
 }
 
-func createMetricsExporter(context.Context, exporter.Settings, component.Config) (exporter.Metrics, error) {
-	return &ExampleExporter{}, nil
+func createMetricsExporter(_ context.Context, set exporter.Settings, _ component.Config) (exporter.Metrics, error) {
+	return &ExampleExporter{mutatesData: strings.HasPrefix(set.ID.Name(), "batched")}, nil
 }
 
-func createLogsExporter(context.Context, exporter.Settings, component.Config) (exporter.Logs, error) {
-	return &ExampleExporter{}, nil
+func createLogsExporter(_ context.Context, set exporter.Settings, _ component.Config) (exporter.Logs, error) {
+	return &ExampleExporter{mutatesData: strings.HasPrefix(set.ID.Name(), "batched")}, nil
 }
 
-func createProfilesExporter(context.Context, exporter.Settings, component.Config) (xexporter.Profiles, error) {
-	return &ExampleExporter{}, nil
+func createProfilesExporter(_ context.Context, set exporter.Settings, _ component.Config) (xexporter.Profiles, error) {
+	return &ExampleExporter{mutatesData: strings.HasPrefix(set.ID.Name(), "batched")}, nil
 }
 
 // ExampleExporter stores consumed traces, metrics, logs and profiles for testing purposes.
+// When constructed via a factory with a component ID whose name starts with "batched", it
+// declares MutatesData: true to simulate the exporterhelper's queue+batch path injecting
+// that flag (see audit finding #19). The prefix-based check lets a single pipeline carry
+// multiple distinct batched exporters (e.g. "batched_a", "batched_b"). Otherwise it
+// declares MutatesData: false like a normal exporter.
 type ExampleExporter struct {
 	componentState
-	Traces   []ptrace.Traces
-	Metrics  []pmetric.Metrics
-	Logs     []plog.Logs
-	Profiles []pprofile.Profiles
+	Traces      []ptrace.Traces
+	Metrics     []pmetric.Metrics
+	Logs        []plog.Logs
+	Profiles    []pprofile.Profiles
+	mutatesData bool
 }
 
 // ConsumeTraces receives ptrace.Traces for processing by the consumer.Traces.
@@ -87,5 +94,5 @@ func (exp *ExampleExporter) ConsumeProfiles(_ context.Context, pd pprofile.Profi
 }
 
 func (exp *ExampleExporter) Capabilities() consumer.Capabilities {
-	return consumer.Capabilities{MutatesData: false}
+	return consumer.Capabilities{MutatesData: exp.mutatesData}
 }
