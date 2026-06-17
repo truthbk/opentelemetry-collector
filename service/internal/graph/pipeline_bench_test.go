@@ -37,7 +37,7 @@ import (
 //
 // The signal-specific helpers below extract the receiver back out of
 // the graph so the bench loop can drive load directly.
-func buildBenchPipeline(b *testing.B, signal pipeline.Signal, n int, mutator bool) *Graph {
+func buildBenchPipeline(ctx context.Context, b *testing.B, signal pipeline.Signal, n int, mutator bool) *Graph {
 	b.Helper()
 
 	receiverID := component.MustNewID("examplereceiver")
@@ -55,7 +55,7 @@ func buildBenchPipeline(b *testing.B, signal pipeline.Signal, n int, mutator boo
 
 	exporterIDs := make([]component.ID, n)
 	exporterConfigs := map[component.ID]component.Config{}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		id := component.MustNewIDWithName("exampleexporter", strconv.Itoa(i))
 		exporterIDs[i] = id
 		exporterConfigs[id] = testcomponents.ExampleExporterFactory.CreateDefaultConfig()
@@ -92,7 +92,7 @@ func buildBenchPipeline(b *testing.B, signal pipeline.Signal, n int, mutator boo
 		},
 	}
 
-	g, err := Build(context.Background(), set)
+	g, err := Build(ctx, set)
 	require.NoError(b, err)
 	return g
 }
@@ -114,22 +114,22 @@ func receiverFor(b *testing.B, g *Graph, signal pipeline.Signal) *testcomponents
 func genRichMetricsBench(rmCount, smCount, dpCount, attrCount int) pmetric.Metrics {
 	md := pmetric.NewMetrics()
 	md.ResourceMetrics().EnsureCapacity(rmCount)
-	for r := 0; r < rmCount; r++ {
+	for r := range rmCount {
 		rm := md.ResourceMetrics().AppendEmpty()
 		rm.Resource().Attributes().PutStr("host.name", "host-"+strconv.Itoa(r))
 		rm.Resource().Attributes().PutStr("service.name", "bench")
 		rm.ScopeMetrics().EnsureCapacity(smCount)
-		for s := 0; s < smCount; s++ {
+		for s := range smCount {
 			sm := rm.ScopeMetrics().AppendEmpty()
 			sm.Scope().SetName("scope-" + strconv.Itoa(s))
 			m := sm.Metrics().AppendEmpty()
 			m.SetName("benchmark.metric")
 			gauge := m.SetEmptyGauge()
 			gauge.DataPoints().EnsureCapacity(dpCount)
-			for d := 0; d < dpCount; d++ {
+			for d := range dpCount {
 				dp := gauge.DataPoints().AppendEmpty()
 				dp.SetIntValue(int64(d))
-				for a := 0; a < attrCount; a++ {
+				for a := range attrCount {
 					dp.Attributes().PutStr("attr_"+strconv.Itoa(a),
 						fmt.Sprintf("v-%d-%d-%d-%d", r, s, d, a))
 				}
@@ -142,19 +142,19 @@ func genRichMetricsBench(rmCount, smCount, dpCount, attrCount int) pmetric.Metri
 func genRichTracesBench(rsCount, ssCount, spanCount, attrCount int) ptrace.Traces {
 	td := ptrace.NewTraces()
 	td.ResourceSpans().EnsureCapacity(rsCount)
-	for r := 0; r < rsCount; r++ {
+	for r := range rsCount {
 		rs := td.ResourceSpans().AppendEmpty()
 		rs.Resource().Attributes().PutStr("host.name", "host-"+strconv.Itoa(r))
 		rs.Resource().Attributes().PutStr("service.name", "bench")
 		rs.ScopeSpans().EnsureCapacity(ssCount)
-		for s := 0; s < ssCount; s++ {
+		for s := range ssCount {
 			ss := rs.ScopeSpans().AppendEmpty()
 			ss.Scope().SetName("scope-" + strconv.Itoa(s))
 			ss.Spans().EnsureCapacity(spanCount)
-			for sp := 0; sp < spanCount; sp++ {
+			for sp := range spanCount {
 				span := ss.Spans().AppendEmpty()
 				span.SetName("benchmark.span")
-				for a := 0; a < attrCount; a++ {
+				for a := range attrCount {
 					span.Attributes().PutStr("attr_"+strconv.Itoa(a),
 						fmt.Sprintf("v-%d-%d-%d-%d", r, s, sp, a))
 				}
@@ -167,19 +167,19 @@ func genRichTracesBench(rsCount, ssCount, spanCount, attrCount int) ptrace.Trace
 func genRichLogsBench(rlCount, slCount, recordCount, attrCount int) plog.Logs {
 	ld := plog.NewLogs()
 	ld.ResourceLogs().EnsureCapacity(rlCount)
-	for r := 0; r < rlCount; r++ {
+	for r := range rlCount {
 		rl := ld.ResourceLogs().AppendEmpty()
 		rl.Resource().Attributes().PutStr("host.name", "host-"+strconv.Itoa(r))
 		rl.Resource().Attributes().PutStr("service.name", "bench")
 		rl.ScopeLogs().EnsureCapacity(slCount)
-		for s := 0; s < slCount; s++ {
+		for s := range slCount {
 			sl := rl.ScopeLogs().AppendEmpty()
 			sl.Scope().SetName("scope-" + strconv.Itoa(s))
 			sl.LogRecords().EnsureCapacity(recordCount)
-			for rec := 0; rec < recordCount; rec++ {
+			for rec := range recordCount {
 				lr := sl.LogRecords().AppendEmpty()
 				lr.Body().SetStr("benchmark log line")
-				for a := 0; a < attrCount; a++ {
+				for a := range attrCount {
 					lr.Attributes().PutStr("attr_"+strconv.Itoa(a),
 						fmt.Sprintf("v-%d-%d-%d-%d", r, s, rec, a))
 				}
@@ -222,7 +222,7 @@ func BenchmarkPipelineFanoutMetrics(b *testing.B) {
 			for _, n := range ns {
 				name := fmt.Sprintf("N=%d/mutator=%v/shape=%s", n, mutator, shape.name)
 				b.Run(name, func(b *testing.B) {
-					g := buildBenchPipeline(b, pipeline.SignalMetrics, n, mutator)
+					g := buildBenchPipeline(ctx, b, pipeline.SignalMetrics, n, mutator)
 					rcv := receiverFor(b, g, pipeline.SignalMetrics)
 					md := shape.gen()
 					b.ReportAllocs()
@@ -258,7 +258,7 @@ func BenchmarkPipelineFanoutTraces(b *testing.B) {
 			for _, n := range ns {
 				name := fmt.Sprintf("N=%d/mutator=%v/shape=%s", n, mutator, shape.name)
 				b.Run(name, func(b *testing.B) {
-					g := buildBenchPipeline(b, pipeline.SignalTraces, n, mutator)
+					g := buildBenchPipeline(ctx, b, pipeline.SignalTraces, n, mutator)
 					rcv := receiverFor(b, g, pipeline.SignalTraces)
 					td := shape.gen()
 					b.ReportAllocs()
@@ -294,7 +294,7 @@ func BenchmarkPipelineFanoutLogs(b *testing.B) {
 			for _, n := range ns {
 				name := fmt.Sprintf("N=%d/mutator=%v/shape=%s", n, mutator, shape.name)
 				b.Run(name, func(b *testing.B) {
-					g := buildBenchPipeline(b, pipeline.SignalLogs, n, mutator)
+					g := buildBenchPipeline(ctx, b, pipeline.SignalLogs, n, mutator)
 					rcv := receiverFor(b, g, pipeline.SignalLogs)
 					ld := shape.gen()
 					b.ReportAllocs()

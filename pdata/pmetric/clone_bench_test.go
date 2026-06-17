@@ -26,7 +26,7 @@ func genSimpleMetrics(count int) Metrics {
 	sm := rm.ScopeMetrics().AppendEmpty()
 	sm.Scope().SetName("bench-scope")
 	sm.Metrics().EnsureCapacity(count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		m := sm.Metrics().AppendEmpty()
 		m.SetName("metric_" + strconv.Itoa(i))
 		dp := m.SetEmptyGauge().DataPoints().AppendEmpty()
@@ -46,24 +46,24 @@ func genSimpleMetrics(count int) Metrics {
 func genRichMetrics(rmCount, smCount, dpCount, attrCount int) Metrics {
 	md := NewMetrics()
 	md.ResourceMetrics().EnsureCapacity(rmCount)
-	for r := 0; r < rmCount; r++ {
+	for r := range rmCount {
 		rm := md.ResourceMetrics().AppendEmpty()
 		attrs := rm.Resource().Attributes()
 		attrs.PutStr("host.name", "host-"+strconv.Itoa(r))
 		attrs.PutStr("service.name", "bench")
 		rm.ScopeMetrics().EnsureCapacity(smCount)
-		for s := 0; s < smCount; s++ {
+		for s := range smCount {
 			sm := rm.ScopeMetrics().AppendEmpty()
 			sm.Scope().SetName("scope-" + strconv.Itoa(s))
 			m := sm.Metrics().AppendEmpty()
 			m.SetName("benchmark.metric")
 			gauge := m.SetEmptyGauge()
 			gauge.DataPoints().EnsureCapacity(dpCount)
-			for d := 0; d < dpCount; d++ {
+			for d := range dpCount {
 				dp := gauge.DataPoints().AppendEmpty()
 				dp.SetIntValue(int64(d))
 				dpAttrs := dp.Attributes()
-				for a := 0; a < attrCount; a++ {
+				for a := range attrCount {
 					dpAttrs.PutStr("attr_"+strconv.Itoa(a),
 						fmt.Sprintf("v-%d-%d-%d-%d", r, s, d, a))
 				}

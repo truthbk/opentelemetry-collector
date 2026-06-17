@@ -35,21 +35,21 @@ type logsShape struct {
 func generateRichLogs(rlCount, slCount, recordCount, attrCount int) plog.Logs {
 	ld := plog.NewLogs()
 	ld.ResourceLogs().EnsureCapacity(rlCount)
-	for r := 0; r < rlCount; r++ {
+	for r := range rlCount {
 		rl := ld.ResourceLogs().AppendEmpty()
 		attrs := rl.Resource().Attributes()
 		attrs.PutStr("host.name", "host-"+strconv.Itoa(r))
 		attrs.PutStr("service.name", "bench")
 		rl.ScopeLogs().EnsureCapacity(slCount)
-		for s := 0; s < slCount; s++ {
+		for s := range slCount {
 			sl := rl.ScopeLogs().AppendEmpty()
 			sl.Scope().SetName("scope-" + strconv.Itoa(s))
 			sl.LogRecords().EnsureCapacity(recordCount)
-			for rec := 0; rec < recordCount; rec++ {
+			for rec := range recordCount {
 				lr := sl.LogRecords().AppendEmpty()
 				lr.Body().SetStr("benchmark log line")
 				recAttrs := lr.Attributes()
-				for a := 0; a < attrCount; a++ {
+				for a := range attrCount {
 					recAttrs.PutStr("attr_"+strconv.Itoa(a),
 						fmt.Sprintf("v-%d-%d-%d-%d", r, s, rec, a))
 				}
@@ -70,7 +70,7 @@ func logsShapes() []logsShape {
 
 func buildLogsMix(name string, n int) []consumer.Logs {
 	cs := make([]consumer.Logs, 0, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		var add consumer.Logs
 		switch name {
 		case "all_mut":

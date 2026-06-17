@@ -41,24 +41,24 @@ type metricsShape struct {
 func generateRichMetrics(rmCount, smCount, dpCount, attrCount int) pmetric.Metrics {
 	md := pmetric.NewMetrics()
 	md.ResourceMetrics().EnsureCapacity(rmCount)
-	for r := 0; r < rmCount; r++ {
+	for r := range rmCount {
 		rm := md.ResourceMetrics().AppendEmpty()
 		attrs := rm.Resource().Attributes()
 		attrs.PutStr("host.name", "host-"+strconv.Itoa(r))
 		attrs.PutStr("service.name", "bench")
 		rm.ScopeMetrics().EnsureCapacity(smCount)
-		for s := 0; s < smCount; s++ {
+		for s := range smCount {
 			sm := rm.ScopeMetrics().AppendEmpty()
 			sm.Scope().SetName("scope-" + strconv.Itoa(s))
 			metric := sm.Metrics().AppendEmpty()
 			metric.SetName("benchmark.metric")
 			gauge := metric.SetEmptyGauge()
 			gauge.DataPoints().EnsureCapacity(dpCount)
-			for d := 0; d < dpCount; d++ {
+			for d := range dpCount {
 				dp := gauge.DataPoints().AppendEmpty()
 				dp.SetIntValue(int64(d))
 				dpAttrs := dp.Attributes()
-				for a := 0; a < attrCount; a++ {
+				for a := range attrCount {
 					dpAttrs.PutStr("attr_"+strconv.Itoa(a),
 						fmt.Sprintf("v-%d-%d-%d-%d", r, s, d, a))
 				}
@@ -82,7 +82,7 @@ func metricsShapes() []metricsShape {
 // in this package.
 func buildMetricsMix(name string, n int) []consumer.Metrics {
 	cs := make([]consumer.Metrics, 0, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		var add consumer.Metrics
 		switch name {
 		case "all_mut":

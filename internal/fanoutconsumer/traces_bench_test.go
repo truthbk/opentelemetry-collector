@@ -36,21 +36,21 @@ type tracesShape struct {
 func generateRichTraces(rsCount, ssCount, spanCount, attrCount int) ptrace.Traces {
 	td := ptrace.NewTraces()
 	td.ResourceSpans().EnsureCapacity(rsCount)
-	for r := 0; r < rsCount; r++ {
+	for r := range rsCount {
 		rs := td.ResourceSpans().AppendEmpty()
 		attrs := rs.Resource().Attributes()
 		attrs.PutStr("host.name", "host-"+strconv.Itoa(r))
 		attrs.PutStr("service.name", "bench")
 		rs.ScopeSpans().EnsureCapacity(ssCount)
-		for s := 0; s < ssCount; s++ {
+		for s := range ssCount {
 			ss := rs.ScopeSpans().AppendEmpty()
 			ss.Scope().SetName("scope-" + strconv.Itoa(s))
 			ss.Spans().EnsureCapacity(spanCount)
-			for sp := 0; sp < spanCount; sp++ {
+			for sp := range spanCount {
 				span := ss.Spans().AppendEmpty()
 				span.SetName("benchmark.span")
 				spanAttrs := span.Attributes()
-				for a := 0; a < attrCount; a++ {
+				for a := range attrCount {
 					spanAttrs.PutStr("attr_"+strconv.Itoa(a),
 						fmt.Sprintf("v-%d-%d-%d-%d", r, s, sp, a))
 				}
@@ -71,7 +71,7 @@ func tracesShapes() []tracesShape {
 
 func buildTracesMix(name string, n int) []consumer.Traces {
 	cs := make([]consumer.Traces, 0, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		var add consumer.Traces
 		switch name {
 		case "all_mut":
