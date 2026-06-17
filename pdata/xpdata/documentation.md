@@ -8,6 +8,7 @@ This component has the following feature gates:
 
 | Feature Gate | Stage | Description | From Version | To Version | Reference |
 | ------------ | ----- | ----------- | ------------ | ---------- | --------- |
+| `pdata.cow` | alpha | When enabled, the fanout consumer uses copy-on-write semantics for pdata sharing instead of eager deep-cloning at the fanout boundary. The deep-clone is deferred to the first mutating call by any downstream consumer (the detach), so read-only fanout branches incur zero allocations. Independent of pdata.enableRefCounting (this gate uses a separate cowRefs counter on pdata State). See perf/rfc/pdata-cow.md for the full design. | v1.61.0 | N/A | [Link](https://github.com/open-telemetry/opentelemetry-collector/issues/13631) |
 | `pdata.enableRefCounting` | beta | When enabled, enables using ref counting to know when pdata memory can be freed up. This featuregate is here only to protect if unexpected bugs happens because of ref counting logic. | v0.133.0 | N/A | [Link](https://github.com/open-telemetry/opentelemetry-collector/issues/13631) |
 
 For more information about feature gates, see the [Feature Gates](https://github.com/open-telemetry/opentelemetry-collector/blob/main/featuregate/README.md) documentation.

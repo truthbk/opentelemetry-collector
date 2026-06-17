@@ -6,6 +6,14 @@ import (
 	"go.opentelemetry.io/collector/featuregate"
 )
 
+var PdataCowFeatureGate = featuregate.GlobalRegistry().MustRegister(
+	"pdata.cow",
+	featuregate.StageAlpha,
+	featuregate.WithRegisterDescription("When enabled, the fanout consumer uses copy-on-write semantics for pdata sharing instead of eager deep-cloning at the fanout boundary. The deep-clone is deferred to the first mutating call by any downstream consumer (the detach), so read-only fanout branches incur zero allocations. Independent of pdata.enableRefCounting (this gate uses a separate cowRefs counter on pdata State). See perf/rfc/pdata-cow.md for the full design."),
+	featuregate.WithRegisterReferenceURL("https://github.com/open-telemetry/opentelemetry-collector/issues/13631"),
+	featuregate.WithRegisterFromVersion("v1.61.0"),
+)
+
 var PdataEnableRefCountingFeatureGate = featuregate.GlobalRegistry().MustRegister(
 	"pdata.enableRefCounting",
 	featuregate.StageBeta,
