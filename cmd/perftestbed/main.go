@@ -53,7 +53,7 @@ func main() {
 		"consumer mix: all_ro, all_mut, half, one_mut_rest_ro")
 	flag.StringVar(&cfg.shape, "shape", "rich_100x5x50x10",
 		"batch shape: small_10, medium_1k, large_10k, rich_100x5x50x10")
-	flag.IntVar(&cfg.qps, "qps", 1000, "target consume rate per second (0 = unthrottled)")
+	flag.IntVar(&cfg.qps, "qps", 1000, "best-effort consume rate cap per second (0 = unthrottled); overruns logged at the 5 s heartbeat")
 	flag.DurationVar(&cfg.duration, "duration", 60*time.Second,
 		"how long to run (0 = forever until SIGINT)")
 	flag.StringVar(&cfg.pprofAddr, "pprof-addr", "localhost:6060",
@@ -103,7 +103,11 @@ func run(cfg config) error {
 }
 
 func runMetrics(ctx context.Context, cfg config) error {
-	md, err := buildMetrics(cfg.shape)
+	// Generate one sample upfront for itemsPer reporting and to fail fast on
+	// an unknown shape; the consume loop produces a fresh payload per call
+	// so production-shape fanout state (MarkReadOnly etc.) is exercised on
+	// every iteration the way a receiver-driven pipeline would.
+	sample, err := buildMetrics(cfg.shape)
 	if err != nil {
 		return err
 	}
@@ -112,14 +116,15 @@ func runMetrics(ctx context.Context, cfg config) error {
 		return err
 	}
 	fanout := fanoutconsumer.NewMetrics(consumers)
-	itemsPer := int64(md.DataPointCount())
+	itemsPer := int64(sample.DataPointCount())
 	return loop(ctx, cfg, "datapoints", itemsPer, func(ctx context.Context) error {
+		md, _ := buildMetrics(cfg.shape) // shape validated above
 		return fanout.ConsumeMetrics(ctx, md)
 	})
 }
 
 func runTraces(ctx context.Context, cfg config) error {
-	td, err := buildTraces(cfg.shape)
+	sample, err := buildTraces(cfg.shape)
 	if err != nil {
 		return err
 	}
@@ -128,14 +133,15 @@ func runTraces(ctx context.Context, cfg config) error {
 		return err
 	}
 	fanout := fanoutconsumer.NewTraces(consumers)
-	itemsPer := int64(td.SpanCount())
+	itemsPer := int64(sample.SpanCount())
 	return loop(ctx, cfg, "spans", itemsPer, func(ctx context.Context) error {
+		td, _ := buildTraces(cfg.shape) // shape validated above
 		return fanout.ConsumeTraces(ctx, td)
 	})
 }
 
 func runLogs(ctx context.Context, cfg config) error {
-	ld, err := buildLogs(cfg.shape)
+	sample, err := buildLogs(cfg.shape)
 	if err != nil {
 		return err
 	}
@@ -144,8 +150,9 @@ func runLogs(ctx context.Context, cfg config) error {
 		return err
 	}
 	fanout := fanoutconsumer.NewLogs(consumers)
-	itemsPer := int64(ld.LogRecordCount())
+	itemsPer := int64(sample.LogRecordCount())
 	return loop(ctx, cfg, "records", itemsPer, func(ctx context.Context) error {
+		ld, _ := buildLogs(cfg.shape) // shape validated above
 		return fanout.ConsumeLogs(ctx, ld)
 	})
 }
@@ -186,6 +193,17 @@ func loop(ctx context.Context, cfg config, itemUnit string, itemsPer int64,
 			log.Printf("%s elapsed: %d batches, %.0f %s/s",
 				elapsed.Round(time.Second), b,
 				float64(b*itemsPer)/elapsed.Seconds(), itemUnit)
+			// Pacer overrun: if QPS-throttled, compare actual batches to the
+			// number a perfect pacer would have produced. Tolerate ~10 %
+			// jitter; anything beyond that means consume is the bottleneck.
+			if cfg.qps > 0 {
+				expected := int64(elapsed.Seconds() * float64(cfg.qps))
+				lag := expected - b
+				if expected > 0 && lag > expected/10 {
+					log.Printf("  pacer overrun: %d batches behind target (%.0f%% of target reached)",
+						lag, 100.0*float64(b)/float64(expected))
+				}
+			}
 		default:
 		}
 		if pacer != nil {
