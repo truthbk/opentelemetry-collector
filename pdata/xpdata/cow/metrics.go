@@ -71,3 +71,40 @@ func IsSharedMetrics(md pmetric.Metrics) bool {
 	}
 	return internal.GetMetricsState(internal.MetricsWrapper(md)).CowRefs() > 0
 }
+
+// DetachMetrics is the explicit copy-on-write detach point for a shared
+// wrapper. A consumer that received md via ShareMetrics and is about to
+// mutate must call DetachMetrics to obtain an independent wrapper whose
+// backing tree it can safely write to.
+//
+// If md is shared (cowRefs > 0): deep-clones md.orig into a new tree,
+// resets cowRefs on the wrapper's State, and returns a new wrapper at
+// the cloned tree. The caller's md becomes effectively dead — callers
+// should always use the returned value.
+//
+// If md is not shared: returns md unchanged. This is the fast path on
+// the no-mutation branch of a conditional mutator — the caller never
+// calls DetachMetrics, no clone happens.
+//
+// DetachMetrics returns md unchanged when the pdata.cow feature gate is
+// disabled (no sharing semantics in effect).
+//
+// This explicit-detach API is what makes Alt A safe without the full
+// auto-detach codegen migration: each conditional mutator (filter,
+// transform, attributes with skip-expr, etc.) calls DetachMetrics from
+// its mutation branch, never from its no-match branch. The fanout's
+// eager clone is fully deferred to first-actual-mutation by any one
+// downstream consumer.
+func DetachMetrics(md pmetric.Metrics) pmetric.Metrics {
+	if !FeatureGate.IsEnabled() {
+		return md
+	}
+	w := internal.MetricsWrapper(md)
+	if internal.GetMetricsState(w).CowRefs() == 0 {
+		return md
+	}
+	cloned := pmetric.NewMetrics()
+	md.CopyTo(cloned)
+	internal.GetMetricsState(w).DecCowRefs()
+	return cloned
+}
