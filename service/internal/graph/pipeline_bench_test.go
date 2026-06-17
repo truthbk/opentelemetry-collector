@@ -111,6 +111,73 @@ func receiverFor(b *testing.B, g *Graph, signal pipeline.Signal) *testcomponents
 	return nil
 }
 
+// buildMultiPipelineGraph wires one receiver into two pipelines: a
+// "mutator" pipeline whose single exporter declares MutatesData: true
+// (via the testcomponents.ExampleExporter "batched_*" name pattern —
+// simulating the exporterhelper queue+batch's MutatesData injection,
+// audit finding #19) and a "readonly" pipeline with a single
+// MutatesData: false exporter. The receiver-side fanout (built in
+// service/internal/graph/receiver.go) sees per-pipeline aggregated
+// capabilities — one mutator pipeline, one readonly — and clones for
+// the mutator branch on every ConsumeXxx call.
+//
+// This is the topology where audit finding #19's standalone win
+// appears: today's receiver-side fanout clones the pdata for the
+// mutator pipeline (1 deep clone/iter); under O2 the batched exporter
+// declares MutatesData: false and the aggregate flips, eliminating the
+// receiver-side clone (the clone moves inside the batcher).
+func buildMultiPipelineGraph(ctx context.Context, b *testing.B, signal pipeline.Signal) *Graph {
+	b.Helper()
+
+	receiverID := component.MustNewID("examplereceiver")
+	receiverConfigs := map[component.ID]component.Config{
+		receiverID: testcomponents.ExampleReceiverFactory.CreateDefaultConfig(),
+	}
+
+	batchedExpID := component.MustNewIDWithName("exampleexporter", "batched_a")
+	readonlyExpID := component.MustNewIDWithName("exampleexporter", "ro")
+	exporterConfigs := map[component.ID]component.Config{
+		batchedExpID:  testcomponents.ExampleExporterFactory.CreateDefaultConfig(),
+		readonlyExpID: testcomponents.ExampleExporterFactory.CreateDefaultConfig(),
+	}
+
+	set := Settings{
+		Telemetry: componenttest.NewNopTelemetrySettings(),
+		BuildInfo: component.NewDefaultBuildInfo(),
+		ReceiverBuilder: builders.NewReceiver(
+			receiverConfigs,
+			map[component.Type]receiver.Factory{
+				testcomponents.ExampleReceiverFactory.Type(): testcomponents.ExampleReceiverFactory,
+			},
+		),
+		ProcessorBuilder: builders.NewProcessor(
+			map[component.ID]component.Config{},
+			map[component.Type]processor.Factory{},
+		),
+		ExporterBuilder: builders.NewExporter(
+			exporterConfigs,
+			map[component.Type]exporter.Factory{
+				testcomponents.ExampleExporterFactory.Type(): testcomponents.ExampleExporterFactory,
+			},
+		),
+		ConnectorBuilder: builders.NewConnector(map[component.ID]component.Config{}, map[component.Type]connector.Factory{}),
+		PipelineConfigs: pipelines.Config{
+			pipeline.NewIDWithName(signal, "mutator"): {
+				Receivers: []component.ID{receiverID},
+				Exporters: []component.ID{batchedExpID},
+			},
+			pipeline.NewIDWithName(signal, "readonly"): {
+				Receivers: []component.ID{receiverID},
+				Exporters: []component.ID{readonlyExpID},
+			},
+		},
+	}
+
+	g, err := Build(ctx, set)
+	require.NoError(b, err)
+	return g
+}
+
 
 // BenchmarkPipelineFanoutMetrics measures the end-to-end cost of pushing
 // one pmetric.Metrics batch through a fully-built graph
@@ -228,5 +295,96 @@ func BenchmarkPipelineFanoutLogs(b *testing.B) {
 				})
 			}
 		}
+	}
+}
+
+// BenchmarkReceiverFanoutMultiPipelineMetrics measures the receiver-side
+// fanout cost when one receiver feeds two pipelines: one with a batched
+// (MutatesData: true) exporter, one fully readonly. This is the topology
+// where audit finding #19's standalone win surfaces — the receiver-side
+// fanout's clone for the mutator branch disappears once O2 lands.
+//
+// Compare against BenchmarkPipelineFanoutBatchedMetrics for the
+// single-pipeline variant.
+func BenchmarkReceiverFanoutMultiPipelineMetrics(b *testing.B) {
+	shapes := []struct {
+		name string
+		gen  func() pmetric.Metrics
+	}{
+		{"small_10", func() pmetric.Metrics { return testdata.GenerateMetrics(10) }},
+		{"medium_1k", func() pmetric.Metrics { return testdata.GenerateMetrics(1000) }},
+		{"rich_100x5x50x10", func() pmetric.Metrics { return testdata.GenerateMetricsManyResources(100, 5, 50, 10) }},
+	}
+	ctx := context.Background()
+
+	for _, shape := range shapes {
+		b.Run("shape="+shape.name, func(b *testing.B) {
+			g := buildMultiPipelineGraph(ctx, b, pipeline.SignalMetrics)
+			rcv := receiverFor(b, g, pipeline.SignalMetrics)
+			md := shape.gen()
+			b.ReportAllocs()
+			b.SetBytes(int64(md.DataPointCount())) // items/op, see BenchmarkMetricsFanout
+			for b.Loop() {
+				if err := rcv.ConsumeMetricsFunc(ctx, md); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+// BenchmarkReceiverFanoutMultiPipelineTraces — see BenchmarkReceiverFanoutMultiPipelineMetrics.
+func BenchmarkReceiverFanoutMultiPipelineTraces(b *testing.B) {
+	shapes := []struct {
+		name string
+		gen  func() ptrace.Traces
+	}{
+		{"small_10", func() ptrace.Traces { return testdata.GenerateTraces(10) }},
+		{"medium_1k", func() ptrace.Traces { return testdata.GenerateTraces(1000) }},
+		{"rich_100x5x50x10", func() ptrace.Traces { return testdata.GenerateTracesManyResources(100, 5, 50, 10) }},
+	}
+	ctx := context.Background()
+
+	for _, shape := range shapes {
+		b.Run("shape="+shape.name, func(b *testing.B) {
+			g := buildMultiPipelineGraph(ctx, b, pipeline.SignalTraces)
+			rcv := receiverFor(b, g, pipeline.SignalTraces)
+			td := shape.gen()
+			b.ReportAllocs()
+			b.SetBytes(int64(td.SpanCount())) // items/op, see BenchmarkMetricsFanout
+			for b.Loop() {
+				if err := rcv.ConsumeTracesFunc(ctx, td); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+// BenchmarkReceiverFanoutMultiPipelineLogs — see BenchmarkReceiverFanoutMultiPipelineMetrics.
+func BenchmarkReceiverFanoutMultiPipelineLogs(b *testing.B) {
+	shapes := []struct {
+		name string
+		gen  func() plog.Logs
+	}{
+		{"small_10", func() plog.Logs { return testdata.GenerateLogs(10) }},
+		{"medium_1k", func() plog.Logs { return testdata.GenerateLogs(1000) }},
+		{"rich_100x5x50x10", func() plog.Logs { return testdata.GenerateLogsManyResources(100, 5, 50, 10) }},
+	}
+	ctx := context.Background()
+
+	for _, shape := range shapes {
+		b.Run("shape="+shape.name, func(b *testing.B) {
+			g := buildMultiPipelineGraph(ctx, b, pipeline.SignalLogs)
+			rcv := receiverFor(b, g, pipeline.SignalLogs)
+			ld := shape.gen()
+			b.ReportAllocs()
+			b.SetBytes(int64(ld.LogRecordCount())) // items/op, see BenchmarkMetricsFanout
+			for b.Loop() {
+				if err := rcv.ConsumeLogsFunc(ctx, ld); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
 	}
 }
