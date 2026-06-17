@@ -22,6 +22,19 @@ func (mutatingNopTraces) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: true}
 }
 
+// mutatingRealTraces — see mutatingRealMetrics. Appends one empty
+// ResourceSpans on every Consume so the COW detach path actually fires.
+type mutatingRealTraces struct{ consumer.Traces }
+
+func (mutatingRealTraces) Capabilities() consumer.Capabilities {
+	return consumer.Capabilities{MutatesData: true}
+}
+
+func (m mutatingRealTraces) ConsumeTraces(ctx context.Context, td ptrace.Traces) error {
+	td.ResourceSpans().AppendEmpty()
+	return m.Traces.ConsumeTraces(ctx, td)
+}
+
 type tracesShape struct {
 	name string
 	gen  func() ptrace.Traces
@@ -57,6 +70,12 @@ func buildTracesMix(name string, n int) []consumer.Traces {
 			} else {
 				add = consumertest.NewNop()
 			}
+		case "one_real_mut_rest_ro":
+			if i == 0 {
+				add = mutatingRealTraces{Traces: consumertest.NewNop()}
+			} else {
+				add = consumertest.NewNop()
+			}
 		default:
 			panic("unknown mix: " + name)
 		}
@@ -69,7 +88,7 @@ func buildTracesMix(name string, n int) []consumer.Traces {
 // reading guide; the trace and metric benchmarks are symmetric.
 func BenchmarkTracesFanout(b *testing.B) {
 	ns := []int{1, 2, 4, 8, 16}
-	mixes := []string{"all_mut", "all_ro", "half", "one_mut_rest_ro"}
+	mixes := []string{"all_mut", "all_ro", "half", "one_mut_rest_ro", "one_real_mut_rest_ro"}
 	shapes := tracesShapes()
 	ctx := context.Background()
 

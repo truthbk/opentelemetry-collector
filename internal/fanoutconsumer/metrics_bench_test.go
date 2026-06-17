@@ -28,6 +28,21 @@ func (mutatingNopMetrics) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: true}
 }
 
+// mutatingRealMetrics declares MutatesData: true AND actually mutates
+// the input pdata (appends one empty ResourceMetrics). Used by COW-aware
+// benchmarks so the planned copy-on-write detach path actually fires
+// during measurement — the mutatingNop* variant would never trigger it.
+type mutatingRealMetrics struct{ consumer.Metrics }
+
+func (mutatingRealMetrics) Capabilities() consumer.Capabilities {
+	return consumer.Capabilities{MutatesData: true}
+}
+
+func (m mutatingRealMetrics) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error {
+	md.ResourceMetrics().AppendEmpty()
+	return m.Metrics.ConsumeMetrics(ctx, md)
+}
+
 // metricsShape names a canonical benchmark batch shape with its generator.
 // The generator must produce a fresh, mutable pmetric.Metrics each call.
 type metricsShape struct {
@@ -68,6 +83,12 @@ func buildMetricsMix(name string, n int) []consumer.Metrics {
 			} else {
 				add = consumertest.NewNop()
 			}
+		case "one_real_mut_rest_ro":
+			if i == 0 {
+				add = mutatingRealMetrics{Metrics: consumertest.NewNop()}
+			} else {
+				add = consumertest.NewNop()
+			}
 		default:
 			panic("unknown mix: " + name)
 		}
@@ -86,7 +107,7 @@ func buildMetricsMix(name string, n int) []consumer.Metrics {
 // all-mutating cases.
 func BenchmarkMetricsFanout(b *testing.B) {
 	ns := []int{1, 2, 4, 8, 16}
-	mixes := []string{"all_mut", "all_ro", "half", "one_mut_rest_ro"}
+	mixes := []string{"all_mut", "all_ro", "half", "one_mut_rest_ro", "one_real_mut_rest_ro"}
 	shapes := metricsShapes()
 	ctx := context.Background()
 

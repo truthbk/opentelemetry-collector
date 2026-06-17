@@ -22,6 +22,19 @@ func (mutatingNopLogs) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: true}
 }
 
+// mutatingRealLogs — see mutatingRealMetrics. Appends one empty
+// ResourceLogs on every Consume so the COW detach path actually fires.
+type mutatingRealLogs struct{ consumer.Logs }
+
+func (mutatingRealLogs) Capabilities() consumer.Capabilities {
+	return consumer.Capabilities{MutatesData: true}
+}
+
+func (m mutatingRealLogs) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
+	ld.ResourceLogs().AppendEmpty()
+	return m.Logs.ConsumeLogs(ctx, ld)
+}
+
 type logsShape struct {
 	name string
 	gen  func() plog.Logs
@@ -57,6 +70,12 @@ func buildLogsMix(name string, n int) []consumer.Logs {
 			} else {
 				add = consumertest.NewNop()
 			}
+		case "one_real_mut_rest_ro":
+			if i == 0 {
+				add = mutatingRealLogs{Logs: consumertest.NewNop()}
+			} else {
+				add = consumertest.NewNop()
+			}
 		default:
 			panic("unknown mix: " + name)
 		}
@@ -69,7 +88,7 @@ func buildLogsMix(name string, n int) []consumer.Logs {
 // reading guide; the log and metric benchmarks are symmetric.
 func BenchmarkLogsFanout(b *testing.B) {
 	ns := []int{1, 2, 4, 8, 16}
-	mixes := []string{"all_mut", "all_ro", "half", "one_mut_rest_ro"}
+	mixes := []string{"all_mut", "all_ro", "half", "one_mut_rest_ro", "one_real_mut_rest_ro"}
 	shapes := logsShapes()
 	ctx := context.Background()
 
