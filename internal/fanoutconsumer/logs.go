@@ -12,6 +12,7 @@ import (
 
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/pdata/xpdata/cow"
 )
 
 // NewLogs wraps multiple log consumers in a single one.
@@ -76,7 +77,11 @@ func (lsc *logsConsumer) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 	return errs
 }
 
+// cloneLogs — see cloneMetrics in metrics.go for the cow gate rationale.
 func cloneLogs(ld plog.Logs) plog.Logs {
+	if cow.FeatureGate.IsEnabled() {
+		return cow.ShareLogs(ld)
+	}
 	clonedLogs := plog.NewLogs()
 	ld.CopyTo(clonedLogs)
 	return clonedLogs

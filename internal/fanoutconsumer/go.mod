@@ -10,6 +10,7 @@ require (
 	go.opentelemetry.io/collector/pdata v1.58.0
 	go.opentelemetry.io/collector/pdata/pprofile v0.152.0
 	go.opentelemetry.io/collector/pdata/testdata v0.152.0
+	go.opentelemetry.io/collector/pdata/xpdata v0.0.0-00010101000000-000000000000
 	go.uber.org/goleak v1.3.0
 	go.uber.org/multierr v1.11.0
 )
@@ -32,6 +33,8 @@ replace go.opentelemetry.io/collector/pdata/testdata => ../../pdata/testdata
 replace go.opentelemetry.io/collector/pdata/pprofile => ../../pdata/pprofile
 
 replace go.opentelemetry.io/collector/pdata => ../../pdata
+
+replace go.opentelemetry.io/collector/pdata/xpdata => ../../pdata/xpdata
 
 replace go.opentelemetry.io/collector/consumer/consumertest => ../../consumer/consumertest
 

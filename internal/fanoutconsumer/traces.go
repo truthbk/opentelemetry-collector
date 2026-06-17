@@ -10,6 +10,7 @@ import (
 
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	"go.opentelemetry.io/collector/pdata/xpdata/cow"
 )
 
 // NewTraces wraps multiple trace consumers in a single one.
@@ -74,7 +75,11 @@ func (tsc *tracesConsumer) ConsumeTraces(ctx context.Context, td ptrace.Traces) 
 	return errs
 }
 
+// cloneTraces — see cloneMetrics in metrics.go for the cow gate rationale.
 func cloneTraces(td ptrace.Traces) ptrace.Traces {
+	if cow.FeatureGate.IsEnabled() {
+		return cow.ShareTraces(td)
+	}
 	clonedTraces := ptrace.NewTraces()
 	td.CopyTo(clonedTraces)
 	return clonedTraces

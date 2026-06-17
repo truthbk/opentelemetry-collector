@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/xconsumer"
 	"go.opentelemetry.io/collector/pdata/pprofile"
+	"go.opentelemetry.io/collector/pdata/xpdata/cow"
 )
 
 // NewProfiles wraps multiple profile consumers in a single one.
@@ -75,7 +76,11 @@ func (tsc *profilesConsumer) ConsumeProfiles(ctx context.Context, td pprofile.Pr
 	return errs
 }
 
+// cloneProfiles — see cloneMetrics in metrics.go for the cow gate rationale.
 func cloneProfiles(td pprofile.Profiles) pprofile.Profiles {
+	if cow.FeatureGate.IsEnabled() {
+		return cow.ShareProfiles(td)
+	}
 	clonedProfiles := pprofile.NewProfiles()
 	td.CopyTo(clonedProfiles)
 	return clonedProfiles

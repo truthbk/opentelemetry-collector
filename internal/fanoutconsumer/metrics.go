@@ -10,6 +10,7 @@ import (
 
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/xpdata/cow"
 )
 
 // NewMetrics wraps multiple metrics consumers in a single one.
@@ -74,7 +75,16 @@ func (msc *metricsConsumer) ConsumeMetrics(ctx context.Context, md pmetric.Metri
 	return errs
 }
 
+// cloneMetrics returns an independent copy of md. When the pdata.cow
+// feature gate is enabled, the clone goes through cow.ShareMetrics so a
+// future deferred-clone design (see perf/rfc/pdata-cow.md) can repurpose
+// this call site without further fanout changes. Under the current
+// eager-clone semantics ShareMetrics is functionally identical to a
+// direct CopyTo.
 func cloneMetrics(md pmetric.Metrics) pmetric.Metrics {
+	if cow.FeatureGate.IsEnabled() {
+		return cow.ShareMetrics(md)
+	}
 	clonedMetrics := pmetric.NewMetrics()
 	md.CopyTo(clonedMetrics)
 	return clonedMetrics
