@@ -1,0 +1,8 @@
+captured_at: 2026-06-17T13:10:22Z
+git_sha: 4ff09b609cab5b99a1d0fb3d391bfd5e43f77f00
+git_branch: perf/local-rig
+go_version: go1.26.3
+goos: darwin
+goarch: arm64
+host: COMP-GQ7WQN6HYC
+flags: "-benchmem -benchtime=500ms -count=2 -timeout=30m"

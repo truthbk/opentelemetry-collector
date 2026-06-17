@@ -223,7 +223,11 @@ PERF_BASELINE_FLAGS    ?= -benchmem -benchtime=5s -count=10 -timeout=30m
 
 PERF_FANOUT_PATTERN   := ^Benchmark(Metrics|Traces|Logs)Fanout$$
 PERF_CLONE_PATTERN    := ^BenchmarkCopyTo(Metrics|Traces|Logs)$$
-PERF_PIPELINE_PATTERN := ^BenchmarkPipelineFanout(Metrics|Traces|Logs)$$
+# Picks up both BenchmarkPipelineFanout{Metrics,Traces,Logs} (the original
+# single-pipeline bench) and BenchmarkPipelineFanoutBatched{...} (the
+# batched-exporter variant), plus BenchmarkReceiverFanoutMultiPipeline{...}
+# (the multi-pipeline variant). All three live in service/internal/graph.
+PERF_PIPELINE_PATTERN := ^(BenchmarkPipelineFanout(Batched)?(Metrics|Traces|Logs)|BenchmarkReceiverFanoutMultiPipeline(Metrics|Traces|Logs))$$
 
 # Default baseline output directory. Override with BASELINE_DIR=...
 BASELINE_DIR ?= perf/baselines/$(shell date -u +%Y-%m-%d)-$(shell git rev-parse --short HEAD 2>/dev/null || echo nogit)
