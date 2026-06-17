@@ -5,7 +5,32 @@ on:
     branches:
       - "main"
   pull_request:
+    paths:
+      - "client/**"
+      - "cmd/**"
+      - "component/**"
+      - "config/**"
+      - "confmap/**"
+      - "connector/**"
+      - "consumer/**"
+      - "exporter/**"
+      - "extension/**"
+      - "filter/**"
+      - "internal/**"
+      - "otelcol/**"
+      - "pdata/**"
+      - "pipeline/**"
+      - "processor/**"
+      - "receiver/**"
+      - "scraper/**"
+      - "service/**"
+      - ".github/workflows/go-benchmarks.yml"
   workflow_dispatch:
+
+# Cancel in-flight benchmark runs for the same branch when a new push lands.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 permissions: read-all
 
