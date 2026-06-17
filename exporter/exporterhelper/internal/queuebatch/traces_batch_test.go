@@ -380,3 +380,32 @@ func BenchmarkSplittingBasedOnItemCountHugeTraces(b *testing.B) {
 		assert.Len(b, merged, 10)
 	}
 }
+
+// TestTracesRequest_CloneIfShared — see TestMetricsRequest_CloneIfShared.
+func TestTracesRequest_CloneIfShared(t *testing.T) {
+	t.Run("mutable input returns same request", func(t *testing.T) {
+		td := testdata.GenerateTraces(10)
+		require.False(t, td.IsReadOnly())
+		req := &tracesRequest{td: td, cachedSize: -1}
+
+		got := req.cloneIfShared()
+
+		assert.Same(t, req, got)
+	})
+
+	t.Run("read-only input is deep-cloned", func(t *testing.T) {
+		original := testdata.GenerateTraces(10)
+		original.MarkReadOnly()
+		require.True(t, original.IsReadOnly())
+		req := &tracesRequest{td: original, cachedSize: -1}
+
+		got := req.cloneIfShared()
+
+		assert.NotSame(t, req, got)
+		assert.False(t, got.td.IsReadOnly())
+		assert.Equal(t, req.td.SpanCount(), got.td.SpanCount())
+
+		got.td.ResourceSpans().AppendEmpty()
+		assert.Equal(t, original.ResourceSpans().Len()+1, got.td.ResourceSpans().Len())
+	})
+}

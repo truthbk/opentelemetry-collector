@@ -411,3 +411,32 @@ func BenchmarkSplittingBasedOnByteSizeHugeLogs(b *testing.B) {
 		assert.Len(b, merged, 10)
 	}
 }
+
+// TestLogsRequest_CloneIfShared — see TestMetricsRequest_CloneIfShared.
+func TestLogsRequest_CloneIfShared(t *testing.T) {
+	t.Run("mutable input returns same request", func(t *testing.T) {
+		ld := testdata.GenerateLogs(10)
+		require.False(t, ld.IsReadOnly())
+		req := &logsRequest{ld: ld, cachedSize: -1}
+
+		got := req.cloneIfShared()
+
+		assert.Same(t, req, got)
+	})
+
+	t.Run("read-only input is deep-cloned", func(t *testing.T) {
+		original := testdata.GenerateLogs(10)
+		original.MarkReadOnly()
+		require.True(t, original.IsReadOnly())
+		req := &logsRequest{ld: original, cachedSize: -1}
+
+		got := req.cloneIfShared()
+
+		assert.NotSame(t, req, got)
+		assert.False(t, got.ld.IsReadOnly())
+		assert.Equal(t, req.ld.LogRecordCount(), got.ld.LogRecordCount())
+
+		got.ld.ResourceLogs().AppendEmpty()
+		assert.Equal(t, original.ResourceLogs().Len()+1, got.ld.ResourceLogs().Len())
+	})
+}

@@ -769,3 +769,46 @@ func (m *mockMetricsSizer) ScopeMetricsSize(_ pmetric.ScopeMetrics) int {
 func (m *mockMetricsSizer) DeltaSize(size int) int {
 	return size
 }
+
+// TestMetricsRequest_CloneIfShared verifies the contract that audit
+// finding #19's in-batcher clone follows:
+//
+//   - When req.md is mutable (the common case, e.g. immediately after a
+//     receiver hands data downstream), cloneIfShared returns req
+//     unchanged. The batcher will mutate req.md in place via MergeSplit /
+//     mergeTo, owning the data.
+//   - When req.md is read-only (the upstream fanout has called
+//     MarkReadOnly because the same data is being broadcast to multiple
+//     consumers), cloneIfShared returns a new *metricsRequest with a
+//     fresh, mutable deep-copied md. The original req.md remains
+//     untouched and the batcher mutates the clone.
+func TestMetricsRequest_CloneIfShared(t *testing.T) {
+	t.Run("mutable input returns same request", func(t *testing.T) {
+		md := testdata.GenerateMetrics(10)
+		require.False(t, md.IsReadOnly())
+		req := &metricsRequest{md: md, cachedSize: -1}
+
+		got := req.cloneIfShared()
+
+		// Same pointer — no clone happened.
+		assert.Same(t, req, got)
+	})
+
+	t.Run("read-only input is deep-cloned", func(t *testing.T) {
+		original := testdata.GenerateMetrics(10)
+		original.MarkReadOnly()
+		require.True(t, original.IsReadOnly())
+		req := &metricsRequest{md: original, cachedSize: -1}
+
+		got := req.cloneIfShared()
+
+		// Different request, mutable md, no shared backing.
+		assert.NotSame(t, req, got)
+		assert.False(t, got.md.IsReadOnly())
+		assert.Equal(t, req.md.DataPointCount(), got.md.DataPointCount())
+
+		// Mutating the clone does not touch the original.
+		got.md.ResourceMetrics().AppendEmpty()
+		assert.Equal(t, original.ResourceMetrics().Len()+1, got.md.ResourceMetrics().Len())
+	})
+}

@@ -12,9 +12,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"go.opentelemetry.io/collector/component/componenttest"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/exporter/exporterhelper/internal/queuebatch"
 	"go.opentelemetry.io/collector/exporter/exporterhelper/internal/request"
 	"go.opentelemetry.io/collector/exporter/exporterhelper/internal/requesttest"
 	"go.opentelemetry.io/collector/exporter/exporterhelper/internal/sendertest"
@@ -282,4 +284,56 @@ func TestMetricsRequest_WithShutdown_ReturnError(t *testing.T) {
 
 	assert.NoError(t, me.Start(context.Background(), componenttest.NewNopHost()))
 	assert.Equal(t, want, me.Shutdown(context.Background()))
+}
+
+// configWithBatchEnabled returns a queue config with sending_queue.batch
+// enabled at default settings. Used by the
+// Test*Request_QueueBatchPreservesCapabilities tests below.
+func configWithBatchEnabled() queuebatch.Config {
+	qCfg := NewDefaultQueueConfig()
+	qCfg.Batch.GetOrInsertDefault()
+	return qCfg
+}
+
+// TestLogsRequest_QueueBatchPreservesCapabilities verifies that enabling
+// sending_queue.batch on a logs exporter no longer poisons the public
+// Capabilities() with MutatesData: true. Pre-audit-finding-#19 the
+// exporterhelper auto-injected WithCapabilities({MutatesData: true})
+// whenever batch was configured; that injection was removed and the
+// batcher now clones at the MergeSplit boundary (see
+// queuebatch/logs_batch.go's cloneIfShared). The wrapped exporter's
+// public capability therefore matches the user-provided exporter's
+// (here: the default MutatesData: false).
+func TestLogsRequest_QueueBatchPreservesCapabilities(t *testing.T) {
+	le, err := NewLogsRequest(context.Background(), exportertest.NewNopSettings(exportertest.NopType),
+		requesttest.RequestFromLogsFunc(nil), sendertest.NewNopSenderFunc[request.Request](),
+		WithQueueBatchSettings(queuebatch.NewLogsQueueBatchSettings()),
+		WithQueueBatch(configoptional.Some(configWithBatchEnabled()), queuebatch.Settings[request.Request]{}))
+	require.NoError(t, err)
+	require.NotNil(t, le)
+	assert.Equal(t, consumer.Capabilities{MutatesData: false}, le.Capabilities())
+}
+
+// TestTracesRequest_QueueBatchPreservesCapabilities — see
+// TestLogsRequest_QueueBatchPreservesCapabilities.
+func TestTracesRequest_QueueBatchPreservesCapabilities(t *testing.T) {
+	te, err := NewTracesRequest(context.Background(), exportertest.NewNopSettings(exportertest.NopType),
+		requesttest.RequestFromTracesFunc(nil), sendertest.NewNopSenderFunc[request.Request](),
+		WithQueueBatchSettings(queuebatch.NewTracesQueueBatchSettings()),
+		WithQueueBatch(configoptional.Some(configWithBatchEnabled()), queuebatch.Settings[request.Request]{}))
+	require.NoError(t, err)
+	require.NotNil(t, te)
+	assert.Equal(t, consumer.Capabilities{MutatesData: false}, te.Capabilities())
+}
+
+// TestMetricsRequest_QueueBatchPreservesCapabilities — see
+// TestLogsRequest_QueueBatchPreservesCapabilities.
+func TestMetricsRequest_QueueBatchPreservesCapabilities(t *testing.T) {
+	me, err := NewMetricsRequest(context.Background(), exportertest.NewNopSettings(exportertest.NopType),
+		requesttest.RequestFromMetricsFunc(nil), sendertest.NewNopSenderFunc[request.Request](),
+		WithQueueBatchSettings(queuebatch.NewMetricsQueueBatchSettings()),
+		WithQueueBatch(configoptional.Some(configWithBatchEnabled()), queuebatch.Settings[request.Request]{}))
+	require.NoError(t, err)
+	require.NotNil(t, me)
+	assert.Equal(t, consumer.Capabilities{MutatesData: false}, me.Capabilities())
 }

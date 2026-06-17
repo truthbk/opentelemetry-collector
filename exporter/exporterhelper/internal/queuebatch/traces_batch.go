@@ -26,11 +26,15 @@ func (req *tracesRequest) MergeSplit(_ context.Context, maxSize int, szt request
 		return nil, errors.New("unknown sizer type")
 	}
 
+	// See cloneIfShared and the symmetric metrics_batch.go comment.
+	req = req.cloneIfShared()
+
 	if r2 != nil {
 		req2, ok := r2.(*tracesRequest)
 		if !ok {
 			return nil, errors.New("invalid input type")
 		}
+		req2 = req2.cloneIfShared()
 		req2.mergeTo(req, sz)
 	}
 
@@ -39,6 +43,16 @@ func (req *tracesRequest) MergeSplit(_ context.Context, maxSize int, szt request
 		return []request.Request{req}, nil
 	}
 	return req.split(maxSize, sz)
+}
+
+// cloneIfShared — see metrics_batch.go's symmetric helper.
+func (req *tracesRequest) cloneIfShared() *tracesRequest {
+	if !req.td.IsReadOnly() {
+		return req
+	}
+	cloned := ptrace.NewTraces()
+	req.td.CopyTo(cloned)
+	return &tracesRequest{td: cloned, cachedSize: -1}
 }
 
 func (req *tracesRequest) mergeTo(dst *tracesRequest, sz sizer.TracesSizer) {

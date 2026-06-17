@@ -26,11 +26,24 @@ func (req *metricsRequest) MergeSplit(_ context.Context, maxSize int, szt reques
 		return nil, errors.New("unknown sizer type")
 	}
 
+	// Clone if the input is shared with other consumers (the upstream fanout
+	// marks shared data read-only). This is the in-batcher half of audit
+	// finding #19: by cloning here we preserve the upstream fanout's
+	// MutatesData: false contract for the wrapped exporter, so the fanout no
+	// longer pre-clones for batched-exporter branches in multi-pipeline /
+	// multi-consumer topologies. The returned (possibly cloned) req is what
+	// callers (partitionBatcher.consumeInternal) pick up as the new
+	// currentBatch.req via reqList[0].
+	req = req.cloneIfShared()
+
 	if r2 != nil {
 		req2, ok := r2.(*metricsRequest)
 		if !ok {
 			return nil, errors.New("invalid input type")
 		}
+		// mergeTo moves r2's ResourceMetrics into req via MoveAndAppendTo,
+		// emptying r2.md in the process. Clone r2 first if it's shared.
+		req2 = req2.cloneIfShared()
 		req2.mergeTo(req, sz)
 	}
 
@@ -39,6 +52,21 @@ func (req *metricsRequest) MergeSplit(_ context.Context, maxSize int, szt reques
 		return []request.Request{req}, nil
 	}
 	return req.split(maxSize, sz)
+}
+
+// cloneIfShared returns req unchanged when req.md is uniquely held by the
+// batcher (the common case after the first clone or for a never-shared
+// input). When req.md.IsReadOnly() reports true, the data is shared with
+// other consumers from the upstream fanout's MarkReadOnly broadcast, and
+// this method returns a new *metricsRequest with a deep-copied md so the
+// caller can safely mutate it.
+func (req *metricsRequest) cloneIfShared() *metricsRequest {
+	if !req.md.IsReadOnly() {
+		return req
+	}
+	cloned := pmetric.NewMetrics()
+	req.md.CopyTo(cloned)
+	return &metricsRequest{md: cloned, cachedSize: -1}
 }
 
 func (req *metricsRequest) mergeTo(dst *metricsRequest, sz sizer.MetricsSizer) {

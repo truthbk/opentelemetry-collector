@@ -86,11 +86,14 @@ func NewBaseExporter(set exporter.Settings, signal pipeline.Signal, pusher sende
 		return nil, err
 	}
 
-	if be.queueCfg.HasValue() && be.queueCfg.Get().Batch.HasValue() {
-		// Batcher mutates the data.
-		be.ConsumerOptions = append(be.ConsumerOptions, consumer.WithCapabilities(consumer.Capabilities{MutatesData: true}))
-	}
-
+	// Note: when sending_queue.batch is configured, the batcher's MergeSplit path
+	// does mutate its input pdata (via MoveAndAppendTo / RemoveIf). To avoid
+	// poisoning the wrapped exporter's public Capabilities() with MutatesData:true
+	// (and thereby forcing the upstream fanout to deep-clone the pdata for every
+	// downstream consumer in a multi-pipeline / multi-exporter topology), the
+	// clone is performed inside the batcher boundary instead — see
+	// queuebatch/{metrics,traces,logs,profiles}_batch.go's MergeSplit, which calls
+	// cloneIfShared on read-only-marked input requests. Audit finding #19.
 	if be.queueCfg.HasValue() {
 		qSet := queuebatch.AllSettings[request.Request]{
 			Settings:  be.queueBatchSettings,

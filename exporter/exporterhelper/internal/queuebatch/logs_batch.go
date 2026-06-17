@@ -25,11 +25,16 @@ func (req *logsRequest) MergeSplit(_ context.Context, maxSize int, szt request.S
 	default:
 		return nil, errors.New("unknown sizer type")
 	}
+
+	// See cloneIfShared and the symmetric metrics_batch.go comment.
+	req = req.cloneIfShared()
+
 	if r2 != nil {
 		req2, ok := r2.(*logsRequest)
 		if !ok {
 			return nil, errors.New("invalid input type")
 		}
+		req2 = req2.cloneIfShared()
 		req2.mergeTo(req, sz)
 	}
 
@@ -39,6 +44,16 @@ func (req *logsRequest) MergeSplit(_ context.Context, maxSize int, szt request.S
 	}
 
 	return req.split(maxSize, sz)
+}
+
+// cloneIfShared — see metrics_batch.go's symmetric helper.
+func (req *logsRequest) cloneIfShared() *logsRequest {
+	if !req.ld.IsReadOnly() {
+		return req
+	}
+	cloned := plog.NewLogs()
+	req.ld.CopyTo(cloned)
+	return &logsRequest{ld: cloned, cachedSize: -1}
 }
 
 func (req *logsRequest) mergeTo(dst *logsRequest, sz sizer.LogsSizer) {
