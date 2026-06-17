@@ -38,19 +38,26 @@ func TestShareMetrics_GateDisabled_IsNoOp(t *testing.T) {
 	assert.NotPanics(t, func() { ReleaseMetrics(md) })
 }
 
+// TestShareMetrics_GateEnabled_BumpsCowRefs — under the eager-clone
+// semantics the SOURCE is never marked shared; only the cloned wrapper
+// carries cowRefs. The source's lifecycle is independent.
 func TestShareMetrics_GateEnabled_BumpsCowRefs(t *testing.T) {
 	withGate(t)
 	md := pmetric.NewMetrics()
 	require.False(t, IsSharedMetrics(md))
 
 	shared := ShareMetrics(md)
-	assert.True(t, IsSharedMetrics(md))
-	assert.True(t, IsSharedMetrics(shared))
+	assert.False(t, IsSharedMetrics(md), "source is independent under eager-clone")
+	assert.True(t, IsSharedMetrics(shared), "clone has cowRefs bumped")
 
 	ReleaseMetrics(shared)
+	assert.False(t, IsSharedMetrics(shared), "clone no longer marked shared after release")
 	assert.False(t, IsSharedMetrics(md))
 }
 
+// TestShareMetrics_GateEnabled_MultipleShares — each call produces an
+// independent clone with its own cowRefs counter. Releases on one clone
+// don't affect the others.
 func TestShareMetrics_GateEnabled_MultipleShares(t *testing.T) {
 	withGate(t)
 	md := pmetric.NewMetrics()
@@ -58,14 +65,17 @@ func TestShareMetrics_GateEnabled_MultipleShares(t *testing.T) {
 	s1 := ShareMetrics(md)
 	s2 := ShareMetrics(md)
 	s3 := ShareMetrics(md)
-	assert.True(t, IsSharedMetrics(md))
+	assert.False(t, IsSharedMetrics(md), "source remains independent")
+	assert.True(t, IsSharedMetrics(s1))
+	assert.True(t, IsSharedMetrics(s2))
+	assert.True(t, IsSharedMetrics(s3))
 
 	ReleaseMetrics(s1)
-	assert.True(t, IsSharedMetrics(md), "still shared after one release of three")
+	assert.False(t, IsSharedMetrics(s1))
+	assert.True(t, IsSharedMetrics(s2), "independent clone unaffected")
+	assert.True(t, IsSharedMetrics(s3))
 	ReleaseMetrics(s2)
-	assert.True(t, IsSharedMetrics(md), "still shared after two releases of three")
 	ReleaseMetrics(s3)
-	assert.False(t, IsSharedMetrics(md), "no longer shared after final release")
 }
 
 func TestReleaseMetrics_UnpairedRelease_Panics(t *testing.T) {
@@ -81,11 +91,11 @@ func TestShareTraces_GateEnabled_BumpsCowRefs(t *testing.T) {
 	require.False(t, IsSharedTraces(td))
 
 	shared := ShareTraces(td)
-	assert.True(t, IsSharedTraces(td))
+	assert.False(t, IsSharedTraces(td))
 	assert.True(t, IsSharedTraces(shared))
 
 	ReleaseTraces(shared)
-	assert.False(t, IsSharedTraces(td))
+	assert.False(t, IsSharedTraces(shared))
 }
 
 func TestShareLogs_GateEnabled_BumpsCowRefs(t *testing.T) {
@@ -94,11 +104,11 @@ func TestShareLogs_GateEnabled_BumpsCowRefs(t *testing.T) {
 	require.False(t, IsSharedLogs(ld))
 
 	shared := ShareLogs(ld)
-	assert.True(t, IsSharedLogs(ld))
+	assert.False(t, IsSharedLogs(ld))
 	assert.True(t, IsSharedLogs(shared))
 
 	ReleaseLogs(shared)
-	assert.False(t, IsSharedLogs(ld))
+	assert.False(t, IsSharedLogs(shared))
 }
 
 func TestShareProfiles_GateEnabled_BumpsCowRefs(t *testing.T) {
@@ -107,9 +117,9 @@ func TestShareProfiles_GateEnabled_BumpsCowRefs(t *testing.T) {
 	require.False(t, IsSharedProfiles(pd))
 
 	shared := ShareProfiles(pd)
-	assert.True(t, IsSharedProfiles(pd))
+	assert.False(t, IsSharedProfiles(pd))
 	assert.True(t, IsSharedProfiles(shared))
 
 	ReleaseProfiles(shared)
-	assert.False(t, IsSharedProfiles(pd))
+	assert.False(t, IsSharedProfiles(shared))
 }

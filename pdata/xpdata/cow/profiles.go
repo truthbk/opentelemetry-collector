@@ -13,11 +13,10 @@ func ShareProfiles(pd pprofile.Profiles) pprofile.Profiles {
 	if !FeatureGate.IsEnabled() {
 		return pd
 	}
-	w := internal.ProfilesWrapper(pd)
-	state := internal.GetProfilesState(w)
-	orig := internal.GetProfilesOrig(w)
-	state.IncCowRefs()
-	return pprofile.Profiles(internal.NewProfilesWrapper(orig, state))
+	cloned := pprofile.NewProfiles()
+	pd.CopyTo(cloned)
+	internal.GetProfilesState(internal.ProfilesWrapper(cloned)).IncCowRefs()
+	return cloned
 }
 
 // ReleaseProfiles — see ReleaseMetrics.

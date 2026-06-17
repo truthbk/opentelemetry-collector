@@ -13,11 +13,10 @@ func ShareTraces(td ptrace.Traces) ptrace.Traces {
 	if !FeatureGate.IsEnabled() {
 		return td
 	}
-	w := internal.TracesWrapper(td)
-	state := internal.GetTracesState(w)
-	orig := internal.GetTracesOrig(w)
-	state.IncCowRefs()
-	return ptrace.Traces(internal.NewTracesWrapper(orig, state))
+	cloned := ptrace.NewTraces()
+	td.CopyTo(cloned)
+	internal.GetTracesState(internal.TracesWrapper(cloned)).IncCowRefs()
+	return cloned
 }
 
 // ReleaseTraces — see ReleaseMetrics.

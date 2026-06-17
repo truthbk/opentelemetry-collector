@@ -13,11 +13,10 @@ func ShareLogs(ld plog.Logs) plog.Logs {
 	if !FeatureGate.IsEnabled() {
 		return ld
 	}
-	w := internal.LogsWrapper(ld)
-	state := internal.GetLogsState(w)
-	orig := internal.GetLogsOrig(w)
-	state.IncCowRefs()
-	return plog.Logs(internal.NewLogsWrapper(orig, state))
+	cloned := plog.NewLogs()
+	ld.CopyTo(cloned)
+	internal.GetLogsState(internal.LogsWrapper(cloned)).IncCowRefs()
+	return cloned
 }
 
 // ReleaseLogs — see ReleaseMetrics.
