@@ -14,9 +14,8 @@ import (
 	"go.opentelemetry.io/collector/pdata/testdata"
 )
 
-// mutatingNopTraces declares MutatesData: true but otherwise behaves like
-// a no-op consumer. Used to assemble consumer mixes for the fanout
-// benchmark without contaminating the measurement with sink-side overhead.
+// mutatingNopTraces — see mutatingNopMetrics for the design notes
+// (declares MutatesData: true, does not actually mutate the input).
 type mutatingNopTraces struct{ consumer.Traces }
 
 func (mutatingNopTraces) Capabilities() consumer.Capabilities {
@@ -82,9 +81,8 @@ func BenchmarkTracesFanout(b *testing.B) {
 					td := shape.gen()
 					fanout := NewTraces(buildTracesMix(mix, n))
 					b.ReportAllocs()
-					b.SetBytes(int64(td.SpanCount()))
-					b.ResetTimer()
-					for i := 0; i < b.N; i++ {
+					b.SetBytes(int64(td.SpanCount())) // items/op, see BenchmarkMetricsFanout
+					for b.Loop() {
 						if err := fanout.ConsumeTraces(ctx, td); err != nil {
 							b.Fatal(err)
 						}

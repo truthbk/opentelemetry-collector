@@ -143,14 +143,13 @@ func BenchmarkPipelineFanoutMetrics(b *testing.B) {
 	for _, shape := range shapes {
 		for _, mutator := range mutators {
 			for _, n := range ns {
-				name := fmt.Sprintf("N=%d/mutator=%v/shape=%s", n, mutator, shape.name)
+				name := fmt.Sprintf("n=%d/mutator=%v/shape=%s", n, mutator, shape.name)
 				b.Run(name, func(b *testing.B) {
 					g := buildBenchPipeline(ctx, b, pipeline.SignalMetrics, n, mutator)
 					rcv := receiverFor(b, g, pipeline.SignalMetrics)
 					md := shape.gen()
 					b.ReportAllocs()
-					b.SetBytes(int64(md.DataPointCount()))
-					b.ResetTimer()
+					b.SetBytes(int64(md.DataPointCount())) // items/op, see BenchmarkMetricsFanout
 					for b.Loop() {
 						if err := rcv.ConsumeMetricsFunc(ctx, md); err != nil {
 							b.Fatal(err)
@@ -179,14 +178,13 @@ func BenchmarkPipelineFanoutTraces(b *testing.B) {
 	for _, shape := range shapes {
 		for _, mutator := range mutators {
 			for _, n := range ns {
-				name := fmt.Sprintf("N=%d/mutator=%v/shape=%s", n, mutator, shape.name)
+				name := fmt.Sprintf("n=%d/mutator=%v/shape=%s", n, mutator, shape.name)
 				b.Run(name, func(b *testing.B) {
 					g := buildBenchPipeline(ctx, b, pipeline.SignalTraces, n, mutator)
 					rcv := receiverFor(b, g, pipeline.SignalTraces)
 					td := shape.gen()
 					b.ReportAllocs()
-					b.SetBytes(int64(td.SpanCount()))
-					b.ResetTimer()
+					b.SetBytes(int64(td.SpanCount())) // items/op, see BenchmarkMetricsFanout
 					for b.Loop() {
 						if err := rcv.ConsumeTracesFunc(ctx, td); err != nil {
 							b.Fatal(err)
@@ -215,14 +213,13 @@ func BenchmarkPipelineFanoutLogs(b *testing.B) {
 	for _, shape := range shapes {
 		for _, mutator := range mutators {
 			for _, n := range ns {
-				name := fmt.Sprintf("N=%d/mutator=%v/shape=%s", n, mutator, shape.name)
+				name := fmt.Sprintf("n=%d/mutator=%v/shape=%s", n, mutator, shape.name)
 				b.Run(name, func(b *testing.B) {
 					g := buildBenchPipeline(ctx, b, pipeline.SignalLogs, n, mutator)
 					rcv := receiverFor(b, g, pipeline.SignalLogs)
 					ld := shape.gen()
 					b.ReportAllocs()
-					b.SetBytes(int64(ld.LogRecordCount()))
-					b.ResetTimer()
+					b.SetBytes(int64(ld.LogRecordCount())) // items/op, see BenchmarkMetricsFanout
 					for b.Loop() {
 						if err := rcv.ConsumeLogsFunc(ctx, ld); err != nil {
 							b.Fatal(err)

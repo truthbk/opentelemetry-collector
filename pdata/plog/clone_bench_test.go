@@ -76,8 +76,7 @@ func BenchmarkCopyToLogs(b *testing.B) {
 		b.Run("shape="+shape.name, func(b *testing.B) {
 			src := shape.gen()
 			b.ReportAllocs()
-			b.SetBytes(int64(src.LogRecordCount()))
-			b.ResetTimer()
+			b.SetBytes(int64(src.LogRecordCount())) // items/op; reported as MB/s
 			for b.Loop() {
 				dst := NewLogs()
 				src.CopyTo(dst)

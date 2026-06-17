@@ -77,8 +77,7 @@ func BenchmarkCopyToTraces(b *testing.B) {
 		b.Run("shape="+shape.name, func(b *testing.B) {
 			src := shape.gen()
 			b.ReportAllocs()
-			b.SetBytes(int64(src.SpanCount()))
-			b.ResetTimer()
+			b.SetBytes(int64(src.SpanCount())) // items/op; reported as MB/s
 			for b.Loop() {
 				dst := NewTraces()
 				src.CopyTo(dst)

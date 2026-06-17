@@ -14,9 +14,14 @@ import (
 	"go.opentelemetry.io/collector/pdata/testdata"
 )
 
-// mutatingNopMetrics declares MutatesData: true but otherwise behaves like
-// a no-op consumer. Used to assemble consumer mixes for the fanout
-// benchmark without contaminating the measurement with sink-side overhead.
+// mutatingNopMetrics declares MutatesData: true but otherwise behaves
+// like a no-op consumer — it does NOT actually mutate the input. The
+// benchmarks use it to assemble consumer mixes and exercise the fanout
+// consumer's capability-flag routing (mutating vs read-only branches)
+// without contaminating ns/op with sink-side overhead. A future
+// "mutator must touch the input" assertion in fanoutconsumer would not
+// fire here; that is by design — the benchmarks measure orchestration,
+// not contract compliance.
 type mutatingNopMetrics struct{ consumer.Metrics }
 
 func (mutatingNopMetrics) Capabilities() consumer.Capabilities {
@@ -93,9 +98,11 @@ func BenchmarkMetricsFanout(b *testing.B) {
 					md := shape.gen()
 					fanout := NewMetrics(buildMetricsMix(mix, n))
 					b.ReportAllocs()
+					// SetBytes is reported by `go test -bench` as MB/s.
+					// We pass datapoint count, so the column reads as
+					// datapoints/sec * 1e-6 — items/op, not bytes/op.
 					b.SetBytes(int64(md.DataPointCount()))
-					b.ResetTimer()
-					for i := 0; i < b.N; i++ {
+					for b.Loop() {
 						if err := fanout.ConsumeMetrics(ctx, md); err != nil {
 							b.Fatal(err)
 						}
