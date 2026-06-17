@@ -6,7 +6,7 @@ package internal // import "go.opentelemetry.io/collector/pdata/internal"
 // MetricsToProto internal helper to convert Metrics to protobuf representation.
 func MetricsToProto(l MetricsWrapper) MetricsData {
 	return MetricsData{
-		ResourceMetrics: l.orig.ResourceMetrics,
+		ResourceMetrics: l.h.orig.ResourceMetrics,
 	}
 }
 
