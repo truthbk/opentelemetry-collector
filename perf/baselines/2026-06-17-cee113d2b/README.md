@@ -1,12 +1,14 @@
-# Baseline 2026-06-17-ef31443a2
+# Baseline 2026-06-17-cee113d2b
 
-First captured baseline of the local performance rig, taken immediately
-after the rig itself landed on the `perf/local-rig` branch. Serves as
-the "before" reference for Workstream 3 (capability hygiene →
-CoW-aware `exporterhelper` batcher → selective COW pdata) and any other
-fanout-clone work in this area.
+Replacement baseline for the local performance rig after the
+`/code-review` feedback pass landed on `perf/local-rig`. Supersedes the
+earlier `2026-06-17-ef31443a2` baseline, which was captured before the
+style polish renamed pipeline-bench subtests from `N=` to `n=` (so the
+old `bench.txt` is no longer benchstat-comparable against current HEAD).
 
 ## Intent
+
+Same as the previous baseline:
 
 - Confirm the audit's quantitative claim about pdata clone cost
   ("~250k allocations per `CopyTo` for a 100×5×50×10 metrics batch").
@@ -54,32 +56,17 @@ ballpark. The motivation for the COW work stands.
 
 ### Pipeline fanout, mutator vs no-mutator (audit finding #19 pattern)
 
-`BenchmarkPipelineFanoutMetrics/N=4/shape=rich_100x5x50x10`:
+`BenchmarkPipelineFanoutMetrics/n=4/shape=rich_100x5x50x10`:
 
 | Config         | allocs/op | bytes/op    | ns/op  |
 | -------------- | --------- | ----------- | ------ |
 | `mutator=false`|        ~0 |    ~350 B   | ~120 ns|
-| `mutator=true` |  219 006  |   ~12 MB    |   ~5 ms|
+| `mutator=true` |  ~219 000 |   ~12 MB    |   ~5 ms|
 
 A single mutating processor in the chain converts the fanout from a
 nearly-free pass-through into a ~5 ms / 219 k-alloc operation. This is
 the delta that the CoW-aware batcher (finding #19) and selective COW
 pdata (finding #18) need to eliminate.
-
-### Fanout scaling
-
-`BenchmarkMetricsFanout/mix=all_mut` allocs/op scales linearly with N:
-
-| N   | small_10 | medium_1k | rich_100×5×50×10 |
-| --- | -------- | --------- | ---------------- |
-| 1   |        0 |         0 |                0 |
-| 2   |       59 |     5 009 |          328 503 |
-| 4   |      177 |    15 009 |          985 506 |
-| 8   |      413 |    35 009 |        2 299 512 |
-| 16  |      885 |    75 009 |        4 927 524 |
-
-(Approximate; numbers extracted from `bench.txt`.) Each additional
-mutating consumer in the fan adds one `CopyTo` worth of allocations.
 
 ## Files
 
@@ -95,5 +82,5 @@ profile, use `cmd/perftestbed` with the same parameters and attach
 ## Comparing against this baseline
 
 ```sh
-make perf-compare BASELINE=perf/baselines/2026-06-17-ef31443a2/
+make perf-compare BASELINE=perf/baselines/2026-06-17-cee113d2b/
 ```

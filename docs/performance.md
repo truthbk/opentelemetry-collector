@@ -44,7 +44,7 @@ make perf-baseline      # populates perf/baselines/YYYY-MM-DD-<shortsha>/
 Compare current state against a stored baseline:
 
 ```sh
-make perf-compare BASELINE=perf/baselines/2026-06-17-ef31443a2/
+make perf-compare BASELINE=perf/baselines/2026-06-17-cee113d2b/
 ```
 
 ## Running a specific benchmark by hand
@@ -172,7 +172,7 @@ change), trust it — don't ship "wins" inside the noise floor.
 Captured baselines live under `perf/baselines/YYYY-MM-DD-<shortsha>/`:
 
 ```
-perf/baselines/2026-06-17-ef31443a2/
+perf/baselines/2026-06-17-cee113d2b/
 ├── README.md      ← notes: hardware, intent, where pprofs were uploaded
 ├── metadata.yaml  ← git sha, Go version, host, flags
 └── bench.txt      ← raw benchstat-readable output
