@@ -85,6 +85,116 @@ func TestReleaseMetrics_UnpairedRelease_Panics(t *testing.T) {
 	assert.Panics(t, func() { ReleaseMetrics(md) })
 }
 
+// TestDetachMetrics_GateDisabled_IsPassthrough — DetachMetrics is a no-op
+// under gate-off; the returned wrapper is exactly md (same backing).
+func TestDetachMetrics_GateDisabled_IsPassthrough(t *testing.T) {
+	md := pmetric.NewMetrics()
+	got := DetachMetrics(md)
+	// Same backing State + orig → equivalent wrapper values.
+	assert.Equal(t, md, got)
+}
+
+// TestDetachMetrics_NotShared_IsPassthrough — under gate ON, calling
+// Detach on a non-share returns the wrapper unchanged. This is the fast
+// path for a conditional mutator that DOES enter its mutation branch
+// but happens to receive a non-shared wrapper (e.g. fanout broadcast
+// to a single mutator with no other consumers).
+func TestDetachMetrics_NotShared_IsPassthrough(t *testing.T) {
+	withGate(t)
+	md := pmetric.NewMetrics()
+	got := DetachMetrics(md)
+	assert.Equal(t, md, got, "non-shared wrapper returned unchanged")
+}
+
+// TestDetachMetrics_Shared_DeepClonesAndDecrements — the load-bearing
+// detach behaviour: a share's mutation branch calls Detach, receives an
+// independent wrapper backed by a fresh proto tree, and the share's
+// cowRefs is decremented (so a paired Release would be a no-op or
+// caller can skip the Release on the detached value).
+//
+// Verification approach: mutate the detached wrapper, observe that the
+// shared wrapper's backing tree is unchanged. That's the real invariant
+// — wrapper-value equality / pointer comparison is fragile under proto
+// pooling (pmetric.NewMetrics() reuses a pooled *Request, which can
+// coincidentally yield the same pointer the share already held).
+func TestDetachMetrics_Shared_DeepClonesAndDecrements(t *testing.T) {
+	withGate(t)
+	md := pmetric.NewMetrics()
+	md.ResourceMetrics().AppendEmpty().Resource().Attributes().PutStr("k", "v")
+
+	shared := ShareMetrics(md)
+	require.True(t, IsSharedMetrics(shared))
+
+	detached := DetachMetrics(shared)
+	assert.False(t, IsSharedMetrics(detached), "detached wrapper is independent")
+
+	// Backing data is preserved through detach.
+	v, ok := detached.ResourceMetrics().At(0).Resource().Attributes().Get("k")
+	require.True(t, ok)
+	assert.Equal(t, "v", v.Str())
+
+	// Mutating the detached wrapper does not leak into the share's view
+	// (proves the deep-clone actually happened — they have independent
+	// backing trees).
+	detached.ResourceMetrics().At(0).Resource().Attributes().PutStr("k", "mutated")
+
+	v, ok = detached.ResourceMetrics().At(0).Resource().Attributes().Get("k")
+	require.True(t, ok)
+	assert.Equal(t, "mutated", v.Str())
+
+	v, ok = shared.ResourceMetrics().At(0).Resource().Attributes().Get("k")
+	require.True(t, ok)
+	assert.Equal(t, "v", v.Str(), "shared wrapper's backing tree is independent of detached's mutation")
+}
+
+func TestDetachTraces(t *testing.T) {
+	withGate(t)
+	td := ptrace.NewTraces()
+	shared := ShareTraces(td)
+	require.True(t, IsSharedTraces(shared))
+	detached := DetachTraces(shared)
+	assert.False(t, IsSharedTraces(detached))
+}
+
+func TestDetachLogs(t *testing.T) {
+	withGate(t)
+	ld := plog.NewLogs()
+	shared := ShareLogs(ld)
+	require.True(t, IsSharedLogs(shared))
+	detached := DetachLogs(shared)
+	assert.False(t, IsSharedLogs(detached))
+}
+
+func TestDetachProfiles(t *testing.T) {
+	withGate(t)
+	pd := pprofile.NewProfiles()
+	shared := ShareProfiles(pd)
+	require.True(t, IsSharedProfiles(shared))
+	detached := DetachProfiles(shared)
+	assert.False(t, IsSharedProfiles(detached))
+}
+
+// TestSafetyNet_MutateSharedWithoutDetach_Panics — the contract-violation
+// safety net: a consumer that declares MutatesData=true and mutates a
+// share without first calling cow.Detach* gets a clear panic at the
+// AssertMutable callsite, rather than silently corrupting the source's
+// backing tree. This is what makes Path X (opt-in explicit detach)
+// safe to ship — operators integrating a new processor will see the
+// panic during testing.
+func TestSafetyNet_MutateSharedWithoutDetach_Panics(t *testing.T) {
+	withGate(t)
+	md := pmetric.NewMetrics()
+	shared := ShareMetrics(md)
+	require.True(t, IsSharedMetrics(shared))
+	// Skip the Detach call. Any mutation should panic at AssertMutable.
+	assert.PanicsWithValue(t,
+		"invalid access to cow-shared data: caller must call cow.Detach* before mutating (see pdata/xpdata/cow)",
+		func() {
+			shared.ResourceMetrics().AppendEmpty()
+		},
+	)
+}
+
 func TestShareTraces_GateEnabled_BumpsCowRefs(t *testing.T) {
 	withGate(t)
 	td := ptrace.NewTraces()

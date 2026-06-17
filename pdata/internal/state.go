@@ -56,9 +56,25 @@ func (st *State) IsReadOnly() bool {
 }
 
 // AssertMutable panics if the state is not StateMutable.
+//
+// Under the pdata.cow feature gate, a State that carries an outstanding
+// COW share (cowRefs > 0) is also non-mutable from the share's
+// perspective — the share's backing tree is pointed at by other
+// wrappers (the source + sibling shares), and a direct mutation would
+// corrupt their view. Consumers that need to mutate a share MUST
+// detach first (cow.DetachX in xpdata/cow), which produces an
+// independent wrapper whose State has cowRefs == 0.
+//
+// AssertMutable panics on cowRefs > 0 to surface contract violations
+// loudly during development/testing rather than silently corrupting
+// the source's data. The cowRefs check is gated so it has zero impact
+// when the cow feature is off (cowRefs stays 0 in that path).
 func (st *State) AssertMutable() {
 	if st.state&stateReadOnlyBit != 0 {
 		panic("invalid access to shared data")
+	}
+	if st.cowRefs.Load() > 0 {
+		panic("invalid access to cow-shared data: caller must call cow.Detach* before mutating (see pdata/xpdata/cow)")
 	}
 }
 

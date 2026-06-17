@@ -34,3 +34,18 @@ func IsSharedProfiles(pd pprofile.Profiles) bool {
 	}
 	return internal.GetProfilesState(internal.ProfilesWrapper(pd)).CowRefs() > 0
 }
+
+// DetachProfiles — see DetachMetrics for the full doc + Phase 1 contract.
+func DetachProfiles(pd pprofile.Profiles) pprofile.Profiles {
+	if !FeatureGate.IsEnabled() {
+		return pd
+	}
+	w := internal.ProfilesWrapper(pd)
+	if internal.GetProfilesState(w).CowRefs() == 0 {
+		return pd
+	}
+	cloned := pprofile.NewProfiles()
+	pd.CopyTo(cloned)
+	internal.GetProfilesState(w).DecCowRefs()
+	return cloned
+}

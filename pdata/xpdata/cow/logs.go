@@ -34,3 +34,18 @@ func IsSharedLogs(ld plog.Logs) bool {
 	}
 	return internal.GetLogsState(internal.LogsWrapper(ld)).CowRefs() > 0
 }
+
+// DetachLogs — see DetachMetrics for the full doc + Phase 1 contract.
+func DetachLogs(ld plog.Logs) plog.Logs {
+	if !FeatureGate.IsEnabled() {
+		return ld
+	}
+	w := internal.LogsWrapper(ld)
+	if internal.GetLogsState(w).CowRefs() == 0 {
+		return ld
+	}
+	cloned := plog.NewLogs()
+	ld.CopyTo(cloned)
+	internal.GetLogsState(w).DecCowRefs()
+	return cloned
+}

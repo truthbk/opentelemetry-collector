@@ -34,3 +34,18 @@ func IsSharedTraces(td ptrace.Traces) bool {
 	}
 	return internal.GetTracesState(internal.TracesWrapper(td)).CowRefs() > 0
 }
+
+// DetachTraces — see DetachMetrics for the full doc + Phase 1 contract.
+func DetachTraces(td ptrace.Traces) ptrace.Traces {
+	if !FeatureGate.IsEnabled() {
+		return td
+	}
+	w := internal.TracesWrapper(td)
+	if internal.GetTracesState(w).CowRefs() == 0 {
+		return td
+	}
+	cloned := ptrace.NewTraces()
+	td.CopyTo(cloned)
+	internal.GetTracesState(w).DecCowRefs()
+	return cloned
+}
