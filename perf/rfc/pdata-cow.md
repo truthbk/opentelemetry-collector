@@ -1,6 +1,68 @@
 # RFC — Selective copy-on-write for pdata
 
-**Status:** *Draft (local, pre-upstream)*
+**Status:** *Local — Alternative A prototyped and shelved; shipping
+Alternative C scaffolding only. See "Engagement outcome" below.*
+
+## Engagement outcome (2026-06-17)
+
+The Alternative A design described in this document (Handle indirection
+at top-level + detach mechanism at every AssertMutable site) was
+prototyped under [`pdata/internal/cowproto/`](../../pdata/internal/cowproto/)
+with index-path nested wrappers + generation-cache fast paths.
+Apples-to-apples microbench (`pdata/xpdata/internal/cowprotobench/`)
+vs today's pdata wrappers, wrapping the same backing tree:
+
+| Bench | Baseline | cowproto (Alt A) | Delta |
+|-------|----------|------------------|-------|
+| ReadAllAttributes (deep, 25k chains) | 920µs | 1539µs | **+67%** |
+| MutateAllAttributes | 1.87ms | 2.40ms | **+28%** |
+| MetricsUsage (mixed read+mutate) | 565µs | 876µs | **+55%** |
+| ReadResourceAttrsOnly (shallow) | 570ns | 389ns | **−32%** (faster) |
+| Geomean | 153µs | 188µs | **+23%** |
+
+Verdict against the perf gate in "Decision: Alternative A" (5% target /
+10% acceptable ceiling): **fails** on the realistic deep-path workload
+that processors typically exhibit (datapoint attribute access).
+
+Two compounding factors made the work not ship:
+
+1. Wrapper-layer overhead is real and well above the gate. The shallow
+   path is actually faster, but production processors heavily touch
+   datapoint attributes.
+2. The deferred-clone benefit is narrower than the rig's headline
+   `325k→0` number suggested. That number was a **bench artifact** —
+   MarkReadOnly contamination on iter 2+ of a reused `md`. In
+   production each batch is fresh, so the contamination doesn't fire.
+   Post-O2 (the wrapped-batched-exporter fix), the receiver-side fanout
+   is already at ~1 clone per batch in most realistic topologies.
+
+The decision was to pivot to **Alternative C** (eager clone in
+`cow.Share*`) and ship the scaffolding without the deferred-clone
+mechanism:
+
+- `pdata.cow` feature gate registered (Alpha, default off).
+- `pdata/xpdata/cow/` API stable: `Share* / Release* / IsShared*`.
+  Under the gate, `Share*` does an eager CopyTo (functionally identical
+  to today's `cloneMetrics`); `Release*` decrements bookkeeping cowRefs.
+- `pdata/internal/handle.go` Handle struct preserved as foundation for
+  a future deferred-clone design (currently unused by the eager path).
+- `State.cowRefs` + `State.generation` fields preserved (cowRefs is
+  used by the Share/Release bookkeeping; generation is reserved for a
+  future deferred design).
+- Fanout (`internal/fanoutconsumer/{metrics,traces,logs,profiles}.go`)
+  branches on the gate: ON → `cow.Share*`; OFF → unchanged CopyTo.
+  Wiring is in place for a future engagement that designs a working
+  per-subtree COW to flip the Share semantics without re-touching the
+  fanout.
+
+The prototype + microbench live in commit history (see commit
+`cf63dd25e`) for the next engagement that takes another swing at the
+deferred-clone problem.
+
+The remainder of this document describes the original Alternative A
+design as it stood before the prototype findings. Treat it as
+**historical** — the engagement shipped C, not A. The terminology,
+design alternatives, and refcount/State extensions still apply.
 
 ## Motivation
 
