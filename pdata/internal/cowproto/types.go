@@ -1,6 +1,8 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build cowproto_prototype
+
 package cowproto // import "go.opentelemetry.io/collector/pdata/internal/cowproto"
 
 import (

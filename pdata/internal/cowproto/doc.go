@@ -1,11 +1,26 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
-// Package cowproto is a hand-written PROTOTYPE of the wrapper design under
-// consideration for the pdata.cow feature gate (see perf/rfc/pdata-cow.md).
-// It is not used by any production code — its only purpose is to host the
-// microbenchmark that compares the prototype's access patterns against
-// today's pdata wrappers.
+//go:build cowproto_prototype
+
+// Package cowproto is a SHELVED, hand-written PROTOTYPE of the wrapper
+// design originally considered for the pdata.cow feature gate (see
+// perf/rfc/pdata-cow.md, "Alternative A pivot to C with prototype
+// findings"). It is gated behind the `cowproto_prototype` build tag so
+// it does NOT compile or run in normal builds — paired only with the
+// microbench at pdata/xpdata/internal/cowprotobench/ which lives behind
+// the same tag.
+//
+// To rerun the historical bench:
+//
+//	go test -tags=cowproto_prototype -bench=. -benchtime=2s -count=5 \
+//	    ./pdata/xpdata/internal/cowprotobench/...
+//
+// The RFC at perf/rfc/pdata-cow.md documents why this design was
+// rejected (deep-path workload at +23% geomean over baseline → failed
+// the RFC's 5%/10% gate). Path Y supersedes it. The code is kept rather
+// than deleted so a future engagement that takes another swing at
+// deferred-clone can rerun the bench against the same scaffold.
 //
 // # Design under prototype
 //

@@ -1,10 +1,14 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build cowproto_prototype
+
 // Package cowprotobench hosts the apples-to-apples microbench that compares
 // today's pdata wrappers against the cowproto Handle+index-path prototype.
 // It lives in xpdata (which can import pmetric/testdata) rather than pdata
 // itself (which cannot — pdata is the lowest layer).
+//
+// Build-tag gated: `go test -tags=cowproto_prototype ./pdata/xpdata/internal/cowprotobench/...`
 //
 // See pdata/internal/cowproto/doc.go for the prototype design.
 package cowprotobench
