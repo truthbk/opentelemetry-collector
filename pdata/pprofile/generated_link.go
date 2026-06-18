@@ -38,14 +38,14 @@ func NewLink() Link {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Link) MoveTo(dest Link) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteLink(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteLink(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // TraceID returns the traceid associated with this Link.
@@ -72,6 +72,14 @@ func (ms Link) SetSpanID(v pcommon.SpanID) {
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Link) CopyTo(dest Link) {
-	dest.state.AssertMutable()
-	internal.CopyLink(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyLink(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Link) getOrig() *internal.Link {
+	return ms.orig
+}
+
+func (ms Link) getState() *internal.State {
+	return ms.state
 }

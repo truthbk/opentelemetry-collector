@@ -45,7 +45,7 @@ func TestStack_CopyTo(t *testing.T) {
 func TestStack_LocationIndices(t *testing.T) {
 	ms := NewStack()
 	assert.Equal(t, pcommon.NewInt32Slice(), ms.LocationIndices())
-	ms.orig.LocationIndices = internal.GenTestInt32Slice()
+	ms.getOrig().LocationIndices = internal.GenTestInt32Slice()
 	assert.Equal(t, pcommon.Int32Slice(internal.GenTestInt32SliceWrapper()), ms.LocationIndices())
 }
 

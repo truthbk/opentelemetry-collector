@@ -40,45 +40,53 @@ func NewKeyValueAndUnit() KeyValueAndUnit {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms KeyValueAndUnit) MoveTo(dest KeyValueAndUnit) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteKeyValueAndUnit(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteKeyValueAndUnit(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // KeyStrindex returns the keystrindex associated with this KeyValueAndUnit.
 func (ms KeyValueAndUnit) KeyStrindex() int32 {
-	return ms.orig.KeyStrindex
+	return ms.getOrig().KeyStrindex
 }
 
 // SetKeyStrindex replaces the keystrindex associated with this KeyValueAndUnit.
 func (ms KeyValueAndUnit) SetKeyStrindex(v int32) {
-	ms.state.AssertMutable()
-	ms.orig.KeyStrindex = v
+	ms.getState().AssertMutable()
+	ms.getOrig().KeyStrindex = v
 }
 
 // Value returns the value associated with this KeyValueAndUnit.
 func (ms KeyValueAndUnit) Value() pcommon.Value {
-	return pcommon.Value(internal.NewValueWrapper(&ms.orig.Value, ms.state))
+	return pcommon.Value(internal.NewValueWrapper(&ms.getOrig().Value, ms.getState()))
 }
 
 // UnitStrindex returns the unitstrindex associated with this KeyValueAndUnit.
 func (ms KeyValueAndUnit) UnitStrindex() int32 {
-	return ms.orig.UnitStrindex
+	return ms.getOrig().UnitStrindex
 }
 
 // SetUnitStrindex replaces the unitstrindex associated with this KeyValueAndUnit.
 func (ms KeyValueAndUnit) SetUnitStrindex(v int32) {
-	ms.state.AssertMutable()
-	ms.orig.UnitStrindex = v
+	ms.getState().AssertMutable()
+	ms.getOrig().UnitStrindex = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms KeyValueAndUnit) CopyTo(dest KeyValueAndUnit) {
-	dest.state.AssertMutable()
-	internal.CopyKeyValueAndUnit(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyKeyValueAndUnit(dest.getOrig(), ms.getOrig())
+}
+
+func (ms KeyValueAndUnit) getOrig() *internal.KeyValueAndUnit {
+	return ms.orig
+}
+
+func (ms KeyValueAndUnit) getState() *internal.State {
+	return ms.state
 }

@@ -37,40 +37,48 @@ func NewSummaryDataPointValueAtQuantile() SummaryDataPointValueAtQuantile {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms SummaryDataPointValueAtQuantile) MoveTo(dest SummaryDataPointValueAtQuantile) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteSummaryDataPointValueAtQuantile(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteSummaryDataPointValueAtQuantile(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Quantile returns the quantile associated with this SummaryDataPointValueAtQuantile.
 func (ms SummaryDataPointValueAtQuantile) Quantile() float64 {
-	return ms.orig.Quantile
+	return ms.getOrig().Quantile
 }
 
 // SetQuantile replaces the quantile associated with this SummaryDataPointValueAtQuantile.
 func (ms SummaryDataPointValueAtQuantile) SetQuantile(v float64) {
-	ms.state.AssertMutable()
-	ms.orig.Quantile = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Quantile = v
 }
 
 // Value returns the value associated with this SummaryDataPointValueAtQuantile.
 func (ms SummaryDataPointValueAtQuantile) Value() float64 {
-	return ms.orig.Value
+	return ms.getOrig().Value
 }
 
 // SetValue replaces the value associated with this SummaryDataPointValueAtQuantile.
 func (ms SummaryDataPointValueAtQuantile) SetValue(v float64) {
-	ms.state.AssertMutable()
-	ms.orig.Value = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Value = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms SummaryDataPointValueAtQuantile) CopyTo(dest SummaryDataPointValueAtQuantile) {
-	dest.state.AssertMutable()
-	internal.CopySummaryDataPointValueAtQuantile(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopySummaryDataPointValueAtQuantile(dest.getOrig(), ms.getOrig())
+}
+
+func (ms SummaryDataPointValueAtQuantile) getOrig() *internal.SummaryDataPointValueAtQuantile {
+	return ms.orig
+}
+
+func (ms SummaryDataPointValueAtQuantile) getState() *internal.State {
+	return ms.state
 }

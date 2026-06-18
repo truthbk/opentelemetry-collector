@@ -44,7 +44,7 @@ func TestSum_CopyTo(t *testing.T) {
 func TestSum_DataPoints(t *testing.T) {
 	ms := NewSum()
 	assert.Equal(t, NewNumberDataPointSlice(), ms.DataPoints())
-	ms.orig.DataPoints = internal.GenTestNumberDataPointPtrSlice()
+	ms.getOrig().DataPoints = internal.GenTestNumberDataPointPtrSlice()
 	assert.Equal(t, generateTestNumberDataPointSlice(), ms.DataPoints())
 }
 

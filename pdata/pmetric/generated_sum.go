@@ -37,19 +37,19 @@ func NewSum() Sum {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Sum) MoveTo(dest Sum) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteSum(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteSum(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // DataPoints returns the DataPoints associated with this Sum.
 func (ms Sum) DataPoints() NumberDataPointSlice {
-	return newNumberDataPointSlice(&ms.orig.DataPoints, ms.state)
+	return newNumberDataPointSlice(&ms.getOrig().DataPoints, ms.getState())
 }
 
 // AggregationTemporality returns the aggregationtemporality associated with this Sum.
@@ -65,17 +65,25 @@ func (ms Sum) SetAggregationTemporality(v AggregationTemporality) {
 
 // IsMonotonic returns the ismonotonic associated with this Sum.
 func (ms Sum) IsMonotonic() bool {
-	return ms.orig.IsMonotonic
+	return ms.getOrig().IsMonotonic
 }
 
 // SetIsMonotonic replaces the ismonotonic associated with this Sum.
 func (ms Sum) SetIsMonotonic(v bool) {
-	ms.state.AssertMutable()
-	ms.orig.IsMonotonic = v
+	ms.getState().AssertMutable()
+	ms.getOrig().IsMonotonic = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Sum) CopyTo(dest Sum) {
-	dest.state.AssertMutable()
-	internal.CopySum(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopySum(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Sum) getOrig() *internal.Sum {
+	return ms.orig
+}
+
+func (ms Sum) getState() *internal.State {
+	return ms.state
 }

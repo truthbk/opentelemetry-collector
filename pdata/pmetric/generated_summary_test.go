@@ -44,7 +44,7 @@ func TestSummary_CopyTo(t *testing.T) {
 func TestSummary_DataPoints(t *testing.T) {
 	ms := NewSummary()
 	assert.Equal(t, NewSummaryDataPointSlice(), ms.DataPoints())
-	ms.orig.DataPoints = internal.GenTestSummaryDataPointPtrSlice()
+	ms.getOrig().DataPoints = internal.GenTestSummaryDataPointPtrSlice()
 	assert.Equal(t, generateTestSummaryDataPointSlice(), ms.DataPoints())
 }
 

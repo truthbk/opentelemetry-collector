@@ -38,39 +38,47 @@ func NewResourceLogs() ResourceLogs {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms ResourceLogs) MoveTo(dest ResourceLogs) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteResourceLogs(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteResourceLogs(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Resource returns the resource associated with this ResourceLogs.
 func (ms ResourceLogs) Resource() pcommon.Resource {
-	return pcommon.Resource(internal.NewResourceWrapper(&ms.orig.Resource, ms.state))
+	return pcommon.Resource(internal.NewResourceWrapper(&ms.getOrig().Resource, ms.getState()))
 }
 
 // ScopeLogs returns the ScopeLogs associated with this ResourceLogs.
 func (ms ResourceLogs) ScopeLogs() ScopeLogsSlice {
-	return newScopeLogsSlice(&ms.orig.ScopeLogs, ms.state)
+	return newScopeLogsSlice(&ms.getOrig().ScopeLogs, ms.getState())
 }
 
 // SchemaUrl returns the schemaurl associated with this ResourceLogs.
 func (ms ResourceLogs) SchemaUrl() string {
-	return ms.orig.SchemaUrl
+	return ms.getOrig().SchemaUrl
 }
 
 // SetSchemaUrl replaces the schemaurl associated with this ResourceLogs.
 func (ms ResourceLogs) SetSchemaUrl(v string) {
-	ms.state.AssertMutable()
-	ms.orig.SchemaUrl = v
+	ms.getState().AssertMutable()
+	ms.getOrig().SchemaUrl = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms ResourceLogs) CopyTo(dest ResourceLogs) {
-	dest.state.AssertMutable()
-	internal.CopyResourceLogs(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyResourceLogs(dest.getOrig(), ms.getOrig())
+}
+
+func (ms ResourceLogs) getOrig() *internal.ResourceLogs {
+	return ms.orig
+}
+
+func (ms ResourceLogs) getState() *internal.State {
+	return ms.state
 }

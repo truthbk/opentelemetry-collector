@@ -45,14 +45,14 @@ func TestResourceMetrics_CopyTo(t *testing.T) {
 func TestResourceMetrics_Resource(t *testing.T) {
 	ms := NewResourceMetrics()
 	assert.Equal(t, pcommon.NewResource(), ms.Resource())
-	ms.orig.Resource = *internal.GenTestResource()
+	ms.getOrig().Resource = *internal.GenTestResource()
 	assert.Equal(t, pcommon.Resource(internal.GenTestResourceWrapper()), ms.Resource())
 }
 
 func TestResourceMetrics_ScopeMetrics(t *testing.T) {
 	ms := NewResourceMetrics()
 	assert.Equal(t, NewScopeMetricsSlice(), ms.ScopeMetrics())
-	ms.orig.ScopeMetrics = internal.GenTestScopeMetricsPtrSlice()
+	ms.getOrig().ScopeMetrics = internal.GenTestScopeMetricsPtrSlice()
 	assert.Equal(t, generateTestScopeMetricsSlice(), ms.ScopeMetrics())
 }
 

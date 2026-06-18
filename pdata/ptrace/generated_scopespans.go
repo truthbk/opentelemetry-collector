@@ -38,39 +38,47 @@ func NewScopeSpans() ScopeSpans {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms ScopeSpans) MoveTo(dest ScopeSpans) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteScopeSpans(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteScopeSpans(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Scope returns the scope associated with this ScopeSpans.
 func (ms ScopeSpans) Scope() pcommon.InstrumentationScope {
-	return pcommon.InstrumentationScope(internal.NewInstrumentationScopeWrapper(&ms.orig.Scope, ms.state))
+	return pcommon.InstrumentationScope(internal.NewInstrumentationScopeWrapper(&ms.getOrig().Scope, ms.getState()))
 }
 
 // Spans returns the Spans associated with this ScopeSpans.
 func (ms ScopeSpans) Spans() SpanSlice {
-	return newSpanSlice(&ms.orig.Spans, ms.state)
+	return newSpanSlice(&ms.getOrig().Spans, ms.getState())
 }
 
 // SchemaUrl returns the schemaurl associated with this ScopeSpans.
 func (ms ScopeSpans) SchemaUrl() string {
-	return ms.orig.SchemaUrl
+	return ms.getOrig().SchemaUrl
 }
 
 // SetSchemaUrl replaces the schemaurl associated with this ScopeSpans.
 func (ms ScopeSpans) SetSchemaUrl(v string) {
-	ms.state.AssertMutable()
-	ms.orig.SchemaUrl = v
+	ms.getState().AssertMutable()
+	ms.getOrig().SchemaUrl = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms ScopeSpans) CopyTo(dest ScopeSpans) {
-	dest.state.AssertMutable()
-	internal.CopyScopeSpans(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyScopeSpans(dest.getOrig(), ms.getOrig())
+}
+
+func (ms ScopeSpans) getOrig() *internal.ScopeSpans {
+	return ms.orig
+}
+
+func (ms ScopeSpans) getState() *internal.State {
+	return ms.state
 }

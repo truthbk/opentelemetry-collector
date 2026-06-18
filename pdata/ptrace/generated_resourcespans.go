@@ -38,39 +38,47 @@ func NewResourceSpans() ResourceSpans {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms ResourceSpans) MoveTo(dest ResourceSpans) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteResourceSpans(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteResourceSpans(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Resource returns the resource associated with this ResourceSpans.
 func (ms ResourceSpans) Resource() pcommon.Resource {
-	return pcommon.Resource(internal.NewResourceWrapper(&ms.orig.Resource, ms.state))
+	return pcommon.Resource(internal.NewResourceWrapper(&ms.getOrig().Resource, ms.getState()))
 }
 
 // ScopeSpans returns the ScopeSpans associated with this ResourceSpans.
 func (ms ResourceSpans) ScopeSpans() ScopeSpansSlice {
-	return newScopeSpansSlice(&ms.orig.ScopeSpans, ms.state)
+	return newScopeSpansSlice(&ms.getOrig().ScopeSpans, ms.getState())
 }
 
 // SchemaUrl returns the schemaurl associated with this ResourceSpans.
 func (ms ResourceSpans) SchemaUrl() string {
-	return ms.orig.SchemaUrl
+	return ms.getOrig().SchemaUrl
 }
 
 // SetSchemaUrl replaces the schemaurl associated with this ResourceSpans.
 func (ms ResourceSpans) SetSchemaUrl(v string) {
-	ms.state.AssertMutable()
-	ms.orig.SchemaUrl = v
+	ms.getState().AssertMutable()
+	ms.getOrig().SchemaUrl = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms ResourceSpans) CopyTo(dest ResourceSpans) {
-	dest.state.AssertMutable()
-	internal.CopyResourceSpans(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyResourceSpans(dest.getOrig(), ms.getOrig())
+}
+
+func (ms ResourceSpans) getOrig() *internal.ResourceSpans {
+	return ms.orig
+}
+
+func (ms ResourceSpans) getState() *internal.State {
+	return ms.state
 }

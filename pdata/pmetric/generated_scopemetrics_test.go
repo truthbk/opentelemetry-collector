@@ -45,14 +45,14 @@ func TestScopeMetrics_CopyTo(t *testing.T) {
 func TestScopeMetrics_Scope(t *testing.T) {
 	ms := NewScopeMetrics()
 	assert.Equal(t, pcommon.NewInstrumentationScope(), ms.Scope())
-	ms.orig.Scope = *internal.GenTestInstrumentationScope()
+	ms.getOrig().Scope = *internal.GenTestInstrumentationScope()
 	assert.Equal(t, pcommon.InstrumentationScope(internal.GenTestInstrumentationScopeWrapper()), ms.Scope())
 }
 
 func TestScopeMetrics_Metrics(t *testing.T) {
 	ms := NewScopeMetrics()
 	assert.Equal(t, NewMetricSlice(), ms.Metrics())
-	ms.orig.Metrics = internal.GenTestMetricPtrSlice()
+	ms.getOrig().Metrics = internal.GenTestMetricPtrSlice()
 	assert.Equal(t, generateTestMetricSlice(), ms.Metrics())
 }
 

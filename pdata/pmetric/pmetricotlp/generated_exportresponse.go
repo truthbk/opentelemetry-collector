@@ -37,23 +37,31 @@ func NewExportResponse() ExportResponse {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms ExportResponse) MoveTo(dest ExportResponse) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteExportMetricsServiceResponse(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteExportMetricsServiceResponse(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // PartialSuccess returns the partialsuccess associated with this ExportResponse.
 func (ms ExportResponse) PartialSuccess() ExportPartialSuccess {
-	return newExportPartialSuccess(&ms.orig.PartialSuccess, ms.state)
+	return newExportPartialSuccess(&ms.getOrig().PartialSuccess, ms.getState())
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms ExportResponse) CopyTo(dest ExportResponse) {
-	dest.state.AssertMutable()
-	internal.CopyExportMetricsServiceResponse(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyExportMetricsServiceResponse(dest.getOrig(), ms.getOrig())
+}
+
+func (ms ExportResponse) getOrig() *internal.ExportMetricsServiceResponse {
+	return ms.orig
+}
+
+func (ms ExportResponse) getState() *internal.State {
+	return ms.state
 }

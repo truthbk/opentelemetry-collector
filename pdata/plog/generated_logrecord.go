@@ -38,14 +38,14 @@ func NewLogRecord() LogRecord {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms LogRecord) MoveTo(dest LogRecord) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteLogRecord(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteLogRecord(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Timestamp returns the timestamp associated with this LogRecord.
@@ -83,34 +83,34 @@ func (ms LogRecord) SetSeverityNumber(v SeverityNumber) {
 
 // SeverityText returns the severitytext associated with this LogRecord.
 func (ms LogRecord) SeverityText() string {
-	return ms.orig.SeverityText
+	return ms.getOrig().SeverityText
 }
 
 // SetSeverityText replaces the severitytext associated with this LogRecord.
 func (ms LogRecord) SetSeverityText(v string) {
-	ms.state.AssertMutable()
-	ms.orig.SeverityText = v
+	ms.getState().AssertMutable()
+	ms.getOrig().SeverityText = v
 }
 
 // Body returns the body associated with this LogRecord.
 func (ms LogRecord) Body() pcommon.Value {
-	return pcommon.Value(internal.NewValueWrapper(&ms.orig.Body, ms.state))
+	return pcommon.Value(internal.NewValueWrapper(&ms.getOrig().Body, ms.getState()))
 }
 
 // Attributes returns the Attributes associated with this LogRecord.
 func (ms LogRecord) Attributes() pcommon.Map {
-	return pcommon.Map(internal.NewMapWrapper(&ms.orig.Attributes, ms.state))
+	return pcommon.Map(internal.NewMapWrapper(&ms.getOrig().Attributes, ms.getState()))
 }
 
 // DroppedAttributesCount returns the droppedattributescount associated with this LogRecord.
 func (ms LogRecord) DroppedAttributesCount() uint32 {
-	return ms.orig.DroppedAttributesCount
+	return ms.getOrig().DroppedAttributesCount
 }
 
 // SetDroppedAttributesCount replaces the droppedattributescount associated with this LogRecord.
 func (ms LogRecord) SetDroppedAttributesCount(v uint32) {
-	ms.state.AssertMutable()
-	ms.orig.DroppedAttributesCount = v
+	ms.getState().AssertMutable()
+	ms.getOrig().DroppedAttributesCount = v
 }
 
 // Flags returns the flags associated with this LogRecord.
@@ -148,17 +148,25 @@ func (ms LogRecord) SetSpanID(v pcommon.SpanID) {
 
 // EventName returns the eventname associated with this LogRecord.
 func (ms LogRecord) EventName() string {
-	return ms.orig.EventName
+	return ms.getOrig().EventName
 }
 
 // SetEventName replaces the eventname associated with this LogRecord.
 func (ms LogRecord) SetEventName(v string) {
-	ms.state.AssertMutable()
-	ms.orig.EventName = v
+	ms.getState().AssertMutable()
+	ms.getOrig().EventName = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms LogRecord) CopyTo(dest LogRecord) {
-	dest.state.AssertMutable()
-	internal.CopyLogRecord(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyLogRecord(dest.getOrig(), ms.getOrig())
+}
+
+func (ms LogRecord) getOrig() *internal.LogRecord {
+	return ms.orig
+}
+
+func (ms LogRecord) getState() *internal.State {
+	return ms.state
 }

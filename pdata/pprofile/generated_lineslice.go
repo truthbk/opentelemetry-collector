@@ -40,7 +40,7 @@ func NewLineSlice() LineSlice {
 //
 // Returns "0" for a newly instance created with "NewLineSlice()".
 func (es LineSlice) Len() int {
-	return len(*es.orig)
+	return len(*es.getOrig())
 }
 
 // At returns the element at the given index.
@@ -52,7 +52,7 @@ func (es LineSlice) Len() int {
 //	    ... // Do something with the element
 //	}
 func (es LineSlice) At(i int) Line {
-	return newLine((*es.orig)[i], es.state)
+	return newLine((*es.getOrig())[i], es.getState())
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -83,52 +83,52 @@ func (es LineSlice) All() iter.Seq2[int, Line] {
 //	    // Here should set all the values for e.
 //	}
 func (es LineSlice) EnsureCapacity(newCap int) {
-	es.state.AssertMutable()
-	oldCap := cap(*es.orig)
+	es.getState().AssertMutable()
+	oldCap := cap(*es.getOrig())
 	if newCap <= oldCap {
 		return
 	}
 
-	newOrig := make([]*internal.Line, len(*es.orig), newCap)
-	copy(newOrig, *es.orig)
-	*es.orig = newOrig
+	newOrig := make([]*internal.Line, len(*es.getOrig()), newCap)
+	copy(newOrig, *es.getOrig())
+	*es.getOrig() = newOrig
 }
 
 // AppendEmpty will append to the end of the slice an empty Line.
 // It returns the newly added Line.
 func (es LineSlice) AppendEmpty() Line {
-	es.state.AssertMutable()
-	*es.orig = append(*es.orig, internal.NewLine())
+	es.getState().AssertMutable()
+	*es.getOrig() = append(*es.getOrig(), internal.NewLine())
 	return es.At(es.Len() - 1)
 }
 
 // MoveAndAppendTo moves all elements from the current slice and appends them to the dest.
 // The current slice will be cleared.
 func (es LineSlice) MoveAndAppendTo(dest LineSlice) {
-	es.state.AssertMutable()
-	dest.state.AssertMutable()
+	es.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if es.orig == dest.orig {
+	if es.getOrig() == dest.getOrig() {
 		return
 	}
-	if *dest.orig == nil {
+	if *dest.getOrig() == nil {
 		// We can simply move the entire vector and avoid any allocations.
-		*dest.orig = *es.orig
+		*dest.getOrig() = *es.getOrig()
 	} else {
-		*dest.orig = append(*dest.orig, *es.orig...)
+		*dest.getOrig() = append(*dest.getOrig(), *es.getOrig()...)
 	}
-	*es.orig = nil
+	*es.getOrig() = nil
 }
 
 // RemoveIf calls f sequentially for each element present in the slice.
 // If f returns true, the element is removed from the slice.
 func (es LineSlice) RemoveIf(f func(Line) bool) {
-	es.state.AssertMutable()
+	es.getState().AssertMutable()
 	newLen := 0
-	for i := 0; i < len(*es.orig); i++ {
+	for i := 0; i < len(*es.getOrig()); i++ {
 		if f(es.At(i)) {
-			internal.DeleteLine((*es.orig)[i], true)
-			(*es.orig)[i] = nil
+			internal.DeleteLine((*es.getOrig())[i], true)
+			(*es.getOrig())[i] = nil
 
 			continue
 		}
@@ -137,27 +137,35 @@ func (es LineSlice) RemoveIf(f func(Line) bool) {
 			newLen++
 			continue
 		}
-		(*es.orig)[newLen] = (*es.orig)[i]
+		(*es.getOrig())[newLen] = (*es.getOrig())[i]
 		// Cannot delete here since we just move the data(or pointer to data) to a different position in the slice.
-		(*es.orig)[i] = nil
+		(*es.getOrig())[i] = nil
 		newLen++
 	}
-	*es.orig = (*es.orig)[:newLen]
+	*es.getOrig() = (*es.getOrig())[:newLen]
 }
 
 // CopyTo copies all elements from the current slice overriding the destination.
 func (es LineSlice) CopyTo(dest LineSlice) {
-	dest.state.AssertMutable()
-	if es.orig == dest.orig {
+	dest.getState().AssertMutable()
+	if es.getOrig() == dest.getOrig() {
 		return
 	}
-	*dest.orig = internal.CopyLinePtrSlice(*dest.orig, *es.orig)
+	*dest.getOrig() = internal.CopyLinePtrSlice(*dest.getOrig(), *es.getOrig())
 }
 
 // Sort sorts the Line elements within LineSlice given the
 // provided less function so that two instances of LineSlice
 // can be compared.
 func (es LineSlice) Sort(less func(a, b Line) bool) {
-	es.state.AssertMutable()
-	sort.SliceStable(*es.orig, func(i, j int) bool { return less(es.At(i), es.At(j)) })
+	es.getState().AssertMutable()
+	sort.SliceStable(*es.getOrig(), func(i, j int) bool { return less(es.At(i), es.At(j)) })
+}
+
+func (ms LineSlice) getOrig() *[]*internal.Line {
+	return ms.orig
+}
+
+func (ms LineSlice) getState() *internal.State {
+	return ms.state
 }

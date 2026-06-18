@@ -39,7 +39,7 @@ func NewExemplarSlice() ExemplarSlice {
 //
 // Returns "0" for a newly instance created with "NewExemplarSlice()".
 func (es ExemplarSlice) Len() int {
-	return len(*es.orig)
+	return len(*es.getOrig())
 }
 
 // At returns the element at the given index.
@@ -51,7 +51,7 @@ func (es ExemplarSlice) Len() int {
 //	    ... // Do something with the element
 //	}
 func (es ExemplarSlice) At(i int) Exemplar {
-	return newExemplar(&(*es.orig)[i], es.state)
+	return newExemplar(&(*es.getOrig())[i], es.getState())
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -82,51 +82,51 @@ func (es ExemplarSlice) All() iter.Seq2[int, Exemplar] {
 //	    // Here should set all the values for e.
 //	}
 func (es ExemplarSlice) EnsureCapacity(newCap int) {
-	es.state.AssertMutable()
-	oldCap := cap(*es.orig)
+	es.getState().AssertMutable()
+	oldCap := cap(*es.getOrig())
 	if newCap <= oldCap {
 		return
 	}
 
-	newOrig := make([]internal.Exemplar, len(*es.orig), newCap)
-	copy(newOrig, *es.orig)
-	*es.orig = newOrig
+	newOrig := make([]internal.Exemplar, len(*es.getOrig()), newCap)
+	copy(newOrig, *es.getOrig())
+	*es.getOrig() = newOrig
 }
 
 // AppendEmpty will append to the end of the slice an empty Exemplar.
 // It returns the newly added Exemplar.
 func (es ExemplarSlice) AppendEmpty() Exemplar {
-	es.state.AssertMutable()
-	*es.orig = append(*es.orig, internal.Exemplar{})
+	es.getState().AssertMutable()
+	*es.getOrig() = append(*es.getOrig(), internal.Exemplar{})
 	return es.At(es.Len() - 1)
 }
 
 // MoveAndAppendTo moves all elements from the current slice and appends them to the dest.
 // The current slice will be cleared.
 func (es ExemplarSlice) MoveAndAppendTo(dest ExemplarSlice) {
-	es.state.AssertMutable()
-	dest.state.AssertMutable()
+	es.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if es.orig == dest.orig {
+	if es.getOrig() == dest.getOrig() {
 		return
 	}
-	if *dest.orig == nil {
+	if *dest.getOrig() == nil {
 		// We can simply move the entire vector and avoid any allocations.
-		*dest.orig = *es.orig
+		*dest.getOrig() = *es.getOrig()
 	} else {
-		*dest.orig = append(*dest.orig, *es.orig...)
+		*dest.getOrig() = append(*dest.getOrig(), *es.getOrig()...)
 	}
-	*es.orig = nil
+	*es.getOrig() = nil
 }
 
 // RemoveIf calls f sequentially for each element present in the slice.
 // If f returns true, the element is removed from the slice.
 func (es ExemplarSlice) RemoveIf(f func(Exemplar) bool) {
-	es.state.AssertMutable()
+	es.getState().AssertMutable()
 	newLen := 0
-	for i := 0; i < len(*es.orig); i++ {
+	for i := 0; i < len(*es.getOrig()); i++ {
 		if f(es.At(i)) {
-			internal.DeleteExemplar(&(*es.orig)[i], false)
+			internal.DeleteExemplar(&(*es.getOrig())[i], false)
 			continue
 		}
 		if newLen == i {
@@ -134,18 +134,26 @@ func (es ExemplarSlice) RemoveIf(f func(Exemplar) bool) {
 			newLen++
 			continue
 		}
-		(*es.orig)[newLen] = (*es.orig)[i]
-		(*es.orig)[i].Reset()
+		(*es.getOrig())[newLen] = (*es.getOrig())[i]
+		(*es.getOrig())[i].Reset()
 		newLen++
 	}
-	*es.orig = (*es.orig)[:newLen]
+	*es.getOrig() = (*es.getOrig())[:newLen]
 }
 
 // CopyTo copies all elements from the current slice overriding the destination.
 func (es ExemplarSlice) CopyTo(dest ExemplarSlice) {
-	dest.state.AssertMutable()
-	if es.orig == dest.orig {
+	dest.getState().AssertMutable()
+	if es.getOrig() == dest.getOrig() {
 		return
 	}
-	*dest.orig = internal.CopyExemplarSlice(*dest.orig, *es.orig)
+	*dest.getOrig() = internal.CopyExemplarSlice(*dest.getOrig(), *es.getOrig())
+}
+
+func (ms ExemplarSlice) getOrig() *[]internal.Exemplar {
+	return ms.orig
+}
+
+func (ms ExemplarSlice) getState() *internal.State {
+	return ms.state
 }

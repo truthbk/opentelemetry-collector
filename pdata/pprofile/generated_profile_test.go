@@ -45,14 +45,14 @@ func TestProfile_CopyTo(t *testing.T) {
 func TestProfile_SampleType(t *testing.T) {
 	ms := NewProfile()
 	assert.Equal(t, NewValueType(), ms.SampleType())
-	ms.orig.SampleType = *internal.GenTestValueType()
+	ms.getOrig().SampleType = *internal.GenTestValueType()
 	assert.Equal(t, generateTestValueType(), ms.SampleType())
 }
 
 func TestProfile_Samples(t *testing.T) {
 	ms := NewProfile()
 	assert.Equal(t, NewSampleSlice(), ms.Samples())
-	ms.orig.Samples = internal.GenTestSamplePtrSlice()
+	ms.getOrig().Samples = internal.GenTestSamplePtrSlice()
 	assert.Equal(t, generateTestSampleSlice(), ms.Samples())
 }
 
@@ -77,7 +77,7 @@ func TestProfile_DurationNano(t *testing.T) {
 func TestProfile_PeriodType(t *testing.T) {
 	ms := NewProfile()
 	assert.Equal(t, NewValueType(), ms.PeriodType())
-	ms.orig.PeriodType = *internal.GenTestValueType()
+	ms.getOrig().PeriodType = *internal.GenTestValueType()
 	assert.Equal(t, generateTestValueType(), ms.PeriodType())
 }
 
@@ -124,14 +124,14 @@ func TestProfile_OriginalPayloadFormat(t *testing.T) {
 func TestProfile_OriginalPayload(t *testing.T) {
 	ms := NewProfile()
 	assert.Equal(t, pcommon.NewByteSlice(), ms.OriginalPayload())
-	ms.orig.OriginalPayload = internal.GenTestByteSlice()
+	ms.getOrig().OriginalPayload = internal.GenTestByteSlice()
 	assert.Equal(t, pcommon.ByteSlice(internal.GenTestByteSliceWrapper()), ms.OriginalPayload())
 }
 
 func TestProfile_AttributeIndices(t *testing.T) {
 	ms := NewProfile()
 	assert.Equal(t, pcommon.NewInt32Slice(), ms.AttributeIndices())
-	ms.orig.AttributeIndices = internal.GenTestInt32Slice()
+	ms.getOrig().AttributeIndices = internal.GenTestInt32Slice()
 	assert.Equal(t, pcommon.Int32Slice(internal.GenTestInt32SliceWrapper()), ms.AttributeIndices())
 }
 

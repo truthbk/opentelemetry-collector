@@ -38,39 +38,47 @@ func NewResourceMetrics() ResourceMetrics {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms ResourceMetrics) MoveTo(dest ResourceMetrics) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteResourceMetrics(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteResourceMetrics(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Resource returns the resource associated with this ResourceMetrics.
 func (ms ResourceMetrics) Resource() pcommon.Resource {
-	return pcommon.Resource(internal.NewResourceWrapper(&ms.orig.Resource, ms.state))
+	return pcommon.Resource(internal.NewResourceWrapper(&ms.getOrig().Resource, ms.getState()))
 }
 
 // ScopeMetrics returns the ScopeMetrics associated with this ResourceMetrics.
 func (ms ResourceMetrics) ScopeMetrics() ScopeMetricsSlice {
-	return newScopeMetricsSlice(&ms.orig.ScopeMetrics, ms.state)
+	return newScopeMetricsSlice(&ms.getOrig().ScopeMetrics, ms.getState())
 }
 
 // SchemaUrl returns the schemaurl associated with this ResourceMetrics.
 func (ms ResourceMetrics) SchemaUrl() string {
-	return ms.orig.SchemaUrl
+	return ms.getOrig().SchemaUrl
 }
 
 // SetSchemaUrl replaces the schemaurl associated with this ResourceMetrics.
 func (ms ResourceMetrics) SetSchemaUrl(v string) {
-	ms.state.AssertMutable()
-	ms.orig.SchemaUrl = v
+	ms.getState().AssertMutable()
+	ms.getOrig().SchemaUrl = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms ResourceMetrics) CopyTo(dest ResourceMetrics) {
-	dest.state.AssertMutable()
-	internal.CopyResourceMetrics(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyResourceMetrics(dest.getOrig(), ms.getOrig())
+}
+
+func (ms ResourceMetrics) getOrig() *internal.ResourceMetrics {
+	return ms.orig
+}
+
+func (ms ResourceMetrics) getState() *internal.State {
+	return ms.state
 }

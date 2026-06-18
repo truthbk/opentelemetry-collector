@@ -38,39 +38,47 @@ func NewScopeLogs() ScopeLogs {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms ScopeLogs) MoveTo(dest ScopeLogs) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteScopeLogs(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteScopeLogs(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Scope returns the scope associated with this ScopeLogs.
 func (ms ScopeLogs) Scope() pcommon.InstrumentationScope {
-	return pcommon.InstrumentationScope(internal.NewInstrumentationScopeWrapper(&ms.orig.Scope, ms.state))
+	return pcommon.InstrumentationScope(internal.NewInstrumentationScopeWrapper(&ms.getOrig().Scope, ms.getState()))
 }
 
 // LogRecords returns the LogRecords associated with this ScopeLogs.
 func (ms ScopeLogs) LogRecords() LogRecordSlice {
-	return newLogRecordSlice(&ms.orig.LogRecords, ms.state)
+	return newLogRecordSlice(&ms.getOrig().LogRecords, ms.getState())
 }
 
 // SchemaUrl returns the schemaurl associated with this ScopeLogs.
 func (ms ScopeLogs) SchemaUrl() string {
-	return ms.orig.SchemaUrl
+	return ms.getOrig().SchemaUrl
 }
 
 // SetSchemaUrl replaces the schemaurl associated with this ScopeLogs.
 func (ms ScopeLogs) SetSchemaUrl(v string) {
-	ms.state.AssertMutable()
-	ms.orig.SchemaUrl = v
+	ms.getState().AssertMutable()
+	ms.getOrig().SchemaUrl = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms ScopeLogs) CopyTo(dest ScopeLogs) {
-	dest.state.AssertMutable()
-	internal.CopyScopeLogs(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyScopeLogs(dest.getOrig(), ms.getOrig())
+}
+
+func (ms ScopeLogs) getOrig() *internal.ScopeLogs {
+	return ms.orig
+}
+
+func (ms ScopeLogs) getState() *internal.State {
+	return ms.state
 }

@@ -176,12 +176,18 @@ func (es {{ .structName }}) Sort(less func(a, b {{ .elementName }}) bool) {
 }
 {{- end }}
 
-{{ if .hasWrapper -}}
 func (ms {{ .structName }}) getOrig() *[]{{ if .elementNullable }}*{{ end }}internal.{{ .elementOriginName }} {
+{{- if .hasWrapper }}
 	return internal.Get{{ .structName }}Orig(internal.{{ .structName }}Wrapper(ms))
+{{- else }}
+	return ms.orig
+{{- end }}
 }
 
 func (ms {{ .structName }}) getState() *internal.State {
+{{- if .hasWrapper }}
 	return internal.Get{{ .structName }}State(internal.{{ .structName }}Wrapper(ms))
-}
+{{- else }}
+	return ms.state
 {{- end }}
+}

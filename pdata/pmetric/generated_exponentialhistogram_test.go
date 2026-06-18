@@ -44,7 +44,7 @@ func TestExponentialHistogram_CopyTo(t *testing.T) {
 func TestExponentialHistogram_DataPoints(t *testing.T) {
 	ms := NewExponentialHistogram()
 	assert.Equal(t, NewExponentialHistogramDataPointSlice(), ms.DataPoints())
-	ms.orig.DataPoints = internal.GenTestExponentialHistogramDataPointPtrSlice()
+	ms.getOrig().DataPoints = internal.GenTestExponentialHistogramDataPointPtrSlice()
 	assert.Equal(t, generateTestExponentialHistogramDataPointSlice(), ms.DataPoints())
 }
 

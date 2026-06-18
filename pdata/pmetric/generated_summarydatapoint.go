@@ -38,19 +38,19 @@ func NewSummaryDataPoint() SummaryDataPoint {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms SummaryDataPoint) MoveTo(dest SummaryDataPoint) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteSummaryDataPoint(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteSummaryDataPoint(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Attributes returns the Attributes associated with this SummaryDataPoint.
 func (ms SummaryDataPoint) Attributes() pcommon.Map {
-	return pcommon.Map(internal.NewMapWrapper(&ms.orig.Attributes, ms.state))
+	return pcommon.Map(internal.NewMapWrapper(&ms.getOrig().Attributes, ms.getState()))
 }
 
 // StartTimestamp returns the starttimestamp associated with this SummaryDataPoint.
@@ -77,29 +77,29 @@ func (ms SummaryDataPoint) SetTimestamp(v pcommon.Timestamp) {
 
 // Count returns the count associated with this SummaryDataPoint.
 func (ms SummaryDataPoint) Count() uint64 {
-	return ms.orig.Count
+	return ms.getOrig().Count
 }
 
 // SetCount replaces the count associated with this SummaryDataPoint.
 func (ms SummaryDataPoint) SetCount(v uint64) {
-	ms.state.AssertMutable()
-	ms.orig.Count = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Count = v
 }
 
 // Sum returns the sum associated with this SummaryDataPoint.
 func (ms SummaryDataPoint) Sum() float64 {
-	return ms.orig.Sum
+	return ms.getOrig().Sum
 }
 
 // SetSum replaces the sum associated with this SummaryDataPoint.
 func (ms SummaryDataPoint) SetSum(v float64) {
-	ms.state.AssertMutable()
-	ms.orig.Sum = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Sum = v
 }
 
 // QuantileValues returns the QuantileValues associated with this SummaryDataPoint.
 func (ms SummaryDataPoint) QuantileValues() SummaryDataPointValueAtQuantileSlice {
-	return newSummaryDataPointValueAtQuantileSlice(&ms.orig.QuantileValues, ms.state)
+	return newSummaryDataPointValueAtQuantileSlice(&ms.getOrig().QuantileValues, ms.getState())
 }
 
 // Flags returns the flags associated with this SummaryDataPoint.
@@ -115,6 +115,14 @@ func (ms SummaryDataPoint) SetFlags(v DataPointFlags) {
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms SummaryDataPoint) CopyTo(dest SummaryDataPoint) {
-	dest.state.AssertMutable()
-	internal.CopySummaryDataPoint(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopySummaryDataPoint(dest.getOrig(), ms.getOrig())
+}
+
+func (ms SummaryDataPoint) getOrig() *internal.SummaryDataPoint {
+	return ms.orig
+}
+
+func (ms SummaryDataPoint) getState() *internal.State {
+	return ms.state
 }

@@ -38,50 +38,58 @@ func NewLocation() Location {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Location) MoveTo(dest Location) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteLocation(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteLocation(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // MappingIndex returns the mappingindex associated with this Location.
 func (ms Location) MappingIndex() int32 {
-	return ms.orig.MappingIndex
+	return ms.getOrig().MappingIndex
 }
 
 // SetMappingIndex replaces the mappingindex associated with this Location.
 func (ms Location) SetMappingIndex(v int32) {
-	ms.state.AssertMutable()
-	ms.orig.MappingIndex = v
+	ms.getState().AssertMutable()
+	ms.getOrig().MappingIndex = v
 }
 
 // Address returns the address associated with this Location.
 func (ms Location) Address() uint64 {
-	return ms.orig.Address
+	return ms.getOrig().Address
 }
 
 // SetAddress replaces the address associated with this Location.
 func (ms Location) SetAddress(v uint64) {
-	ms.state.AssertMutable()
-	ms.orig.Address = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Address = v
 }
 
 // Lines returns the Lines associated with this Location.
 func (ms Location) Lines() LineSlice {
-	return newLineSlice(&ms.orig.Lines, ms.state)
+	return newLineSlice(&ms.getOrig().Lines, ms.getState())
 }
 
 // AttributeIndices returns the AttributeIndices associated with this Location.
 func (ms Location) AttributeIndices() pcommon.Int32Slice {
-	return pcommon.Int32Slice(internal.NewInt32SliceWrapper(&ms.orig.AttributeIndices, ms.state))
+	return pcommon.Int32Slice(internal.NewInt32SliceWrapper(&ms.getOrig().AttributeIndices, ms.getState()))
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Location) CopyTo(dest Location) {
-	dest.state.AssertMutable()
-	internal.CopyLocation(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyLocation(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Location) getOrig() *internal.Location {
+	return ms.orig
+}
+
+func (ms Location) getState() *internal.State {
+	return ms.state
 }

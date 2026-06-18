@@ -37,62 +37,70 @@ func NewFunction() Function {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Function) MoveTo(dest Function) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteFunction(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteFunction(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // NameStrindex returns the namestrindex associated with this Function.
 func (ms Function) NameStrindex() int32 {
-	return ms.orig.NameStrindex
+	return ms.getOrig().NameStrindex
 }
 
 // SetNameStrindex replaces the namestrindex associated with this Function.
 func (ms Function) SetNameStrindex(v int32) {
-	ms.state.AssertMutable()
-	ms.orig.NameStrindex = v
+	ms.getState().AssertMutable()
+	ms.getOrig().NameStrindex = v
 }
 
 // SystemNameStrindex returns the systemnamestrindex associated with this Function.
 func (ms Function) SystemNameStrindex() int32 {
-	return ms.orig.SystemNameStrindex
+	return ms.getOrig().SystemNameStrindex
 }
 
 // SetSystemNameStrindex replaces the systemnamestrindex associated with this Function.
 func (ms Function) SetSystemNameStrindex(v int32) {
-	ms.state.AssertMutable()
-	ms.orig.SystemNameStrindex = v
+	ms.getState().AssertMutable()
+	ms.getOrig().SystemNameStrindex = v
 }
 
 // FilenameStrindex returns the filenamestrindex associated with this Function.
 func (ms Function) FilenameStrindex() int32 {
-	return ms.orig.FilenameStrindex
+	return ms.getOrig().FilenameStrindex
 }
 
 // SetFilenameStrindex replaces the filenamestrindex associated with this Function.
 func (ms Function) SetFilenameStrindex(v int32) {
-	ms.state.AssertMutable()
-	ms.orig.FilenameStrindex = v
+	ms.getState().AssertMutable()
+	ms.getOrig().FilenameStrindex = v
 }
 
 // StartLine returns the startline associated with this Function.
 func (ms Function) StartLine() int64 {
-	return ms.orig.StartLine
+	return ms.getOrig().StartLine
 }
 
 // SetStartLine replaces the startline associated with this Function.
 func (ms Function) SetStartLine(v int64) {
-	ms.state.AssertMutable()
-	ms.orig.StartLine = v
+	ms.getState().AssertMutable()
+	ms.getOrig().StartLine = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Function) CopyTo(dest Function) {
-	dest.state.AssertMutable()
-	internal.CopyFunction(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyFunction(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Function) getOrig() *internal.Function {
+	return ms.orig
+}
+
+func (ms Function) getState() *internal.State {
+	return ms.state
 }

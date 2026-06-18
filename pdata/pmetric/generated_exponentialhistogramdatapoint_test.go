@@ -51,7 +51,7 @@ func TestExponentialHistogramDataPoint_CopyTo(t *testing.T) {
 func TestExponentialHistogramDataPoint_Attributes(t *testing.T) {
 	ms := NewExponentialHistogramDataPoint()
 	assert.Equal(t, pcommon.NewMap(), ms.Attributes())
-	ms.orig.Attributes = internal.GenTestKeyValueSlice()
+	ms.getOrig().Attributes = internal.GenTestKeyValueSlice()
 	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Attributes())
 }
 
@@ -124,14 +124,14 @@ func TestExponentialHistogramDataPoint_ZeroCount(t *testing.T) {
 func TestExponentialHistogramDataPoint_Positive(t *testing.T) {
 	ms := NewExponentialHistogramDataPoint()
 	assert.Equal(t, NewExponentialHistogramDataPointBuckets(), ms.Positive())
-	ms.orig.Positive = *internal.GenTestExponentialHistogramDataPointBuckets()
+	ms.getOrig().Positive = *internal.GenTestExponentialHistogramDataPointBuckets()
 	assert.Equal(t, generateTestExponentialHistogramDataPointBuckets(), ms.Positive())
 }
 
 func TestExponentialHistogramDataPoint_Negative(t *testing.T) {
 	ms := NewExponentialHistogramDataPoint()
 	assert.Equal(t, NewExponentialHistogramDataPointBuckets(), ms.Negative())
-	ms.orig.Negative = *internal.GenTestExponentialHistogramDataPointBuckets()
+	ms.getOrig().Negative = *internal.GenTestExponentialHistogramDataPointBuckets()
 	assert.Equal(t, generateTestExponentialHistogramDataPointBuckets(), ms.Negative())
 }
 
@@ -146,7 +146,7 @@ func TestExponentialHistogramDataPoint_Flags(t *testing.T) {
 func TestExponentialHistogramDataPoint_Exemplars(t *testing.T) {
 	ms := NewExponentialHistogramDataPoint()
 	assert.Equal(t, NewExemplarSlice(), ms.Exemplars())
-	ms.orig.Exemplars = internal.GenTestExemplarSlice()
+	ms.getOrig().Exemplars = internal.GenTestExemplarSlice()
 	assert.Equal(t, generateTestExemplarSlice(), ms.Exemplars())
 }
 

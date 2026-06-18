@@ -38,53 +38,61 @@ func NewProfilesDictionary() ProfilesDictionary {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms ProfilesDictionary) MoveTo(dest ProfilesDictionary) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteProfilesDictionary(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteProfilesDictionary(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // MappingTable returns the MappingTable associated with this ProfilesDictionary.
 func (ms ProfilesDictionary) MappingTable() MappingSlice {
-	return newMappingSlice(&ms.orig.MappingTable, ms.state)
+	return newMappingSlice(&ms.getOrig().MappingTable, ms.getState())
 }
 
 // LocationTable returns the LocationTable associated with this ProfilesDictionary.
 func (ms ProfilesDictionary) LocationTable() LocationSlice {
-	return newLocationSlice(&ms.orig.LocationTable, ms.state)
+	return newLocationSlice(&ms.getOrig().LocationTable, ms.getState())
 }
 
 // FunctionTable returns the FunctionTable associated with this ProfilesDictionary.
 func (ms ProfilesDictionary) FunctionTable() FunctionSlice {
-	return newFunctionSlice(&ms.orig.FunctionTable, ms.state)
+	return newFunctionSlice(&ms.getOrig().FunctionTable, ms.getState())
 }
 
 // LinkTable returns the LinkTable associated with this ProfilesDictionary.
 func (ms ProfilesDictionary) LinkTable() LinkSlice {
-	return newLinkSlice(&ms.orig.LinkTable, ms.state)
+	return newLinkSlice(&ms.getOrig().LinkTable, ms.getState())
 }
 
 // StringTable returns the StringTable associated with this ProfilesDictionary.
 func (ms ProfilesDictionary) StringTable() pcommon.StringSlice {
-	return pcommon.StringSlice(internal.NewStringSliceWrapper(&ms.orig.StringTable, ms.state))
+	return pcommon.StringSlice(internal.NewStringSliceWrapper(&ms.getOrig().StringTable, ms.getState()))
 }
 
 // AttributeTable returns the AttributeTable associated with this ProfilesDictionary.
 func (ms ProfilesDictionary) AttributeTable() KeyValueAndUnitSlice {
-	return newKeyValueAndUnitSlice(&ms.orig.AttributeTable, ms.state)
+	return newKeyValueAndUnitSlice(&ms.getOrig().AttributeTable, ms.getState())
 }
 
 // StackTable returns the StackTable associated with this ProfilesDictionary.
 func (ms ProfilesDictionary) StackTable() StackSlice {
-	return newStackSlice(&ms.orig.StackTable, ms.state)
+	return newStackSlice(&ms.getOrig().StackTable, ms.getState())
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms ProfilesDictionary) CopyTo(dest ProfilesDictionary) {
-	dest.state.AssertMutable()
-	internal.CopyProfilesDictionary(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyProfilesDictionary(dest.getOrig(), ms.getOrig())
+}
+
+func (ms ProfilesDictionary) getOrig() *internal.ProfilesDictionary {
+	return ms.orig
+}
+
+func (ms ProfilesDictionary) getState() *internal.State {
+	return ms.state
 }

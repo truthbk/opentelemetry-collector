@@ -6,8 +6,8 @@ package internal // import "go.opentelemetry.io/collector/pdata/internal"
 // ProfilesToProto internal helper to convert Profiles to protobuf representation.
 func ProfilesToProto(l ProfilesWrapper) ProfilesData {
 	return ProfilesData{
-		ResourceProfiles: l.h.orig.ResourceProfiles,
-		Dictionary:       l.h.orig.Dictionary,
+		ResourceProfiles: l.orig.ResourceProfiles,
+		Dictionary:       l.orig.Dictionary,
 	}
 }
 

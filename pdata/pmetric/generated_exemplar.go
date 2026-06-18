@@ -42,19 +42,19 @@ func NewExemplar() Exemplar {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Exemplar) MoveTo(dest Exemplar) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteExemplar(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteExemplar(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // FilteredAttributes returns the FilteredAttributes associated with this Exemplar.
 func (ms Exemplar) FilteredAttributes() pcommon.Map {
-	return pcommon.Map(internal.NewMapWrapper(&ms.orig.FilteredAttributes, ms.state))
+	return pcommon.Map(internal.NewMapWrapper(&ms.getOrig().FilteredAttributes, ms.getState()))
 }
 
 // Timestamp returns the timestamp associated with this Exemplar.
@@ -71,7 +71,7 @@ func (ms Exemplar) SetTimestamp(v pcommon.Timestamp) {
 // ValueType returns the type of the value for this Exemplar.
 // Calling this function on zero-initialized Exemplar will cause a panic.
 func (ms Exemplar) ValueType() ExemplarValueType {
-	switch ms.orig.Value.(type) {
+	switch ms.getOrig().Value.(type) {
 	case *internal.Exemplar_AsDouble:
 		return ExemplarValueTypeDouble
 	case *internal.Exemplar_AsInt:
@@ -138,6 +138,14 @@ func (ms Exemplar) SetSpanID(v pcommon.SpanID) {
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Exemplar) CopyTo(dest Exemplar) {
-	dest.state.AssertMutable()
-	internal.CopyExemplar(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyExemplar(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Exemplar) getOrig() *internal.Exemplar {
+	return ms.orig
+}
+
+func (ms Exemplar) getState() *internal.State {
+	return ms.state
 }

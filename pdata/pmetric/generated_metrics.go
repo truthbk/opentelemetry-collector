@@ -35,12 +35,6 @@ func NewMetrics() Metrics {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Metrics) MoveTo(dest Metrics) {
-	// Path Y auto-detach prelude. If either wrapper carries a cow share
-	// (cowRefs > 0), deep-clone its backing tree and rebind in place so
-	// the subsequent mutation does not corrupt the source. Fast path
-	// (cowRefs == 0): one atomic load + compare per side, zero alloc.
-	internal.DetachMetricsIfShared(internal.MetricsWrapper(ms))
-	internal.DetachMetricsIfShared(internal.MetricsWrapper(dest))
 	ms.getState().AssertMutable()
 	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
@@ -58,9 +52,6 @@ func (ms Metrics) ResourceMetrics() ResourceMetricsSlice {
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Metrics) CopyTo(dest Metrics) {
-	// Path Y auto-detach prelude — see MoveTo. Only the destination is
-	// being mutated (the source is read-only here).
-	internal.DetachMetricsIfShared(internal.MetricsWrapper(dest))
 	dest.getState().AssertMutable()
 	internal.CopyExportMetricsServiceRequest(dest.getOrig(), ms.getOrig())
 }

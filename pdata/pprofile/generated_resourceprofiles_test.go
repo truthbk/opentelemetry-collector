@@ -45,14 +45,14 @@ func TestResourceProfiles_CopyTo(t *testing.T) {
 func TestResourceProfiles_Resource(t *testing.T) {
 	ms := NewResourceProfiles()
 	assert.Equal(t, pcommon.NewResource(), ms.Resource())
-	ms.orig.Resource = *internal.GenTestResource()
+	ms.getOrig().Resource = *internal.GenTestResource()
 	assert.Equal(t, pcommon.Resource(internal.GenTestResourceWrapper()), ms.Resource())
 }
 
 func TestResourceProfiles_ScopeProfiles(t *testing.T) {
 	ms := NewResourceProfiles()
 	assert.Equal(t, NewScopeProfilesSlice(), ms.ScopeProfiles())
-	ms.orig.ScopeProfiles = internal.GenTestScopeProfilesPtrSlice()
+	ms.getOrig().ScopeProfiles = internal.GenTestScopeProfilesPtrSlice()
 	assert.Equal(t, generateTestScopeProfilesSlice(), ms.ScopeProfiles())
 }
 

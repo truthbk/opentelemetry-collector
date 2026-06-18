@@ -37,23 +37,31 @@ func NewGauge() Gauge {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Gauge) MoveTo(dest Gauge) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteGauge(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteGauge(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // DataPoints returns the DataPoints associated with this Gauge.
 func (ms Gauge) DataPoints() NumberDataPointSlice {
-	return newNumberDataPointSlice(&ms.orig.DataPoints, ms.state)
+	return newNumberDataPointSlice(&ms.getOrig().DataPoints, ms.getState())
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Gauge) CopyTo(dest Gauge) {
-	dest.state.AssertMutable()
-	internal.CopyGauge(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyGauge(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Gauge) getOrig() *internal.Gauge {
+	return ms.orig
+}
+
+func (ms Gauge) getState() *internal.State {
+	return ms.state
 }

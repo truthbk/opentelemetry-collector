@@ -45,7 +45,7 @@ func TestHistogramDataPoint_CopyTo(t *testing.T) {
 func TestHistogramDataPoint_Attributes(t *testing.T) {
 	ms := NewHistogramDataPoint()
 	assert.Equal(t, pcommon.NewMap(), ms.Attributes())
-	ms.orig.Attributes = internal.GenTestKeyValueSlice()
+	ms.getOrig().Attributes = internal.GenTestKeyValueSlice()
 	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Attributes())
 }
 
@@ -92,21 +92,21 @@ func TestHistogramDataPoint_Sum(t *testing.T) {
 func TestHistogramDataPoint_BucketCounts(t *testing.T) {
 	ms := NewHistogramDataPoint()
 	assert.Equal(t, pcommon.NewUInt64Slice(), ms.BucketCounts())
-	ms.orig.BucketCounts = internal.GenTestUint64Slice()
+	ms.getOrig().BucketCounts = internal.GenTestUint64Slice()
 	assert.Equal(t, pcommon.UInt64Slice(internal.GenTestUInt64SliceWrapper()), ms.BucketCounts())
 }
 
 func TestHistogramDataPoint_ExplicitBounds(t *testing.T) {
 	ms := NewHistogramDataPoint()
 	assert.Equal(t, pcommon.NewFloat64Slice(), ms.ExplicitBounds())
-	ms.orig.ExplicitBounds = internal.GenTestFloat64Slice()
+	ms.getOrig().ExplicitBounds = internal.GenTestFloat64Slice()
 	assert.Equal(t, pcommon.Float64Slice(internal.GenTestFloat64SliceWrapper()), ms.ExplicitBounds())
 }
 
 func TestHistogramDataPoint_Exemplars(t *testing.T) {
 	ms := NewHistogramDataPoint()
 	assert.Equal(t, NewExemplarSlice(), ms.Exemplars())
-	ms.orig.Exemplars = internal.GenTestExemplarSlice()
+	ms.getOrig().Exemplars = internal.GenTestExemplarSlice()
 	assert.Equal(t, generateTestExemplarSlice(), ms.Exemplars())
 }
 

@@ -85,7 +85,7 @@ func TestMapping_FilenameStrindex(t *testing.T) {
 func TestMapping_AttributeIndices(t *testing.T) {
 	ms := NewMapping()
 	assert.Equal(t, pcommon.NewInt32Slice(), ms.AttributeIndices())
-	ms.orig.AttributeIndices = internal.GenTestInt32Slice()
+	ms.getOrig().AttributeIndices = internal.GenTestInt32Slice()
 	assert.Equal(t, pcommon.Int32Slice(internal.GenTestInt32SliceWrapper()), ms.AttributeIndices())
 }
 

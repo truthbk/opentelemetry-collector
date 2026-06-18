@@ -44,7 +44,7 @@ func TestHistogram_CopyTo(t *testing.T) {
 func TestHistogram_DataPoints(t *testing.T) {
 	ms := NewHistogram()
 	assert.Equal(t, NewHistogramDataPointSlice(), ms.DataPoints())
-	ms.orig.DataPoints = internal.GenTestHistogramDataPointPtrSlice()
+	ms.getOrig().DataPoints = internal.GenTestHistogramDataPointPtrSlice()
 	assert.Equal(t, generateTestHistogramDataPointSlice(), ms.DataPoints())
 }
 

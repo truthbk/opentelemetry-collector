@@ -38,19 +38,19 @@ func NewHistogramDataPoint() HistogramDataPoint {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms HistogramDataPoint) MoveTo(dest HistogramDataPoint) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteHistogramDataPoint(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteHistogramDataPoint(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Attributes returns the Attributes associated with this HistogramDataPoint.
 func (ms HistogramDataPoint) Attributes() pcommon.Map {
-	return pcommon.Map(internal.NewMapWrapper(&ms.orig.Attributes, ms.state))
+	return pcommon.Map(internal.NewMapWrapper(&ms.getOrig().Attributes, ms.getState()))
 }
 
 // StartTimestamp returns the starttimestamp associated with this HistogramDataPoint.
@@ -77,13 +77,13 @@ func (ms HistogramDataPoint) SetTimestamp(v pcommon.Timestamp) {
 
 // Count returns the count associated with this HistogramDataPoint.
 func (ms HistogramDataPoint) Count() uint64 {
-	return ms.orig.Count
+	return ms.getOrig().Count
 }
 
 // SetCount replaces the count associated with this HistogramDataPoint.
 func (ms HistogramDataPoint) SetCount(v uint64) {
-	ms.state.AssertMutable()
-	ms.orig.Count = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Count = v
 }
 
 // Sum returns the sum associated with this HistogramDataPoint.
@@ -111,17 +111,17 @@ func (ms HistogramDataPoint) RemoveSum() {
 
 // BucketCounts returns the BucketCounts associated with this HistogramDataPoint.
 func (ms HistogramDataPoint) BucketCounts() pcommon.UInt64Slice {
-	return pcommon.UInt64Slice(internal.NewUInt64SliceWrapper(&ms.orig.BucketCounts, ms.state))
+	return pcommon.UInt64Slice(internal.NewUInt64SliceWrapper(&ms.getOrig().BucketCounts, ms.getState()))
 }
 
 // ExplicitBounds returns the ExplicitBounds associated with this HistogramDataPoint.
 func (ms HistogramDataPoint) ExplicitBounds() pcommon.Float64Slice {
-	return pcommon.Float64Slice(internal.NewFloat64SliceWrapper(&ms.orig.ExplicitBounds, ms.state))
+	return pcommon.Float64Slice(internal.NewFloat64SliceWrapper(&ms.getOrig().ExplicitBounds, ms.getState()))
 }
 
 // Exemplars returns the Exemplars associated with this HistogramDataPoint.
 func (ms HistogramDataPoint) Exemplars() ExemplarSlice {
-	return newExemplarSlice(&ms.orig.Exemplars, ms.state)
+	return newExemplarSlice(&ms.getOrig().Exemplars, ms.getState())
 }
 
 // Flags returns the flags associated with this HistogramDataPoint.
@@ -183,6 +183,14 @@ func (ms HistogramDataPoint) RemoveMax() {
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms HistogramDataPoint) CopyTo(dest HistogramDataPoint) {
-	dest.state.AssertMutable()
-	internal.CopyHistogramDataPoint(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyHistogramDataPoint(dest.getOrig(), ms.getOrig())
+}
+
+func (ms HistogramDataPoint) getOrig() *internal.HistogramDataPoint {
+	return ms.orig
+}
+
+func (ms HistogramDataPoint) getState() *internal.State {
+	return ms.state
 }

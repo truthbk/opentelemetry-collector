@@ -65,14 +65,14 @@ func TestLocation_Address(t *testing.T) {
 func TestLocation_Lines(t *testing.T) {
 	ms := NewLocation()
 	assert.Equal(t, NewLineSlice(), ms.Lines())
-	ms.orig.Lines = internal.GenTestLinePtrSlice()
+	ms.getOrig().Lines = internal.GenTestLinePtrSlice()
 	assert.Equal(t, generateTestLineSlice(), ms.Lines())
 }
 
 func TestLocation_AttributeIndices(t *testing.T) {
 	ms := NewLocation()
 	assert.Equal(t, pcommon.NewInt32Slice(), ms.AttributeIndices())
-	ms.orig.AttributeIndices = internal.GenTestInt32Slice()
+	ms.getOrig().AttributeIndices = internal.GenTestInt32Slice()
 	assert.Equal(t, pcommon.Int32Slice(internal.GenTestInt32SliceWrapper()), ms.AttributeIndices())
 }
 

@@ -38,67 +38,75 @@ func NewMapping() Mapping {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Mapping) MoveTo(dest Mapping) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteMapping(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteMapping(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // MemoryStart returns the memorystart associated with this Mapping.
 func (ms Mapping) MemoryStart() uint64 {
-	return ms.orig.MemoryStart
+	return ms.getOrig().MemoryStart
 }
 
 // SetMemoryStart replaces the memorystart associated with this Mapping.
 func (ms Mapping) SetMemoryStart(v uint64) {
-	ms.state.AssertMutable()
-	ms.orig.MemoryStart = v
+	ms.getState().AssertMutable()
+	ms.getOrig().MemoryStart = v
 }
 
 // MemoryLimit returns the memorylimit associated with this Mapping.
 func (ms Mapping) MemoryLimit() uint64 {
-	return ms.orig.MemoryLimit
+	return ms.getOrig().MemoryLimit
 }
 
 // SetMemoryLimit replaces the memorylimit associated with this Mapping.
 func (ms Mapping) SetMemoryLimit(v uint64) {
-	ms.state.AssertMutable()
-	ms.orig.MemoryLimit = v
+	ms.getState().AssertMutable()
+	ms.getOrig().MemoryLimit = v
 }
 
 // FileOffset returns the fileoffset associated with this Mapping.
 func (ms Mapping) FileOffset() uint64 {
-	return ms.orig.FileOffset
+	return ms.getOrig().FileOffset
 }
 
 // SetFileOffset replaces the fileoffset associated with this Mapping.
 func (ms Mapping) SetFileOffset(v uint64) {
-	ms.state.AssertMutable()
-	ms.orig.FileOffset = v
+	ms.getState().AssertMutable()
+	ms.getOrig().FileOffset = v
 }
 
 // FilenameStrindex returns the filenamestrindex associated with this Mapping.
 func (ms Mapping) FilenameStrindex() int32 {
-	return ms.orig.FilenameStrindex
+	return ms.getOrig().FilenameStrindex
 }
 
 // SetFilenameStrindex replaces the filenamestrindex associated with this Mapping.
 func (ms Mapping) SetFilenameStrindex(v int32) {
-	ms.state.AssertMutable()
-	ms.orig.FilenameStrindex = v
+	ms.getState().AssertMutable()
+	ms.getOrig().FilenameStrindex = v
 }
 
 // AttributeIndices returns the AttributeIndices associated with this Mapping.
 func (ms Mapping) AttributeIndices() pcommon.Int32Slice {
-	return pcommon.Int32Slice(internal.NewInt32SliceWrapper(&ms.orig.AttributeIndices, ms.state))
+	return pcommon.Int32Slice(internal.NewInt32SliceWrapper(&ms.getOrig().AttributeIndices, ms.getState()))
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Mapping) CopyTo(dest Mapping) {
-	dest.state.AssertMutable()
-	internal.CopyMapping(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyMapping(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Mapping) getOrig() *internal.Mapping {
+	return ms.orig
+}
+
+func (ms Mapping) getState() *internal.State {
+	return ms.state
 }

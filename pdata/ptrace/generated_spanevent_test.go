@@ -63,7 +63,7 @@ func TestSpanEvent_Name(t *testing.T) {
 func TestSpanEvent_Attributes(t *testing.T) {
 	ms := NewSpanEvent()
 	assert.Equal(t, pcommon.NewMap(), ms.Attributes())
-	ms.orig.Attributes = internal.GenTestKeyValueSlice()
+	ms.getOrig().Attributes = internal.GenTestKeyValueSlice()
 	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Attributes())
 }
 

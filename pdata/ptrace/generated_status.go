@@ -38,25 +38,25 @@ func NewStatus() Status {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Status) MoveTo(dest Status) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteStatus(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteStatus(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Message returns the message associated with this Status.
 func (ms Status) Message() string {
-	return ms.orig.Message
+	return ms.getOrig().Message
 }
 
 // SetMessage replaces the message associated with this Status.
 func (ms Status) SetMessage(v string) {
-	ms.state.AssertMutable()
-	ms.orig.Message = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Message = v
 }
 
 // Code returns the code associated with this Status.
@@ -72,6 +72,14 @@ func (ms Status) SetCode(v StatusCode) {
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Status) CopyTo(dest Status) {
-	dest.state.AssertMutable()
-	internal.CopyStatus(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyStatus(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Status) getOrig() *internal.Status {
+	return ms.orig
+}
+
+func (ms Status) getState() *internal.State {
+	return ms.state
 }

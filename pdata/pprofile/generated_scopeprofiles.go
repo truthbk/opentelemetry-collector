@@ -38,39 +38,47 @@ func NewScopeProfiles() ScopeProfiles {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms ScopeProfiles) MoveTo(dest ScopeProfiles) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteScopeProfiles(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteScopeProfiles(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Scope returns the scope associated with this ScopeProfiles.
 func (ms ScopeProfiles) Scope() pcommon.InstrumentationScope {
-	return pcommon.InstrumentationScope(internal.NewInstrumentationScopeWrapper(&ms.orig.Scope, ms.state))
+	return pcommon.InstrumentationScope(internal.NewInstrumentationScopeWrapper(&ms.getOrig().Scope, ms.getState()))
 }
 
 // Profiles returns the Profiles associated with this ScopeProfiles.
 func (ms ScopeProfiles) Profiles() ProfilesSlice {
-	return newProfilesSlice(&ms.orig.Profiles, ms.state)
+	return newProfilesSlice(&ms.getOrig().Profiles, ms.getState())
 }
 
 // SchemaUrl returns the schemaurl associated with this ScopeProfiles.
 func (ms ScopeProfiles) SchemaUrl() string {
-	return ms.orig.SchemaUrl
+	return ms.getOrig().SchemaUrl
 }
 
 // SetSchemaUrl replaces the schemaurl associated with this ScopeProfiles.
 func (ms ScopeProfiles) SetSchemaUrl(v string) {
-	ms.state.AssertMutable()
-	ms.orig.SchemaUrl = v
+	ms.getState().AssertMutable()
+	ms.getOrig().SchemaUrl = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms ScopeProfiles) CopyTo(dest ScopeProfiles) {
-	dest.state.AssertMutable()
-	internal.CopyScopeProfiles(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyScopeProfiles(dest.getOrig(), ms.getOrig())
+}
+
+func (ms ScopeProfiles) getOrig() *internal.ScopeProfiles {
+	return ms.orig
+}
+
+func (ms ScopeProfiles) getState() *internal.State {
+	return ms.state
 }

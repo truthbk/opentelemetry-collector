@@ -67,12 +67,18 @@ func (ms {{ .structName }}) CopyTo(dest {{ .structName }}) {
     internal.Copy{{ .originName }}(dest.{{ .origAccessor }}, ms.{{ .origAccessor }})
 }
 
-{{ if .hasWrapper -}}
 func (ms {{ .structName }}) getOrig() *internal.{{ .originName }} {
+{{- if .hasWrapper }}
 	return internal.Get{{ .structName }}Orig(internal.{{ .structName }}Wrapper(ms))
+{{- else }}
+	return ms.orig
+{{- end }}
 }
 
 func (ms {{ .structName }}) getState() *internal.State {
+{{- if .hasWrapper }}
 	return internal.Get{{ .structName }}State(internal.{{ .structName }}Wrapper(ms))
-}
+{{- else }}
+	return ms.state
 {{- end }}
+}

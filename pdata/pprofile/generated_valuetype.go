@@ -37,40 +37,48 @@ func NewValueType() ValueType {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms ValueType) MoveTo(dest ValueType) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteValueType(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteValueType(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // TypeStrindex returns the typestrindex associated with this ValueType.
 func (ms ValueType) TypeStrindex() int32 {
-	return ms.orig.TypeStrindex
+	return ms.getOrig().TypeStrindex
 }
 
 // SetTypeStrindex replaces the typestrindex associated with this ValueType.
 func (ms ValueType) SetTypeStrindex(v int32) {
-	ms.state.AssertMutable()
-	ms.orig.TypeStrindex = v
+	ms.getState().AssertMutable()
+	ms.getOrig().TypeStrindex = v
 }
 
 // UnitStrindex returns the unitstrindex associated with this ValueType.
 func (ms ValueType) UnitStrindex() int32 {
-	return ms.orig.UnitStrindex
+	return ms.getOrig().UnitStrindex
 }
 
 // SetUnitStrindex replaces the unitstrindex associated with this ValueType.
 func (ms ValueType) SetUnitStrindex(v int32) {
-	ms.state.AssertMutable()
-	ms.orig.UnitStrindex = v
+	ms.getState().AssertMutable()
+	ms.getOrig().UnitStrindex = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms ValueType) CopyTo(dest ValueType) {
-	dest.state.AssertMutable()
-	internal.CopyValueType(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyValueType(dest.getOrig(), ms.getOrig())
+}
+
+func (ms ValueType) getOrig() *internal.ValueType {
+	return ms.orig
+}
+
+func (ms ValueType) getState() *internal.State {
+	return ms.state
 }

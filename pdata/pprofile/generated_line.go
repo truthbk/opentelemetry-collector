@@ -37,51 +37,59 @@ func NewLine() Line {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Line) MoveTo(dest Line) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteLine(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteLine(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // FunctionIndex returns the functionindex associated with this Line.
 func (ms Line) FunctionIndex() int32 {
-	return ms.orig.FunctionIndex
+	return ms.getOrig().FunctionIndex
 }
 
 // SetFunctionIndex replaces the functionindex associated with this Line.
 func (ms Line) SetFunctionIndex(v int32) {
-	ms.state.AssertMutable()
-	ms.orig.FunctionIndex = v
+	ms.getState().AssertMutable()
+	ms.getOrig().FunctionIndex = v
 }
 
 // Line returns the line associated with this Line.
 func (ms Line) Line() int64 {
-	return ms.orig.Line
+	return ms.getOrig().Line
 }
 
 // SetLine replaces the line associated with this Line.
 func (ms Line) SetLine(v int64) {
-	ms.state.AssertMutable()
-	ms.orig.Line = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Line = v
 }
 
 // Column returns the column associated with this Line.
 func (ms Line) Column() int64 {
-	return ms.orig.Column
+	return ms.getOrig().Column
 }
 
 // SetColumn replaces the column associated with this Line.
 func (ms Line) SetColumn(v int64) {
-	ms.state.AssertMutable()
-	ms.orig.Column = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Column = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Line) CopyTo(dest Line) {
-	dest.state.AssertMutable()
-	internal.CopyLine(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyLine(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Line) getOrig() *internal.Line {
+	return ms.orig
+}
+
+func (ms Line) getState() *internal.State {
+	return ms.state
 }

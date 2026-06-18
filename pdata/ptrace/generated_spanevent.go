@@ -39,14 +39,14 @@ func NewSpanEvent() SpanEvent {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms SpanEvent) MoveTo(dest SpanEvent) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteSpanEvent(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteSpanEvent(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Timestamp returns the timestamp associated with this SpanEvent.
@@ -62,33 +62,41 @@ func (ms SpanEvent) SetTimestamp(v pcommon.Timestamp) {
 
 // Name returns the name associated with this SpanEvent.
 func (ms SpanEvent) Name() string {
-	return ms.orig.Name
+	return ms.getOrig().Name
 }
 
 // SetName replaces the name associated with this SpanEvent.
 func (ms SpanEvent) SetName(v string) {
-	ms.state.AssertMutable()
-	ms.orig.Name = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Name = v
 }
 
 // Attributes returns the Attributes associated with this SpanEvent.
 func (ms SpanEvent) Attributes() pcommon.Map {
-	return pcommon.Map(internal.NewMapWrapper(&ms.orig.Attributes, ms.state))
+	return pcommon.Map(internal.NewMapWrapper(&ms.getOrig().Attributes, ms.getState()))
 }
 
 // DroppedAttributesCount returns the droppedattributescount associated with this SpanEvent.
 func (ms SpanEvent) DroppedAttributesCount() uint32 {
-	return ms.orig.DroppedAttributesCount
+	return ms.getOrig().DroppedAttributesCount
 }
 
 // SetDroppedAttributesCount replaces the droppedattributescount associated with this SpanEvent.
 func (ms SpanEvent) SetDroppedAttributesCount(v uint32) {
-	ms.state.AssertMutable()
-	ms.orig.DroppedAttributesCount = v
+	ms.getState().AssertMutable()
+	ms.getOrig().DroppedAttributesCount = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms SpanEvent) CopyTo(dest SpanEvent) {
-	dest.state.AssertMutable()
-	internal.CopySpanEvent(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopySpanEvent(dest.getOrig(), ms.getOrig())
+}
+
+func (ms SpanEvent) getOrig() *internal.SpanEvent {
+	return ms.orig
+}
+
+func (ms SpanEvent) getState() *internal.State {
+	return ms.state
 }

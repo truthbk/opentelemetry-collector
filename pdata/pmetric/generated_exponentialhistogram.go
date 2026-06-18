@@ -38,19 +38,19 @@ func NewExponentialHistogram() ExponentialHistogram {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms ExponentialHistogram) MoveTo(dest ExponentialHistogram) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteExponentialHistogram(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteExponentialHistogram(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // DataPoints returns the DataPoints associated with this ExponentialHistogram.
 func (ms ExponentialHistogram) DataPoints() ExponentialHistogramDataPointSlice {
-	return newExponentialHistogramDataPointSlice(&ms.orig.DataPoints, ms.state)
+	return newExponentialHistogramDataPointSlice(&ms.getOrig().DataPoints, ms.getState())
 }
 
 // AggregationTemporality returns the aggregationtemporality associated with this ExponentialHistogram.
@@ -66,6 +66,14 @@ func (ms ExponentialHistogram) SetAggregationTemporality(v AggregationTemporalit
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms ExponentialHistogram) CopyTo(dest ExponentialHistogram) {
-	dest.state.AssertMutable()
-	internal.CopyExponentialHistogram(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyExponentialHistogram(dest.getOrig(), ms.getOrig())
+}
+
+func (ms ExponentialHistogram) getOrig() *internal.ExponentialHistogram {
+	return ms.orig
+}
+
+func (ms ExponentialHistogram) getState() *internal.State {
+	return ms.state
 }

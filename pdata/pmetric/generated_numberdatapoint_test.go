@@ -45,7 +45,7 @@ func TestNumberDataPoint_CopyTo(t *testing.T) {
 func TestNumberDataPoint_Attributes(t *testing.T) {
 	ms := NewNumberDataPoint()
 	assert.Equal(t, pcommon.NewMap(), ms.Attributes())
-	ms.orig.Attributes = internal.GenTestKeyValueSlice()
+	ms.getOrig().Attributes = internal.GenTestKeyValueSlice()
 	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Attributes())
 }
 
@@ -96,7 +96,7 @@ func TestNumberDataPoint_IntValue(t *testing.T) {
 func TestNumberDataPoint_Exemplars(t *testing.T) {
 	ms := NewNumberDataPoint()
 	assert.Equal(t, NewExemplarSlice(), ms.Exemplars())
-	ms.orig.Exemplars = internal.GenTestExemplarSlice()
+	ms.getOrig().Exemplars = internal.GenTestExemplarSlice()
 	assert.Equal(t, generateTestExemplarSlice(), ms.Exemplars())
 }
 

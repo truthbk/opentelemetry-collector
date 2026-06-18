@@ -38,34 +38,42 @@ func NewExponentialHistogramDataPointBuckets() ExponentialHistogramDataPointBuck
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms ExponentialHistogramDataPointBuckets) MoveTo(dest ExponentialHistogramDataPointBuckets) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteExponentialHistogramDataPointBuckets(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteExponentialHistogramDataPointBuckets(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Offset returns the offset associated with this ExponentialHistogramDataPointBuckets.
 func (ms ExponentialHistogramDataPointBuckets) Offset() int32 {
-	return ms.orig.Offset
+	return ms.getOrig().Offset
 }
 
 // SetOffset replaces the offset associated with this ExponentialHistogramDataPointBuckets.
 func (ms ExponentialHistogramDataPointBuckets) SetOffset(v int32) {
-	ms.state.AssertMutable()
-	ms.orig.Offset = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Offset = v
 }
 
 // BucketCounts returns the BucketCounts associated with this ExponentialHistogramDataPointBuckets.
 func (ms ExponentialHistogramDataPointBuckets) BucketCounts() pcommon.UInt64Slice {
-	return pcommon.UInt64Slice(internal.NewUInt64SliceWrapper(&ms.orig.BucketCounts, ms.state))
+	return pcommon.UInt64Slice(internal.NewUInt64SliceWrapper(&ms.getOrig().BucketCounts, ms.getState()))
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms ExponentialHistogramDataPointBuckets) CopyTo(dest ExponentialHistogramDataPointBuckets) {
-	dest.state.AssertMutable()
-	internal.CopyExponentialHistogramDataPointBuckets(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyExponentialHistogramDataPointBuckets(dest.getOrig(), ms.getOrig())
+}
+
+func (ms ExponentialHistogramDataPointBuckets) getOrig() *internal.ExponentialHistogramDataPointBuckets {
+	return ms.orig
+}
+
+func (ms ExponentialHistogramDataPointBuckets) getState() *internal.State {
+	return ms.state
 }

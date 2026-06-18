@@ -37,23 +37,31 @@ func NewSummary() Summary {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Summary) MoveTo(dest Summary) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteSummary(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteSummary(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // DataPoints returns the DataPoints associated with this Summary.
 func (ms Summary) DataPoints() SummaryDataPointSlice {
-	return newSummaryDataPointSlice(&ms.orig.DataPoints, ms.state)
+	return newSummaryDataPointSlice(&ms.getOrig().DataPoints, ms.getState())
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Summary) CopyTo(dest Summary) {
-	dest.state.AssertMutable()
-	internal.CopySummary(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopySummary(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Summary) getOrig() *internal.Summary {
+	return ms.orig
+}
+
+func (ms Summary) getState() *internal.State {
+	return ms.state
 }

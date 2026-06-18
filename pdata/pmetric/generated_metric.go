@@ -40,53 +40,53 @@ func NewMetric() Metric {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Metric) MoveTo(dest Metric) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteMetric(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteMetric(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Name returns the name associated with this Metric.
 func (ms Metric) Name() string {
-	return ms.orig.Name
+	return ms.getOrig().Name
 }
 
 // SetName replaces the name associated with this Metric.
 func (ms Metric) SetName(v string) {
-	ms.state.AssertMutable()
-	ms.orig.Name = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Name = v
 }
 
 // Description returns the description associated with this Metric.
 func (ms Metric) Description() string {
-	return ms.orig.Description
+	return ms.getOrig().Description
 }
 
 // SetDescription replaces the description associated with this Metric.
 func (ms Metric) SetDescription(v string) {
-	ms.state.AssertMutable()
-	ms.orig.Description = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Description = v
 }
 
 // Unit returns the unit associated with this Metric.
 func (ms Metric) Unit() string {
-	return ms.orig.Unit
+	return ms.getOrig().Unit
 }
 
 // SetUnit replaces the unit associated with this Metric.
 func (ms Metric) SetUnit(v string) {
-	ms.state.AssertMutable()
-	ms.orig.Unit = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Unit = v
 }
 
 // Type returns the type of the data for this Metric.
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) Type() MetricType {
-	switch ms.orig.Data.(type) {
+	switch ms.getOrig().Data.(type) {
 	case *internal.Metric_Gauge:
 		return MetricTypeGauge
 	case *internal.Metric_Sum:
@@ -251,11 +251,19 @@ func (ms Metric) SetEmptySummary() Summary {
 
 // Metadata returns the Metadata associated with this Metric.
 func (ms Metric) Metadata() pcommon.Map {
-	return pcommon.Map(internal.NewMapWrapper(&ms.orig.Metadata, ms.state))
+	return pcommon.Map(internal.NewMapWrapper(&ms.getOrig().Metadata, ms.getState()))
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Metric) CopyTo(dest Metric) {
-	dest.state.AssertMutable()
-	internal.CopyMetric(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyMetric(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Metric) getOrig() *internal.Metric {
+	return ms.orig
+}
+
+func (ms Metric) getState() *internal.State {
+	return ms.state
 }

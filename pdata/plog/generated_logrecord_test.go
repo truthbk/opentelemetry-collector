@@ -79,14 +79,14 @@ func TestLogRecord_SeverityText(t *testing.T) {
 func TestLogRecord_Body(t *testing.T) {
 	ms := NewLogRecord()
 	assert.Equal(t, pcommon.NewValueEmpty(), ms.Body())
-	ms.orig.Body = *internal.GenTestAnyValue()
+	ms.getOrig().Body = *internal.GenTestAnyValue()
 	assert.Equal(t, pcommon.Value(internal.GenTestValueWrapper()), ms.Body())
 }
 
 func TestLogRecord_Attributes(t *testing.T) {
 	ms := NewLogRecord()
 	assert.Equal(t, pcommon.NewMap(), ms.Attributes())
-	ms.orig.Attributes = internal.GenTestKeyValueSlice()
+	ms.getOrig().Attributes = internal.GenTestKeyValueSlice()
 	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Attributes())
 }
 

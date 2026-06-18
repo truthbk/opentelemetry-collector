@@ -45,14 +45,14 @@ func TestScopeLogs_CopyTo(t *testing.T) {
 func TestScopeLogs_Scope(t *testing.T) {
 	ms := NewScopeLogs()
 	assert.Equal(t, pcommon.NewInstrumentationScope(), ms.Scope())
-	ms.orig.Scope = *internal.GenTestInstrumentationScope()
+	ms.getOrig().Scope = *internal.GenTestInstrumentationScope()
 	assert.Equal(t, pcommon.InstrumentationScope(internal.GenTestInstrumentationScopeWrapper()), ms.Scope())
 }
 
 func TestScopeLogs_LogRecords(t *testing.T) {
 	ms := NewScopeLogs()
 	assert.Equal(t, NewLogRecordSlice(), ms.LogRecords())
-	ms.orig.LogRecords = internal.GenTestLogRecordPtrSlice()
+	ms.getOrig().LogRecords = internal.GenTestLogRecordPtrSlice()
 	assert.Equal(t, generateTestLogRecordSlice(), ms.LogRecords())
 }
 

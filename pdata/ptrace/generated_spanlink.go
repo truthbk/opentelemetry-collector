@@ -40,14 +40,14 @@ func NewSpanLink() SpanLink {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms SpanLink) MoveTo(dest SpanLink) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteSpanLink(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteSpanLink(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // TraceID returns the traceid associated with this SpanLink.
@@ -74,38 +74,46 @@ func (ms SpanLink) SetSpanID(v pcommon.SpanID) {
 
 // TraceState returns the tracestate associated with this SpanLink.
 func (ms SpanLink) TraceState() pcommon.TraceState {
-	return pcommon.TraceState(internal.NewTraceStateWrapper(&ms.orig.TraceState, ms.state))
+	return pcommon.TraceState(internal.NewTraceStateWrapper(&ms.getOrig().TraceState, ms.getState()))
 }
 
 // Attributes returns the Attributes associated with this SpanLink.
 func (ms SpanLink) Attributes() pcommon.Map {
-	return pcommon.Map(internal.NewMapWrapper(&ms.orig.Attributes, ms.state))
+	return pcommon.Map(internal.NewMapWrapper(&ms.getOrig().Attributes, ms.getState()))
 }
 
 // DroppedAttributesCount returns the droppedattributescount associated with this SpanLink.
 func (ms SpanLink) DroppedAttributesCount() uint32 {
-	return ms.orig.DroppedAttributesCount
+	return ms.getOrig().DroppedAttributesCount
 }
 
 // SetDroppedAttributesCount replaces the droppedattributescount associated with this SpanLink.
 func (ms SpanLink) SetDroppedAttributesCount(v uint32) {
-	ms.state.AssertMutable()
-	ms.orig.DroppedAttributesCount = v
+	ms.getState().AssertMutable()
+	ms.getOrig().DroppedAttributesCount = v
 }
 
 // Flags returns the flags associated with this SpanLink.
 func (ms SpanLink) Flags() uint32 {
-	return ms.orig.Flags
+	return ms.getOrig().Flags
 }
 
 // SetFlags replaces the flags associated with this SpanLink.
 func (ms SpanLink) SetFlags(v uint32) {
-	ms.state.AssertMutable()
-	ms.orig.Flags = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Flags = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms SpanLink) CopyTo(dest SpanLink) {
-	dest.state.AssertMutable()
-	internal.CopySpanLink(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopySpanLink(dest.getOrig(), ms.getOrig())
+}
+
+func (ms SpanLink) getOrig() *internal.SpanLink {
+	return ms.orig
+}
+
+func (ms SpanLink) getState() *internal.State {
+	return ms.state
 }

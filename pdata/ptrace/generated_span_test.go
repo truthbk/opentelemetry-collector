@@ -61,7 +61,7 @@ func TestSpan_SpanID(t *testing.T) {
 func TestSpan_TraceState(t *testing.T) {
 	ms := NewSpan()
 	assert.Equal(t, pcommon.NewTraceState(), ms.TraceState())
-	ms.orig.TraceState = *internal.GenTestTraceState()
+	ms.getOrig().TraceState = *internal.GenTestTraceState()
 	assert.Equal(t, pcommon.TraceState(internal.GenTestTraceStateWrapper()), ms.TraceState())
 }
 
@@ -120,7 +120,7 @@ func TestSpan_EndTimestamp(t *testing.T) {
 func TestSpan_Attributes(t *testing.T) {
 	ms := NewSpan()
 	assert.Equal(t, pcommon.NewMap(), ms.Attributes())
-	ms.orig.Attributes = internal.GenTestKeyValueSlice()
+	ms.getOrig().Attributes = internal.GenTestKeyValueSlice()
 	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Attributes())
 }
 
@@ -137,7 +137,7 @@ func TestSpan_DroppedAttributesCount(t *testing.T) {
 func TestSpan_Events(t *testing.T) {
 	ms := NewSpan()
 	assert.Equal(t, NewSpanEventSlice(), ms.Events())
-	ms.orig.Events = internal.GenTestSpanEventPtrSlice()
+	ms.getOrig().Events = internal.GenTestSpanEventPtrSlice()
 	assert.Equal(t, generateTestSpanEventSlice(), ms.Events())
 }
 
@@ -154,7 +154,7 @@ func TestSpan_DroppedEventsCount(t *testing.T) {
 func TestSpan_Links(t *testing.T) {
 	ms := NewSpan()
 	assert.Equal(t, NewSpanLinkSlice(), ms.Links())
-	ms.orig.Links = internal.GenTestSpanLinkPtrSlice()
+	ms.getOrig().Links = internal.GenTestSpanLinkPtrSlice()
 	assert.Equal(t, generateTestSpanLinkSlice(), ms.Links())
 }
 
@@ -171,7 +171,7 @@ func TestSpan_DroppedLinksCount(t *testing.T) {
 func TestSpan_Status(t *testing.T) {
 	ms := NewSpan()
 	assert.Equal(t, NewStatus(), ms.Status())
-	ms.orig.Status = *internal.GenTestStatus()
+	ms.getOrig().Status = *internal.GenTestStatus()
 	assert.Equal(t, generateTestStatus(), ms.Status())
 }
 

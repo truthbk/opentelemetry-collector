@@ -45,14 +45,14 @@ func TestResourceSpans_CopyTo(t *testing.T) {
 func TestResourceSpans_Resource(t *testing.T) {
 	ms := NewResourceSpans()
 	assert.Equal(t, pcommon.NewResource(), ms.Resource())
-	ms.orig.Resource = *internal.GenTestResource()
+	ms.getOrig().Resource = *internal.GenTestResource()
 	assert.Equal(t, pcommon.Resource(internal.GenTestResourceWrapper()), ms.Resource())
 }
 
 func TestResourceSpans_ScopeSpans(t *testing.T) {
 	ms := NewResourceSpans()
 	assert.Equal(t, NewScopeSpansSlice(), ms.ScopeSpans())
-	ms.orig.ScopeSpans = internal.GenTestScopeSpansPtrSlice()
+	ms.getOrig().ScopeSpans = internal.GenTestScopeSpansPtrSlice()
 	assert.Equal(t, generateTestScopeSpansSlice(), ms.ScopeSpans())
 }
 

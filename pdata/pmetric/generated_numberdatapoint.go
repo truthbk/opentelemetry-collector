@@ -39,19 +39,19 @@ func NewNumberDataPoint() NumberDataPoint {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms NumberDataPoint) MoveTo(dest NumberDataPoint) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteNumberDataPoint(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteNumberDataPoint(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Attributes returns the Attributes associated with this NumberDataPoint.
 func (ms NumberDataPoint) Attributes() pcommon.Map {
-	return pcommon.Map(internal.NewMapWrapper(&ms.orig.Attributes, ms.state))
+	return pcommon.Map(internal.NewMapWrapper(&ms.getOrig().Attributes, ms.getState()))
 }
 
 // StartTimestamp returns the starttimestamp associated with this NumberDataPoint.
@@ -79,7 +79,7 @@ func (ms NumberDataPoint) SetTimestamp(v pcommon.Timestamp) {
 // ValueType returns the type of the value for this NumberDataPoint.
 // Calling this function on zero-initialized NumberDataPoint will cause a panic.
 func (ms NumberDataPoint) ValueType() NumberDataPointValueType {
-	switch ms.orig.Value.(type) {
+	switch ms.getOrig().Value.(type) {
 	case *internal.NumberDataPoint_AsDouble:
 		return NumberDataPointValueTypeDouble
 	case *internal.NumberDataPoint_AsInt:
@@ -124,7 +124,7 @@ func (ms NumberDataPoint) SetIntValue(v int64) {
 
 // Exemplars returns the Exemplars associated with this NumberDataPoint.
 func (ms NumberDataPoint) Exemplars() ExemplarSlice {
-	return newExemplarSlice(&ms.orig.Exemplars, ms.state)
+	return newExemplarSlice(&ms.getOrig().Exemplars, ms.getState())
 }
 
 // Flags returns the flags associated with this NumberDataPoint.
@@ -140,6 +140,14 @@ func (ms NumberDataPoint) SetFlags(v DataPointFlags) {
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms NumberDataPoint) CopyTo(dest NumberDataPoint) {
-	dest.state.AssertMutable()
-	internal.CopyNumberDataPoint(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyNumberDataPoint(dest.getOrig(), ms.getOrig())
+}
+
+func (ms NumberDataPoint) getOrig() *internal.NumberDataPoint {
+	return ms.orig
+}
+
+func (ms NumberDataPoint) getState() *internal.State {
+	return ms.state
 }

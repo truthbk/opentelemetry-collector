@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // TestDetachIfShared_NotShared_IsNoop — cowRefs == 0 path. The Handle's
@@ -62,16 +61,10 @@ func TestDetachIfShared_Readonly_StaysShortCircuit(t *testing.T) {
 	assert.Same(t, preState, h.state, "readonly+shared: no rebind")
 }
 
-// TestDetachMetricsIfShared_PerSignalWrapper — exercises the per-signal
-// entry point that codegen-injected prelude calls. This is the form
-// that lives in the generated wrapper methods.
-func TestDetachMetricsIfShared_PerSignalWrapper(t *testing.T) {
-	w := GenTestMetricsWrapper()
-	GetMetricsState(w).IncCowRefs()
-	preOrig := GetMetricsOrig(w)
-
-	DetachMetricsIfShared(w)
-
-	require.NotSame(t, preOrig, GetMetricsOrig(w), "wrapper observes rebound orig")
-	assert.Equal(t, int32(0), GetMetricsState(w).CowRefs())
-}
+// NOTE: A TestDetachMetricsIfShared_PerSignalWrapper test was previously
+// here to exercise the per-signal entry point that codegen-injected
+// prelude calls. That helper (DetachMetricsIfShared) is emitted by the
+// templates as part of Path Y Phase 4 (template update for Handle
+// layout). Phase 2 reverted the hand-added helper since it has no
+// corresponding template emission yet; the test will be reinstated in
+// Phase 4 when the helper is generated correctly.

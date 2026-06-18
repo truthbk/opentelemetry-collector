@@ -45,14 +45,14 @@ func TestScopeSpans_CopyTo(t *testing.T) {
 func TestScopeSpans_Scope(t *testing.T) {
 	ms := NewScopeSpans()
 	assert.Equal(t, pcommon.NewInstrumentationScope(), ms.Scope())
-	ms.orig.Scope = *internal.GenTestInstrumentationScope()
+	ms.getOrig().Scope = *internal.GenTestInstrumentationScope()
 	assert.Equal(t, pcommon.InstrumentationScope(internal.GenTestInstrumentationScopeWrapper()), ms.Scope())
 }
 
 func TestScopeSpans_Spans(t *testing.T) {
 	ms := NewScopeSpans()
 	assert.Equal(t, NewSpanSlice(), ms.Spans())
-	ms.orig.Spans = internal.GenTestSpanPtrSlice()
+	ms.getOrig().Spans = internal.GenTestSpanPtrSlice()
 	assert.Equal(t, generateTestSpanSlice(), ms.Spans())
 }
 

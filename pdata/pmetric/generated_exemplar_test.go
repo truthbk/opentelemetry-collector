@@ -45,7 +45,7 @@ func TestExemplar_CopyTo(t *testing.T) {
 func TestExemplar_FilteredAttributes(t *testing.T) {
 	ms := NewExemplar()
 	assert.Equal(t, pcommon.NewMap(), ms.FilteredAttributes())
-	ms.orig.FilteredAttributes = internal.GenTestKeyValueSlice()
+	ms.getOrig().FilteredAttributes = internal.GenTestKeyValueSlice()
 	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.FilteredAttributes())
 }
 

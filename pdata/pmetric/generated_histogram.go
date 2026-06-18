@@ -37,19 +37,19 @@ func NewHistogram() Histogram {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Histogram) MoveTo(dest Histogram) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteHistogram(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteHistogram(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // DataPoints returns the DataPoints associated with this Histogram.
 func (ms Histogram) DataPoints() HistogramDataPointSlice {
-	return newHistogramDataPointSlice(&ms.orig.DataPoints, ms.state)
+	return newHistogramDataPointSlice(&ms.getOrig().DataPoints, ms.getState())
 }
 
 // AggregationTemporality returns the aggregationtemporality associated with this Histogram.
@@ -65,6 +65,14 @@ func (ms Histogram) SetAggregationTemporality(v AggregationTemporality) {
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Histogram) CopyTo(dest Histogram) {
-	dest.state.AssertMutable()
-	internal.CopyHistogram(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyHistogram(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Histogram) getOrig() *internal.Histogram {
+	return ms.orig
+}
+
+func (ms Histogram) getState() *internal.State {
+	return ms.state
 }

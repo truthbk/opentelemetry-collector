@@ -55,7 +55,7 @@ func TestKeyValueAndUnit_KeyStrindex(t *testing.T) {
 func TestKeyValueAndUnit_Value(t *testing.T) {
 	ms := NewKeyValueAndUnit()
 	assert.Equal(t, pcommon.NewValueEmpty(), ms.Value())
-	ms.orig.Value = *internal.GenTestAnyValue()
+	ms.getOrig().Value = *internal.GenTestAnyValue()
 	assert.Equal(t, pcommon.Value(internal.GenTestValueWrapper()), ms.Value())
 }
 

@@ -38,39 +38,47 @@ func NewResourceProfiles() ResourceProfiles {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms ResourceProfiles) MoveTo(dest ResourceProfiles) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteResourceProfiles(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteResourceProfiles(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // Resource returns the resource associated with this ResourceProfiles.
 func (ms ResourceProfiles) Resource() pcommon.Resource {
-	return pcommon.Resource(internal.NewResourceWrapper(&ms.orig.Resource, ms.state))
+	return pcommon.Resource(internal.NewResourceWrapper(&ms.getOrig().Resource, ms.getState()))
 }
 
 // ScopeProfiles returns the ScopeProfiles associated with this ResourceProfiles.
 func (ms ResourceProfiles) ScopeProfiles() ScopeProfilesSlice {
-	return newScopeProfilesSlice(&ms.orig.ScopeProfiles, ms.state)
+	return newScopeProfilesSlice(&ms.getOrig().ScopeProfiles, ms.getState())
 }
 
 // SchemaUrl returns the schemaurl associated with this ResourceProfiles.
 func (ms ResourceProfiles) SchemaUrl() string {
-	return ms.orig.SchemaUrl
+	return ms.getOrig().SchemaUrl
 }
 
 // SetSchemaUrl replaces the schemaurl associated with this ResourceProfiles.
 func (ms ResourceProfiles) SetSchemaUrl(v string) {
-	ms.state.AssertMutable()
-	ms.orig.SchemaUrl = v
+	ms.getState().AssertMutable()
+	ms.getOrig().SchemaUrl = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms ResourceProfiles) CopyTo(dest ResourceProfiles) {
-	dest.state.AssertMutable()
-	internal.CopyResourceProfiles(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyResourceProfiles(dest.getOrig(), ms.getOrig())
+}
+
+func (ms ResourceProfiles) getOrig() *internal.ResourceProfiles {
+	return ms.orig
+}
+
+func (ms ResourceProfiles) getState() *internal.State {
+	return ms.state
 }

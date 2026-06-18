@@ -45,49 +45,49 @@ func TestProfilesDictionary_CopyTo(t *testing.T) {
 func TestProfilesDictionary_MappingTable(t *testing.T) {
 	ms := NewProfilesDictionary()
 	assert.Equal(t, NewMappingSlice(), ms.MappingTable())
-	ms.orig.MappingTable = internal.GenTestMappingPtrSlice()
+	ms.getOrig().MappingTable = internal.GenTestMappingPtrSlice()
 	assert.Equal(t, generateTestMappingSlice(), ms.MappingTable())
 }
 
 func TestProfilesDictionary_LocationTable(t *testing.T) {
 	ms := NewProfilesDictionary()
 	assert.Equal(t, NewLocationSlice(), ms.LocationTable())
-	ms.orig.LocationTable = internal.GenTestLocationPtrSlice()
+	ms.getOrig().LocationTable = internal.GenTestLocationPtrSlice()
 	assert.Equal(t, generateTestLocationSlice(), ms.LocationTable())
 }
 
 func TestProfilesDictionary_FunctionTable(t *testing.T) {
 	ms := NewProfilesDictionary()
 	assert.Equal(t, NewFunctionSlice(), ms.FunctionTable())
-	ms.orig.FunctionTable = internal.GenTestFunctionPtrSlice()
+	ms.getOrig().FunctionTable = internal.GenTestFunctionPtrSlice()
 	assert.Equal(t, generateTestFunctionSlice(), ms.FunctionTable())
 }
 
 func TestProfilesDictionary_LinkTable(t *testing.T) {
 	ms := NewProfilesDictionary()
 	assert.Equal(t, NewLinkSlice(), ms.LinkTable())
-	ms.orig.LinkTable = internal.GenTestLinkPtrSlice()
+	ms.getOrig().LinkTable = internal.GenTestLinkPtrSlice()
 	assert.Equal(t, generateTestLinkSlice(), ms.LinkTable())
 }
 
 func TestProfilesDictionary_StringTable(t *testing.T) {
 	ms := NewProfilesDictionary()
 	assert.Equal(t, pcommon.NewStringSlice(), ms.StringTable())
-	ms.orig.StringTable = internal.GenTestStringSlice()
+	ms.getOrig().StringTable = internal.GenTestStringSlice()
 	assert.Equal(t, pcommon.StringSlice(internal.GenTestStringSliceWrapper()), ms.StringTable())
 }
 
 func TestProfilesDictionary_AttributeTable(t *testing.T) {
 	ms := NewProfilesDictionary()
 	assert.Equal(t, NewKeyValueAndUnitSlice(), ms.AttributeTable())
-	ms.orig.AttributeTable = internal.GenTestKeyValueAndUnitPtrSlice()
+	ms.getOrig().AttributeTable = internal.GenTestKeyValueAndUnitPtrSlice()
 	assert.Equal(t, generateTestKeyValueAndUnitSlice(), ms.AttributeTable())
 }
 
 func TestProfilesDictionary_StackTable(t *testing.T) {
 	ms := NewProfilesDictionary()
 	assert.Equal(t, NewStackSlice(), ms.StackTable())
-	ms.orig.StackTable = internal.GenTestStackPtrSlice()
+	ms.getOrig().StackTable = internal.GenTestStackPtrSlice()
 	assert.Equal(t, generateTestStackSlice(), ms.StackTable())
 }
 

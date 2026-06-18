@@ -61,14 +61,14 @@ func TestSpanLink_SpanID(t *testing.T) {
 func TestSpanLink_TraceState(t *testing.T) {
 	ms := NewSpanLink()
 	assert.Equal(t, pcommon.NewTraceState(), ms.TraceState())
-	ms.orig.TraceState = *internal.GenTestTraceState()
+	ms.getOrig().TraceState = *internal.GenTestTraceState()
 	assert.Equal(t, pcommon.TraceState(internal.GenTestTraceStateWrapper()), ms.TraceState())
 }
 
 func TestSpanLink_Attributes(t *testing.T) {
 	ms := NewSpanLink()
 	assert.Equal(t, pcommon.NewMap(), ms.Attributes())
-	ms.orig.Attributes = internal.GenTestKeyValueSlice()
+	ms.getOrig().Attributes = internal.GenTestKeyValueSlice()
 	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Attributes())
 }
 

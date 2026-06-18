@@ -37,40 +37,48 @@ func NewExportPartialSuccess() ExportPartialSuccess {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms ExportPartialSuccess) MoveTo(dest ExportPartialSuccess) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteExportProfilesPartialSuccess(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteExportProfilesPartialSuccess(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // RejectedProfiles returns the rejectedprofiles associated with this ExportPartialSuccess.
 func (ms ExportPartialSuccess) RejectedProfiles() int64 {
-	return ms.orig.RejectedProfiles
+	return ms.getOrig().RejectedProfiles
 }
 
 // SetRejectedProfiles replaces the rejectedprofiles associated with this ExportPartialSuccess.
 func (ms ExportPartialSuccess) SetRejectedProfiles(v int64) {
-	ms.state.AssertMutable()
-	ms.orig.RejectedProfiles = v
+	ms.getState().AssertMutable()
+	ms.getOrig().RejectedProfiles = v
 }
 
 // ErrorMessage returns the errormessage associated with this ExportPartialSuccess.
 func (ms ExportPartialSuccess) ErrorMessage() string {
-	return ms.orig.ErrorMessage
+	return ms.getOrig().ErrorMessage
 }
 
 // SetErrorMessage replaces the errormessage associated with this ExportPartialSuccess.
 func (ms ExportPartialSuccess) SetErrorMessage(v string) {
-	ms.state.AssertMutable()
-	ms.orig.ErrorMessage = v
+	ms.getState().AssertMutable()
+	ms.getOrig().ErrorMessage = v
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms ExportPartialSuccess) CopyTo(dest ExportPartialSuccess) {
-	dest.state.AssertMutable()
-	internal.CopyExportProfilesPartialSuccess(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyExportProfilesPartialSuccess(dest.getOrig(), ms.getOrig())
+}
+
+func (ms ExportPartialSuccess) getOrig() *internal.ExportProfilesPartialSuccess {
+	return ms.orig
+}
+
+func (ms ExportPartialSuccess) getState() *internal.State {
+	return ms.state
 }

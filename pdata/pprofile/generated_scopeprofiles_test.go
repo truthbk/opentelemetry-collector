@@ -45,14 +45,14 @@ func TestScopeProfiles_CopyTo(t *testing.T) {
 func TestScopeProfiles_Scope(t *testing.T) {
 	ms := NewScopeProfiles()
 	assert.Equal(t, pcommon.NewInstrumentationScope(), ms.Scope())
-	ms.orig.Scope = *internal.GenTestInstrumentationScope()
+	ms.getOrig().Scope = *internal.GenTestInstrumentationScope()
 	assert.Equal(t, pcommon.InstrumentationScope(internal.GenTestInstrumentationScopeWrapper()), ms.Scope())
 }
 
 func TestScopeProfiles_Profiles(t *testing.T) {
 	ms := NewScopeProfiles()
 	assert.Equal(t, NewProfilesSlice(), ms.Profiles())
-	ms.orig.Profiles = internal.GenTestProfilePtrSlice()
+	ms.getOrig().Profiles = internal.GenTestProfilePtrSlice()
 	assert.Equal(t, generateTestProfilesSlice(), ms.Profiles())
 }
 

@@ -38,23 +38,31 @@ func NewStack() Stack {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Stack) MoveTo(dest Stack) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteStack(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteStack(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // LocationIndices returns the LocationIndices associated with this Stack.
 func (ms Stack) LocationIndices() pcommon.Int32Slice {
-	return pcommon.Int32Slice(internal.NewInt32SliceWrapper(&ms.orig.LocationIndices, ms.state))
+	return pcommon.Int32Slice(internal.NewInt32SliceWrapper(&ms.getOrig().LocationIndices, ms.getState()))
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Stack) CopyTo(dest Stack) {
-	dest.state.AssertMutable()
-	internal.CopyStack(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyStack(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Stack) getOrig() *internal.Stack {
+	return ms.orig
+}
+
+func (ms Stack) getState() *internal.State {
+	return ms.state
 }

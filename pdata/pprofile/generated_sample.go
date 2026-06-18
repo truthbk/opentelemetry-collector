@@ -38,55 +38,63 @@ func NewSample() Sample {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Sample) MoveTo(dest Sample) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteSample(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteSample(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // StackIndex returns the stackindex associated with this Sample.
 func (ms Sample) StackIndex() int32 {
-	return ms.orig.StackIndex
+	return ms.getOrig().StackIndex
 }
 
 // SetStackIndex replaces the stackindex associated with this Sample.
 func (ms Sample) SetStackIndex(v int32) {
-	ms.state.AssertMutable()
-	ms.orig.StackIndex = v
+	ms.getState().AssertMutable()
+	ms.getOrig().StackIndex = v
 }
 
 // AttributeIndices returns the AttributeIndices associated with this Sample.
 func (ms Sample) AttributeIndices() pcommon.Int32Slice {
-	return pcommon.Int32Slice(internal.NewInt32SliceWrapper(&ms.orig.AttributeIndices, ms.state))
+	return pcommon.Int32Slice(internal.NewInt32SliceWrapper(&ms.getOrig().AttributeIndices, ms.getState()))
 }
 
 // LinkIndex returns the linkindex associated with this Sample.
 func (ms Sample) LinkIndex() int32 {
-	return ms.orig.LinkIndex
+	return ms.getOrig().LinkIndex
 }
 
 // SetLinkIndex replaces the linkindex associated with this Sample.
 func (ms Sample) SetLinkIndex(v int32) {
-	ms.state.AssertMutable()
-	ms.orig.LinkIndex = v
+	ms.getState().AssertMutable()
+	ms.getOrig().LinkIndex = v
 }
 
 // Values returns the Values associated with this Sample.
 func (ms Sample) Values() pcommon.Int64Slice {
-	return pcommon.Int64Slice(internal.NewInt64SliceWrapper(&ms.orig.Values, ms.state))
+	return pcommon.Int64Slice(internal.NewInt64SliceWrapper(&ms.getOrig().Values, ms.getState()))
 }
 
 // TimestampsUnixNano returns the TimestampsUnixNano associated with this Sample.
 func (ms Sample) TimestampsUnixNano() pcommon.UInt64Slice {
-	return pcommon.UInt64Slice(internal.NewUInt64SliceWrapper(&ms.orig.TimestampsUnixNano, ms.state))
+	return pcommon.UInt64Slice(internal.NewUInt64SliceWrapper(&ms.getOrig().TimestampsUnixNano, ms.getState()))
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Sample) CopyTo(dest Sample) {
-	dest.state.AssertMutable()
-	internal.CopySample(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopySample(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Sample) getOrig() *internal.Sample {
+	return ms.orig
+}
+
+func (ms Sample) getState() *internal.State {
+	return ms.state
 }

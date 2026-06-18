@@ -44,7 +44,7 @@ func TestGauge_CopyTo(t *testing.T) {
 func TestGauge_DataPoints(t *testing.T) {
 	ms := NewGauge()
 	assert.Equal(t, NewNumberDataPointSlice(), ms.DataPoints())
-	ms.orig.DataPoints = internal.GenTestNumberDataPointPtrSlice()
+	ms.getOrig().DataPoints = internal.GenTestNumberDataPointPtrSlice()
 	assert.Equal(t, generateTestNumberDataPointSlice(), ms.DataPoints())
 }
 

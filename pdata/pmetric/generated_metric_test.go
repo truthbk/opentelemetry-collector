@@ -136,7 +136,7 @@ func TestMetric_Summary(t *testing.T) {
 func TestMetric_Metadata(t *testing.T) {
 	ms := NewMetric()
 	assert.Equal(t, pcommon.NewMap(), ms.Metadata())
-	ms.orig.Metadata = internal.GenTestKeyValueSlice()
+	ms.getOrig().Metadata = internal.GenTestKeyValueSlice()
 	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Metadata())
 }
 

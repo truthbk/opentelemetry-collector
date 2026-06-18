@@ -38,24 +38,24 @@ func NewProfile() Profile {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Profile) MoveTo(dest Profile) {
-	ms.state.AssertMutable()
-	dest.state.AssertMutable()
+	ms.getState().AssertMutable()
+	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
-	if ms.orig == dest.orig {
+	if ms.getOrig() == dest.getOrig() {
 		return
 	}
-	internal.DeleteProfile(dest.orig, false)
-	*dest.orig, *ms.orig = *ms.orig, *dest.orig
+	internal.DeleteProfile(dest.getOrig(), false)
+	*dest.getOrig(), *ms.getOrig() = *ms.getOrig(), *dest.getOrig()
 }
 
 // SampleType returns the sampletype associated with this Profile.
 func (ms Profile) SampleType() ValueType {
-	return newValueType(&ms.orig.SampleType, ms.state)
+	return newValueType(&ms.getOrig().SampleType, ms.getState())
 }
 
 // Samples returns the Samples associated with this Profile.
 func (ms Profile) Samples() SampleSlice {
-	return newSampleSlice(&ms.orig.Samples, ms.state)
+	return newSampleSlice(&ms.getOrig().Samples, ms.getState())
 }
 
 // Time returns the time associated with this Profile.
@@ -71,29 +71,29 @@ func (ms Profile) SetTime(v pcommon.Timestamp) {
 
 // DurationNano returns the durationnano associated with this Profile.
 func (ms Profile) DurationNano() uint64 {
-	return ms.orig.DurationNano
+	return ms.getOrig().DurationNano
 }
 
 // SetDurationNano replaces the durationnano associated with this Profile.
 func (ms Profile) SetDurationNano(v uint64) {
-	ms.state.AssertMutable()
-	ms.orig.DurationNano = v
+	ms.getState().AssertMutable()
+	ms.getOrig().DurationNano = v
 }
 
 // PeriodType returns the periodtype associated with this Profile.
 func (ms Profile) PeriodType() ValueType {
-	return newValueType(&ms.orig.PeriodType, ms.state)
+	return newValueType(&ms.getOrig().PeriodType, ms.getState())
 }
 
 // Period returns the period associated with this Profile.
 func (ms Profile) Period() int64 {
-	return ms.orig.Period
+	return ms.getOrig().Period
 }
 
 // SetPeriod replaces the period associated with this Profile.
 func (ms Profile) SetPeriod(v int64) {
-	ms.state.AssertMutable()
-	ms.orig.Period = v
+	ms.getState().AssertMutable()
+	ms.getOrig().Period = v
 }
 
 // ProfileID returns the profileid associated with this Profile.
@@ -109,38 +109,46 @@ func (ms Profile) SetProfileID(v ProfileID) {
 
 // DroppedAttributesCount returns the droppedattributescount associated with this Profile.
 func (ms Profile) DroppedAttributesCount() uint32 {
-	return ms.orig.DroppedAttributesCount
+	return ms.getOrig().DroppedAttributesCount
 }
 
 // SetDroppedAttributesCount replaces the droppedattributescount associated with this Profile.
 func (ms Profile) SetDroppedAttributesCount(v uint32) {
-	ms.state.AssertMutable()
-	ms.orig.DroppedAttributesCount = v
+	ms.getState().AssertMutable()
+	ms.getOrig().DroppedAttributesCount = v
 }
 
 // OriginalPayloadFormat returns the originalpayloadformat associated with this Profile.
 func (ms Profile) OriginalPayloadFormat() string {
-	return ms.orig.OriginalPayloadFormat
+	return ms.getOrig().OriginalPayloadFormat
 }
 
 // SetOriginalPayloadFormat replaces the originalpayloadformat associated with this Profile.
 func (ms Profile) SetOriginalPayloadFormat(v string) {
-	ms.state.AssertMutable()
-	ms.orig.OriginalPayloadFormat = v
+	ms.getState().AssertMutable()
+	ms.getOrig().OriginalPayloadFormat = v
 }
 
 // OriginalPayload returns the OriginalPayload associated with this Profile.
 func (ms Profile) OriginalPayload() pcommon.ByteSlice {
-	return pcommon.ByteSlice(internal.NewByteSliceWrapper(&ms.orig.OriginalPayload, ms.state))
+	return pcommon.ByteSlice(internal.NewByteSliceWrapper(&ms.getOrig().OriginalPayload, ms.getState()))
 }
 
 // AttributeIndices returns the AttributeIndices associated with this Profile.
 func (ms Profile) AttributeIndices() pcommon.Int32Slice {
-	return pcommon.Int32Slice(internal.NewInt32SliceWrapper(&ms.orig.AttributeIndices, ms.state))
+	return pcommon.Int32Slice(internal.NewInt32SliceWrapper(&ms.getOrig().AttributeIndices, ms.getState()))
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Profile) CopyTo(dest Profile) {
-	dest.state.AssertMutable()
-	internal.CopyProfile(dest.orig, ms.orig)
+	dest.getState().AssertMutable()
+	internal.CopyProfile(dest.getOrig(), ms.getOrig())
+}
+
+func (ms Profile) getOrig() *internal.Profile {
+	return ms.orig
+}
+
+func (ms Profile) getState() *internal.State {
+	return ms.state
 }

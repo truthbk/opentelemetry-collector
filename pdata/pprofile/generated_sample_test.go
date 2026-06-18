@@ -55,7 +55,7 @@ func TestSample_StackIndex(t *testing.T) {
 func TestSample_AttributeIndices(t *testing.T) {
 	ms := NewSample()
 	assert.Equal(t, pcommon.NewInt32Slice(), ms.AttributeIndices())
-	ms.orig.AttributeIndices = internal.GenTestInt32Slice()
+	ms.getOrig().AttributeIndices = internal.GenTestInt32Slice()
 	assert.Equal(t, pcommon.Int32Slice(internal.GenTestInt32SliceWrapper()), ms.AttributeIndices())
 }
 
@@ -72,14 +72,14 @@ func TestSample_LinkIndex(t *testing.T) {
 func TestSample_Values(t *testing.T) {
 	ms := NewSample()
 	assert.Equal(t, pcommon.NewInt64Slice(), ms.Values())
-	ms.orig.Values = internal.GenTestInt64Slice()
+	ms.getOrig().Values = internal.GenTestInt64Slice()
 	assert.Equal(t, pcommon.Int64Slice(internal.GenTestInt64SliceWrapper()), ms.Values())
 }
 
 func TestSample_TimestampsUnixNano(t *testing.T) {
 	ms := NewSample()
 	assert.Equal(t, pcommon.NewUInt64Slice(), ms.TimestampsUnixNano())
-	ms.orig.TimestampsUnixNano = internal.GenTestUint64Slice()
+	ms.getOrig().TimestampsUnixNano = internal.GenTestUint64Slice()
 	assert.Equal(t, pcommon.UInt64Slice(internal.GenTestUInt64SliceWrapper()), ms.TimestampsUnixNano())
 }
 
