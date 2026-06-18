@@ -69,11 +69,15 @@ func (req *metricsRequest) MergeSplit(_ context.Context, maxSize int, szt reques
 //
 // Concurrency note: req.md.IsReadOnly() is a plain uint32 field read
 // inside pdata's State (not atomic). The visibility guarantee here is
-// established by the queue's hand-off: MarkReadOnly() on the producer
-// side happens-before the channel send into the queue, and the
-// receive happens-before this read. partitionBatcher.consumeInternal
-// then holds currentBatchMu across MergeSplit, so no concurrent
-// writer to req.md.state observes a torn read here.
+// established by the queue's mutex hand-off, not a channel send:
+// memoryQueue.add and memoryQueue.Read pair an Unlock with a Lock on
+// the same sync.Mutex (persistentQueue.Offer + dequeue are the
+// equivalent pair on the disk-backed path), so MarkReadOnly() on the
+// producer side happens-before the queue insertion's Unlock, which
+// happens-before the consumer's Lock acquisition, which happens-before
+// this read. partitionBatcher.consumeInternal then holds currentBatchMu
+// across MergeSplit, so no concurrent writer to req.md.state observes
+// a torn read here.
 func (req *metricsRequest) cloneIfShared() *metricsRequest {
 	if !req.md.IsReadOnly() {
 		return req
