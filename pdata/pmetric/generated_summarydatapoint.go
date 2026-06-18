@@ -55,24 +55,24 @@ func (ms SummaryDataPoint) Attributes() pcommon.Map {
 
 // StartTimestamp returns the starttimestamp associated with this SummaryDataPoint.
 func (ms SummaryDataPoint) StartTimestamp() pcommon.Timestamp {
-	return pcommon.Timestamp(ms.orig.StartTimeUnixNano)
+	return pcommon.Timestamp(ms.getOrig().StartTimeUnixNano)
 }
 
 // SetStartTimestamp replaces the starttimestamp associated with this SummaryDataPoint.
 func (ms SummaryDataPoint) SetStartTimestamp(v pcommon.Timestamp) {
-	ms.state.AssertMutable()
-	ms.orig.StartTimeUnixNano = uint64(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().StartTimeUnixNano = uint64(v)
 }
 
 // Timestamp returns the timestamp associated with this SummaryDataPoint.
 func (ms SummaryDataPoint) Timestamp() pcommon.Timestamp {
-	return pcommon.Timestamp(ms.orig.TimeUnixNano)
+	return pcommon.Timestamp(ms.getOrig().TimeUnixNano)
 }
 
 // SetTimestamp replaces the timestamp associated with this SummaryDataPoint.
 func (ms SummaryDataPoint) SetTimestamp(v pcommon.Timestamp) {
-	ms.state.AssertMutable()
-	ms.orig.TimeUnixNano = uint64(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().TimeUnixNano = uint64(v)
 }
 
 // Count returns the count associated with this SummaryDataPoint.
@@ -104,13 +104,13 @@ func (ms SummaryDataPoint) QuantileValues() SummaryDataPointValueAtQuantileSlice
 
 // Flags returns the flags associated with this SummaryDataPoint.
 func (ms SummaryDataPoint) Flags() DataPointFlags {
-	return DataPointFlags(ms.orig.Flags)
+	return DataPointFlags(ms.getOrig().Flags)
 }
 
 // SetFlags replaces the flags associated with this SummaryDataPoint.
 func (ms SummaryDataPoint) SetFlags(v DataPointFlags) {
-	ms.state.AssertMutable()
-	ms.orig.Flags = uint32(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().Flags = uint32(v)
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.

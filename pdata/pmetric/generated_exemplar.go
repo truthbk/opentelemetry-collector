@@ -59,13 +59,13 @@ func (ms Exemplar) FilteredAttributes() pcommon.Map {
 
 // Timestamp returns the timestamp associated with this Exemplar.
 func (ms Exemplar) Timestamp() pcommon.Timestamp {
-	return pcommon.Timestamp(ms.orig.TimeUnixNano)
+	return pcommon.Timestamp(ms.getOrig().TimeUnixNano)
 }
 
 // SetTimestamp replaces the timestamp associated with this Exemplar.
 func (ms Exemplar) SetTimestamp(v pcommon.Timestamp) {
-	ms.state.AssertMutable()
-	ms.orig.TimeUnixNano = uint64(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().TimeUnixNano = uint64(v)
 }
 
 // ValueType returns the type of the value for this Exemplar.
@@ -82,12 +82,12 @@ func (ms Exemplar) ValueType() ExemplarValueType {
 
 // DoubleValue returns the double associated with this Exemplar.
 func (ms Exemplar) DoubleValue() float64 {
-	return ms.orig.GetAsDouble()
+	return ms.getOrig().GetAsDouble()
 }
 
 // SetDoubleValue replaces the double associated with this Exemplar.
 func (ms Exemplar) SetDoubleValue(v float64) {
-	ms.state.AssertMutable()
+	ms.getState().AssertMutable()
 	var ov *internal.Exemplar_AsDouble
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
 		ov = &internal.Exemplar_AsDouble{}
@@ -95,15 +95,15 @@ func (ms Exemplar) SetDoubleValue(v float64) {
 		ov = internal.ProtoPoolExemplar_AsDouble.Get().(*internal.Exemplar_AsDouble)
 	}
 	ov.AsDouble = v
-	ms.orig.Value = ov
+	ms.getOrig().Value = ov
 } // IntValue returns the int associated with this Exemplar.
 func (ms Exemplar) IntValue() int64 {
-	return ms.orig.GetAsInt()
+	return ms.getOrig().GetAsInt()
 }
 
 // SetIntValue replaces the int associated with this Exemplar.
 func (ms Exemplar) SetIntValue(v int64) {
-	ms.state.AssertMutable()
+	ms.getState().AssertMutable()
 	var ov *internal.Exemplar_AsInt
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
 		ov = &internal.Exemplar_AsInt{}
@@ -111,29 +111,29 @@ func (ms Exemplar) SetIntValue(v int64) {
 		ov = internal.ProtoPoolExemplar_AsInt.Get().(*internal.Exemplar_AsInt)
 	}
 	ov.AsInt = v
-	ms.orig.Value = ov
+	ms.getOrig().Value = ov
 }
 
 // TraceID returns the traceid associated with this Exemplar.
 func (ms Exemplar) TraceID() pcommon.TraceID {
-	return pcommon.TraceID(ms.orig.TraceId)
+	return pcommon.TraceID(ms.getOrig().TraceId)
 }
 
 // SetTraceID replaces the traceid associated with this Exemplar.
 func (ms Exemplar) SetTraceID(v pcommon.TraceID) {
-	ms.state.AssertMutable()
-	ms.orig.TraceId = internal.TraceID(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().TraceId = internal.TraceID(v)
 }
 
 // SpanID returns the spanid associated with this Exemplar.
 func (ms Exemplar) SpanID() pcommon.SpanID {
-	return pcommon.SpanID(ms.orig.SpanId)
+	return pcommon.SpanID(ms.getOrig().SpanId)
 }
 
 // SetSpanID replaces the spanid associated with this Exemplar.
 func (ms Exemplar) SetSpanID(v pcommon.SpanID) {
-	ms.state.AssertMutable()
-	ms.orig.SpanId = internal.SpanID(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().SpanId = internal.SpanID(v)
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.

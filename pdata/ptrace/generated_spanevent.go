@@ -51,13 +51,13 @@ func (ms SpanEvent) MoveTo(dest SpanEvent) {
 
 // Timestamp returns the timestamp associated with this SpanEvent.
 func (ms SpanEvent) Timestamp() pcommon.Timestamp {
-	return pcommon.Timestamp(ms.orig.TimeUnixNano)
+	return pcommon.Timestamp(ms.getOrig().TimeUnixNano)
 }
 
 // SetTimestamp replaces the timestamp associated with this SpanEvent.
 func (ms SpanEvent) SetTimestamp(v pcommon.Timestamp) {
-	ms.state.AssertMutable()
-	ms.orig.TimeUnixNano = uint64(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().TimeUnixNano = uint64(v)
 }
 
 // Name returns the name associated with this SpanEvent.

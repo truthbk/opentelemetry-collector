@@ -108,11 +108,11 @@ func (ms Metric) Type() MetricType {
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) Gauge() Gauge {
-	v, ok := ms.orig.GetData().(*internal.Metric_Gauge)
+	v, ok := ms.getOrig().GetData().(*internal.Metric_Gauge)
 	if !ok {
 		return Gauge{}
 	}
-	return newGauge(v.Gauge, ms.state)
+	return newGauge(v.Gauge, ms.getState())
 }
 
 // SetEmptyGauge sets an empty gauge to this Metric.
@@ -121,7 +121,7 @@ func (ms Metric) Gauge() Gauge {
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) SetEmptyGauge() Gauge {
-	ms.state.AssertMutable()
+	ms.getState().AssertMutable()
 	var ov *internal.Metric_Gauge
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
 		ov = &internal.Metric_Gauge{}
@@ -129,19 +129,19 @@ func (ms Metric) SetEmptyGauge() Gauge {
 		ov = internal.ProtoPoolMetric_Gauge.Get().(*internal.Metric_Gauge)
 	}
 	ov.Gauge = internal.NewGauge()
-	ms.orig.Data = ov
-	return newGauge(ov.Gauge, ms.state)
+	ms.getOrig().Data = ov
+	return newGauge(ov.Gauge, ms.getState())
 } // Sum returns the sum associated with this Metric.
 // Calling this function when Type() != MetricTypeSum returns an invalid
 // zero-initialized instance of Sum. Note that using such Sum instance can cause panic.
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) Sum() Sum {
-	v, ok := ms.orig.GetData().(*internal.Metric_Sum)
+	v, ok := ms.getOrig().GetData().(*internal.Metric_Sum)
 	if !ok {
 		return Sum{}
 	}
-	return newSum(v.Sum, ms.state)
+	return newSum(v.Sum, ms.getState())
 }
 
 // SetEmptySum sets an empty sum to this Metric.
@@ -150,7 +150,7 @@ func (ms Metric) Sum() Sum {
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) SetEmptySum() Sum {
-	ms.state.AssertMutable()
+	ms.getState().AssertMutable()
 	var ov *internal.Metric_Sum
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
 		ov = &internal.Metric_Sum{}
@@ -158,19 +158,19 @@ func (ms Metric) SetEmptySum() Sum {
 		ov = internal.ProtoPoolMetric_Sum.Get().(*internal.Metric_Sum)
 	}
 	ov.Sum = internal.NewSum()
-	ms.orig.Data = ov
-	return newSum(ov.Sum, ms.state)
+	ms.getOrig().Data = ov
+	return newSum(ov.Sum, ms.getState())
 } // Histogram returns the histogram associated with this Metric.
 // Calling this function when Type() != MetricTypeHistogram returns an invalid
 // zero-initialized instance of Histogram. Note that using such Histogram instance can cause panic.
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) Histogram() Histogram {
-	v, ok := ms.orig.GetData().(*internal.Metric_Histogram)
+	v, ok := ms.getOrig().GetData().(*internal.Metric_Histogram)
 	if !ok {
 		return Histogram{}
 	}
-	return newHistogram(v.Histogram, ms.state)
+	return newHistogram(v.Histogram, ms.getState())
 }
 
 // SetEmptyHistogram sets an empty histogram to this Metric.
@@ -179,7 +179,7 @@ func (ms Metric) Histogram() Histogram {
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) SetEmptyHistogram() Histogram {
-	ms.state.AssertMutable()
+	ms.getState().AssertMutable()
 	var ov *internal.Metric_Histogram
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
 		ov = &internal.Metric_Histogram{}
@@ -187,19 +187,19 @@ func (ms Metric) SetEmptyHistogram() Histogram {
 		ov = internal.ProtoPoolMetric_Histogram.Get().(*internal.Metric_Histogram)
 	}
 	ov.Histogram = internal.NewHistogram()
-	ms.orig.Data = ov
-	return newHistogram(ov.Histogram, ms.state)
+	ms.getOrig().Data = ov
+	return newHistogram(ov.Histogram, ms.getState())
 } // ExponentialHistogram returns the exponentialhistogram associated with this Metric.
 // Calling this function when Type() != MetricTypeExponentialHistogram returns an invalid
 // zero-initialized instance of ExponentialHistogram. Note that using such ExponentialHistogram instance can cause panic.
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) ExponentialHistogram() ExponentialHistogram {
-	v, ok := ms.orig.GetData().(*internal.Metric_ExponentialHistogram)
+	v, ok := ms.getOrig().GetData().(*internal.Metric_ExponentialHistogram)
 	if !ok {
 		return ExponentialHistogram{}
 	}
-	return newExponentialHistogram(v.ExponentialHistogram, ms.state)
+	return newExponentialHistogram(v.ExponentialHistogram, ms.getState())
 }
 
 // SetEmptyExponentialHistogram sets an empty exponentialhistogram to this Metric.
@@ -208,7 +208,7 @@ func (ms Metric) ExponentialHistogram() ExponentialHistogram {
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) SetEmptyExponentialHistogram() ExponentialHistogram {
-	ms.state.AssertMutable()
+	ms.getState().AssertMutable()
 	var ov *internal.Metric_ExponentialHistogram
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
 		ov = &internal.Metric_ExponentialHistogram{}
@@ -216,19 +216,19 @@ func (ms Metric) SetEmptyExponentialHistogram() ExponentialHistogram {
 		ov = internal.ProtoPoolMetric_ExponentialHistogram.Get().(*internal.Metric_ExponentialHistogram)
 	}
 	ov.ExponentialHistogram = internal.NewExponentialHistogram()
-	ms.orig.Data = ov
-	return newExponentialHistogram(ov.ExponentialHistogram, ms.state)
+	ms.getOrig().Data = ov
+	return newExponentialHistogram(ov.ExponentialHistogram, ms.getState())
 } // Summary returns the summary associated with this Metric.
 // Calling this function when Type() != MetricTypeSummary returns an invalid
 // zero-initialized instance of Summary. Note that using such Summary instance can cause panic.
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) Summary() Summary {
-	v, ok := ms.orig.GetData().(*internal.Metric_Summary)
+	v, ok := ms.getOrig().GetData().(*internal.Metric_Summary)
 	if !ok {
 		return Summary{}
 	}
-	return newSummary(v.Summary, ms.state)
+	return newSummary(v.Summary, ms.getState())
 }
 
 // SetEmptySummary sets an empty summary to this Metric.
@@ -237,7 +237,7 @@ func (ms Metric) Summary() Summary {
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) SetEmptySummary() Summary {
-	ms.state.AssertMutable()
+	ms.getState().AssertMutable()
 	var ov *internal.Metric_Summary
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
 		ov = &internal.Metric_Summary{}
@@ -245,8 +245,8 @@ func (ms Metric) SetEmptySummary() Summary {
 		ov = internal.ProtoPoolMetric_Summary.Get().(*internal.Metric_Summary)
 	}
 	ov.Summary = internal.NewSummary()
-	ms.orig.Data = ov
-	return newSummary(ov.Summary, ms.state)
+	ms.getOrig().Data = ov
+	return newSummary(ov.Summary, ms.getState())
 }
 
 // Metadata returns the Metadata associated with this Metric.

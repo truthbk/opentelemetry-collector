@@ -54,13 +54,13 @@ func (ms Sum) DataPoints() NumberDataPointSlice {
 
 // AggregationTemporality returns the aggregationtemporality associated with this Sum.
 func (ms Sum) AggregationTemporality() AggregationTemporality {
-	return AggregationTemporality(ms.orig.AggregationTemporality)
+	return AggregationTemporality(ms.getOrig().AggregationTemporality)
 }
 
 // SetAggregationTemporality replaces the aggregationtemporality associated with this Sum.
 func (ms Sum) SetAggregationTemporality(v AggregationTemporality) {
-	ms.state.AssertMutable()
-	ms.orig.AggregationTemporality = internal.AggregationTemporality(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().AggregationTemporality = internal.AggregationTemporality(v)
 }
 
 // IsMonotonic returns the ismonotonic associated with this Sum.

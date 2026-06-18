@@ -17,11 +17,11 @@ const oneOfMessageAccessorsTemplate = `// {{ .fieldName }} returns the {{ .lower
 //
 // Calling this function on zero-initialized {{ .structName }} will cause a panic.
 func (ms {{ .structName }}) {{ .fieldName }}() {{ .returnType }} {
-	v, ok := ms.orig.Get{{ .originOneOfFieldName }}().(*internal.{{ .originStructType }})
+	v, ok := ms.{{ .origAccessor }}.Get{{ .originOneOfFieldName }}().(*internal.{{ .originStructType }})
 	if !ok {
 		return {{ .returnType }}{}
 	}
-	return new{{ .returnType }}(v.{{ .fieldName }}, ms.state)
+	return new{{ .returnType }}(v.{{ .fieldName }}, ms.{{ .stateAccessor }})
 }
 
 // SetEmpty{{ .fieldName }} sets an empty {{ .lowerFieldName }} to this {{ .structName }}.
@@ -30,7 +30,7 @@ func (ms {{ .structName }}) {{ .fieldName }}() {{ .returnType }} {
 //
 // Calling this function on zero-initialized {{ .structName }} will cause a panic.
 func (ms {{ .structName }}) SetEmpty{{ .fieldName }}() {{ .returnType }} {
-	ms.state.AssertMutable()
+	ms.{{ .stateAccessor }}.AssertMutable()
 	var ov *internal.{{ .originStructType }}
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
 		ov = &internal.{{ .originStructType }}{}
@@ -38,15 +38,15 @@ func (ms {{ .structName }}) SetEmpty{{ .fieldName }}() {{ .returnType }} {
 		ov = internal.ProtoPool{{ .oneOfName }}.Get().(*internal.{{ .originStructType }})
 	}
 	ov.{{ .fieldName }} = internal.New{{ .fieldOriginName }}()
-	ms.orig.{{ .originOneOfFieldName }} = ov
-	return new{{ .returnType }}(ov.{{ .fieldName }}, ms.state)
+	ms.{{ .origAccessor }}.{{ .originOneOfFieldName }} = ov
+	return new{{ .returnType }}(ov.{{ .fieldName }}, ms.{{ .stateAccessor }})
 }`
 
 const oneOfMessageAccessorsTestTemplate = `func Test{{ .structName }}_{{ .fieldName }}(t *testing.T) {
 	ms := New{{ .structName }}()
 	ms.SetEmpty{{ .fieldName }}()
 	assert.Equal(t, New{{ .returnType }}(), ms.{{ .fieldName }}())
-	ms.orig.Get{{ .originOneOfFieldName }}().(*internal.{{ .originStructType }}).{{ .fieldName }} = internal.GenTest{{ .returnType }}()
+	ms.{{ .origAccessor }}.Get{{ .originOneOfFieldName }}().(*internal.{{ .originStructType }}).{{ .fieldName }} = internal.GenTest{{ .returnType }}()
 	assert.Equal(t, {{ .typeName }}, ms.{{ .originOneOfTypeFuncName }}())
 	assert.Equal(t, generateTest{{ .returnType }}(), ms.{{ .fieldName }}())
 	sharedState := internal.NewState()
@@ -117,6 +117,8 @@ func (omv *OneOfMessageValue) templateFields(ms *messageStruct, of *OneOfField) 
 		"originStructName":        ms.protoName,
 		"originStructType":        ms.protoName + "_" + omv.fieldName,
 		"oneOfName":               proto.ExtractNameFromFull(ms.protoName + "_" + omv.fieldName),
+		"origAccessor":            origAccessor(ms.getHasWrapper()),
+		"stateAccessor":           stateAccessor(ms.getHasWrapper()),
 	}
 }
 

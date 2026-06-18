@@ -12,12 +12,12 @@ import (
 
 const oneOfPrimitiveAccessorsTemplate = `// {{ .accessorFieldName }} returns the {{ .lowerFieldName }} associated with this {{ .structName }}.
 func (ms {{ .structName }}) {{ .accessorFieldName }}() {{ .returnType }} {
-	return ms.orig.Get{{ .originFieldName }}()
+	return ms.{{ .origAccessor }}.Get{{ .originFieldName }}()
 }
 
 // Set{{ .accessorFieldName }} replaces the {{ .lowerFieldName }} associated with this {{ .structName }}.
 func (ms {{ .structName }}) Set{{ .accessorFieldName }}(v {{ .returnType }}) {
-	ms.state.AssertMutable()
+	ms.{{ .stateAccessor }}.AssertMutable()
 	var ov *internal.{{ .originStructType }}
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
 		ov = &internal.{{ .originStructType }}{}
@@ -25,7 +25,7 @@ func (ms {{ .structName }}) Set{{ .accessorFieldName }}(v {{ .returnType }}) {
 		ov = internal.ProtoPool{{ .oneOfName }}.Get().(*internal.{{ .originStructType }})
 	}
 	ov.{{ .originFieldName }} = v
-	ms.orig.{{ .originOneOfFieldName }} = ov
+	ms.{{ .origAccessor }}.{{ .originOneOfFieldName }} = ov
 }`
 
 const oneOfPrimitiveAccessorTestTemplate = `func Test{{ .structName }}_{{ .accessorFieldName }}(t *testing.T) {
@@ -119,6 +119,8 @@ func (opv *OneOfPrimitiveValue) templateFields(ms *messageStruct, of *OneOfField
 		"originStructName":        ms.protoName,
 		"originStructType":        ms.protoName + "_" + opv.originFieldName,
 		"oneOfName":               proto.ExtractNameFromFull(ms.protoName + "_" + opv.originFieldName),
+		"origAccessor":            origAccessor(ms.getHasWrapper()),
+		"stateAccessor":           stateAccessor(ms.getHasWrapper()),
 	}
 }
 

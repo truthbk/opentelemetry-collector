@@ -51,24 +51,24 @@ func (ms Span) MoveTo(dest Span) {
 
 // TraceID returns the traceid associated with this Span.
 func (ms Span) TraceID() pcommon.TraceID {
-	return pcommon.TraceID(ms.orig.TraceId)
+	return pcommon.TraceID(ms.getOrig().TraceId)
 }
 
 // SetTraceID replaces the traceid associated with this Span.
 func (ms Span) SetTraceID(v pcommon.TraceID) {
-	ms.state.AssertMutable()
-	ms.orig.TraceId = internal.TraceID(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().TraceId = internal.TraceID(v)
 }
 
 // SpanID returns the spanid associated with this Span.
 func (ms Span) SpanID() pcommon.SpanID {
-	return pcommon.SpanID(ms.orig.SpanId)
+	return pcommon.SpanID(ms.getOrig().SpanId)
 }
 
 // SetSpanID replaces the spanid associated with this Span.
 func (ms Span) SetSpanID(v pcommon.SpanID) {
-	ms.state.AssertMutable()
-	ms.orig.SpanId = internal.SpanID(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().SpanId = internal.SpanID(v)
 }
 
 // TraceState returns the tracestate associated with this Span.
@@ -78,13 +78,13 @@ func (ms Span) TraceState() pcommon.TraceState {
 
 // ParentSpanID returns the parentspanid associated with this Span.
 func (ms Span) ParentSpanID() pcommon.SpanID {
-	return pcommon.SpanID(ms.orig.ParentSpanId)
+	return pcommon.SpanID(ms.getOrig().ParentSpanId)
 }
 
 // SetParentSpanID replaces the parentspanid associated with this Span.
 func (ms Span) SetParentSpanID(v pcommon.SpanID) {
-	ms.state.AssertMutable()
-	ms.orig.ParentSpanId = internal.SpanID(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().ParentSpanId = internal.SpanID(v)
 }
 
 // Flags returns the flags associated with this Span.
@@ -111,35 +111,35 @@ func (ms Span) SetName(v string) {
 
 // Kind returns the kind associated with this Span.
 func (ms Span) Kind() SpanKind {
-	return SpanKind(ms.orig.Kind)
+	return SpanKind(ms.getOrig().Kind)
 }
 
 // SetKind replaces the kind associated with this Span.
 func (ms Span) SetKind(v SpanKind) {
-	ms.state.AssertMutable()
-	ms.orig.Kind = internal.SpanKind(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().Kind = internal.SpanKind(v)
 }
 
 // StartTimestamp returns the starttimestamp associated with this Span.
 func (ms Span) StartTimestamp() pcommon.Timestamp {
-	return pcommon.Timestamp(ms.orig.StartTimeUnixNano)
+	return pcommon.Timestamp(ms.getOrig().StartTimeUnixNano)
 }
 
 // SetStartTimestamp replaces the starttimestamp associated with this Span.
 func (ms Span) SetStartTimestamp(v pcommon.Timestamp) {
-	ms.state.AssertMutable()
-	ms.orig.StartTimeUnixNano = uint64(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().StartTimeUnixNano = uint64(v)
 }
 
 // EndTimestamp returns the endtimestamp associated with this Span.
 func (ms Span) EndTimestamp() pcommon.Timestamp {
-	return pcommon.Timestamp(ms.orig.EndTimeUnixNano)
+	return pcommon.Timestamp(ms.getOrig().EndTimeUnixNano)
 }
 
 // SetEndTimestamp replaces the endtimestamp associated with this Span.
 func (ms Span) SetEndTimestamp(v pcommon.Timestamp) {
-	ms.state.AssertMutable()
-	ms.orig.EndTimeUnixNano = uint64(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().EndTimeUnixNano = uint64(v)
 }
 
 // Attributes returns the Attributes associated with this Span.

@@ -54,13 +54,13 @@ func (ms Histogram) DataPoints() HistogramDataPointSlice {
 
 // AggregationTemporality returns the aggregationtemporality associated with this Histogram.
 func (ms Histogram) AggregationTemporality() AggregationTemporality {
-	return AggregationTemporality(ms.orig.AggregationTemporality)
+	return AggregationTemporality(ms.getOrig().AggregationTemporality)
 }
 
 // SetAggregationTemporality replaces the aggregationtemporality associated with this Histogram.
 func (ms Histogram) SetAggregationTemporality(v AggregationTemporality) {
-	ms.state.AssertMutable()
-	ms.orig.AggregationTemporality = internal.AggregationTemporality(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().AggregationTemporality = internal.AggregationTemporality(v)
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.

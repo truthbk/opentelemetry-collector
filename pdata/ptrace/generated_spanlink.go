@@ -52,24 +52,24 @@ func (ms SpanLink) MoveTo(dest SpanLink) {
 
 // TraceID returns the traceid associated with this SpanLink.
 func (ms SpanLink) TraceID() pcommon.TraceID {
-	return pcommon.TraceID(ms.orig.TraceId)
+	return pcommon.TraceID(ms.getOrig().TraceId)
 }
 
 // SetTraceID replaces the traceid associated with this SpanLink.
 func (ms SpanLink) SetTraceID(v pcommon.TraceID) {
-	ms.state.AssertMutable()
-	ms.orig.TraceId = internal.TraceID(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().TraceId = internal.TraceID(v)
 }
 
 // SpanID returns the spanid associated with this SpanLink.
 func (ms SpanLink) SpanID() pcommon.SpanID {
-	return pcommon.SpanID(ms.orig.SpanId)
+	return pcommon.SpanID(ms.getOrig().SpanId)
 }
 
 // SetSpanID replaces the spanid associated with this SpanLink.
 func (ms SpanLink) SetSpanID(v pcommon.SpanID) {
-	ms.state.AssertMutable()
-	ms.orig.SpanId = internal.SpanID(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().SpanId = internal.SpanID(v)
 }
 
 // TraceState returns the tracestate associated with this SpanLink.

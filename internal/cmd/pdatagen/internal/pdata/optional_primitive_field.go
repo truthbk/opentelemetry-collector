@@ -11,25 +11,25 @@ import (
 
 const optionalPrimitiveAccessorsTemplate = `// {{ .fieldName }} returns the {{ .lowerFieldName }} associated with this {{ .structName }}.
 func (ms {{ .structName }}) {{ .fieldName }}() {{ .returnType }} {
-	return ms.orig.{{ .fieldName }}
+	return ms.{{ .origAccessor }}.{{ .fieldName }}
 }
 
 // Has{{ .fieldName }} returns true if the {{ .structName }} contains a
 // {{ .fieldName }} value otherwise.
 func (ms {{ .structName }}) Has{{ .fieldName }}() bool {
-	return ms.orig.Has{{ .fieldName }}()
+	return ms.{{ .origAccessor }}.Has{{ .fieldName }}()
 }
 
 // Set{{ .fieldName }} replaces the {{ .lowerFieldName }} associated with this {{ .structName }}.
 func (ms {{ .structName }}) Set{{ .fieldName }}(v {{ .returnType }}) {
-	ms.state.AssertMutable()
-	ms.orig.Set{{ .fieldName }}(v)
+	ms.{{ .stateAccessor }}.AssertMutable()
+	ms.{{ .origAccessor }}.Set{{ .fieldName }}(v)
 }
 
 // Remove{{ .fieldName }} removes the {{ .lowerFieldName }} associated with this {{ .structName }}.
 func (ms {{ .structName }}) Remove{{ .fieldName }}() {
-	ms.state.AssertMutable()
-	ms.orig.Remove{{ .fieldName }}()
+	ms.{{ .stateAccessor }}.AssertMutable()
+	ms.{{ .origAccessor }}.Remove{{ .fieldName }}()
 }`
 
 const optionalPrimitiveAccessorsTestTemplate = `func Test{{ .structName }}_{{ .fieldName }}(t *testing.T) {
@@ -97,6 +97,8 @@ func (opv *OptionalPrimitiveField) templateFields(ms *messageStruct) map[string]
 		"originName":       ms.getOriginName(),
 		"originStructName": ms.getOriginFullName(),
 		"originStructType": ms.getOriginFullName() + "_" + opv.fieldName,
+		"origAccessor":     origAccessor(ms.getHasWrapper()),
+		"stateAccessor":    stateAccessor(ms.getHasWrapper()),
 	}
 }
 

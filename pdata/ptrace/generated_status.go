@@ -61,13 +61,13 @@ func (ms Status) SetMessage(v string) {
 
 // Code returns the code associated with this Status.
 func (ms Status) Code() StatusCode {
-	return StatusCode(ms.orig.Code)
+	return StatusCode(ms.getOrig().Code)
 }
 
 // SetCode replaces the code associated with this Status.
 func (ms Status) SetCode(v StatusCode) {
-	ms.state.AssertMutable()
-	ms.orig.Code = internal.StatusCode(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().Code = internal.StatusCode(v)
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.

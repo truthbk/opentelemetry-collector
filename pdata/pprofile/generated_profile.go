@@ -60,13 +60,13 @@ func (ms Profile) Samples() SampleSlice {
 
 // Time returns the time associated with this Profile.
 func (ms Profile) Time() pcommon.Timestamp {
-	return pcommon.Timestamp(ms.orig.TimeUnixNano)
+	return pcommon.Timestamp(ms.getOrig().TimeUnixNano)
 }
 
 // SetTime replaces the time associated with this Profile.
 func (ms Profile) SetTime(v pcommon.Timestamp) {
-	ms.state.AssertMutable()
-	ms.orig.TimeUnixNano = uint64(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().TimeUnixNano = uint64(v)
 }
 
 // DurationNano returns the durationnano associated with this Profile.
@@ -98,13 +98,13 @@ func (ms Profile) SetPeriod(v int64) {
 
 // ProfileID returns the profileid associated with this Profile.
 func (ms Profile) ProfileID() ProfileID {
-	return ProfileID(ms.orig.ProfileId)
+	return ProfileID(ms.getOrig().ProfileId)
 }
 
 // SetProfileID replaces the profileid associated with this Profile.
 func (ms Profile) SetProfileID(v ProfileID) {
-	ms.state.AssertMutable()
-	ms.orig.ProfileId = internal.ProfileID(v)
+	ms.getState().AssertMutable()
+	ms.getOrig().ProfileId = internal.ProfileID(v)
 }
 
 // DroppedAttributesCount returns the droppedattributescount associated with this Profile.
