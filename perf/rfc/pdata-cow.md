@@ -64,6 +64,118 @@ design as it stood before the prototype findings. Treat it as
 **historical** — the engagement shipped C, not A. The terminology,
 design alternatives, and refcount/State extensions still apply.
 
+## Path Y resume (2026-06-18) — pcommon strategy decision
+
+Subsequent static-analysis audit of opentelemetry-collector-contrib
+processors (commit `bac37790c`) revised the production-benefit
+estimate: 27 of 34 `MutatesData: true` components (~79%) are
+conditional mutators (OTTL `where`, name/key lookups, data-shape
+preconditions). The conditional-mutator pipeline bench (Phase 2.C in
+[`hey-claude-a-while-wise-stonebraker.md`](../../../../.claude/plans/hey-claude-a-while-wise-stonebraker.md))
+validated `saved ≈ (1 − hit_rate) × one_clone_cost` at pipeline level.
+This was sufficient justification to resume the Alternative A codegen
+migration on a fork-bound branch (`path-y/codegen-migration`), with a
+six-phase plan and locked correctness rules — see the engagement
+plan for the resume plan and the rules.
+
+The resume work surfaced one design decision that wasn't visible at
+the original Alternative A RFC: **how to handle pcommon shared types
+(`pcommon.Resource`, `pcommon.Map`, `pcommon.Value`, etc.) under the
+Handle + index-path layout.**
+
+### The pcommon problem
+
+The cowproto design (Alternative A) threads a typed `*Handle[T]` —
+where `T` is the top-level proto type (`ExportMetricsServiceRequest`,
+`ExportTraceServiceRequest`, etc.) — through every nested wrapper so
+the wrapper can re-derive its `orig` after a detach rebinds the
+top-level pair. This works fine for per-signal nested types
+(`pmetric.ResourceMetricsSlice`, `ptrace.SpanSlice`, etc.) because
+their top-level type is fixed by their signal.
+
+`pcommon.Resource` and friends are used by metrics, traces, logs, and
+profiles. There is no single `T` they can be parameterised over — Go
+generics can't bridge multiple concrete types at the same call site.
+Without a `*Handle[T]`, a pcommon wrapper held across a detach has no
+way to re-derive its `orig` pointer.
+
+### Three options considered
+
+**Option A — Per-signal pcommon variants.** Triplicate (quadruplicate
+including profiles) pcommon: `MetricsResource`, `TracesResource`,
+`LogsResource`, `ProfilesResource`, and same for `Map`, `Value`,
+`KeyValueSlice`, etc. Each variant carries the appropriate
+`*Handle[T]` and re-derives correctly.
+
+- Pros: full auto-detach coverage; correctness end-to-end.
+- Cons: major API break — `pcommon.Resource` is the type widely used
+  across the ecosystem. Every contrib processor's import surface
+  changes. Multi-month coordination, almost certain to be rejected
+  upstream.
+
+**Option B — Hybrid Path X for pcommon.** Keep `pcommon.Resource` and
+friends with today's inline `{orig, state}` layout. The auto-detach
+mechanism applies to `pmetric`/`ptrace`/`plog`/`pprofile` nested
+wrappers only. Callers that mutate via pcommon on cow-shared data
+(`md.ResourceMetrics().At(0).Resource().Attributes().PutStr(...)`)
+must call `cow.DetachX(md)` explicitly first. The `AssertMutable`
+safety net (which already panics on `cowRefs > 0`) surfaces
+contract violations during dev/test.
+
+- Pros: zero API change for pcommon; minimum-risk, minimum-blast-
+  radius implementation. Path Y's auto-detach still wins for filter,
+  batch, transform-via-RemoveIf-style processors. The opt-in burden
+  for attribute-mutating processors mirrors O2's pattern (which
+  maintainers already approved for the `exporterhelper` batcher).
+- Cons: coverage gap. Processors that mutate attributes (the
+  attributes/k8sattributes/resourcedetection/transform-with-OTTL-set
+  family) still need the explicit Detach call. The "transparent
+  auto-detach" promise of Path Y only applies to pmetric-level
+  mutations.
+
+**Option C — Type-erased Handle via interface or unsafe.Pointer.**
+pcommon types carry an opaque `Detacher` interface that dispatches
+the detach without knowing `T`. Wraps the per-signal `*Handle[T]` in
+an adapter. Each pcommon wrapper additionally tracks its path-from-
+root info (which varies per signal — `RM[i].Resource` for metrics vs
+`RS[i].Resource` for traces, etc.) so it can re-derive `orig` after
+detach.
+
+- Pros: full auto-detach coverage without API change.
+- Cons: adds an interface dispatch (~1-2 ns) per accessor on the hot
+  path; the per-signal adapter has to carry the same `parentField`
+  information the engine extension (Phase 3) tracks; complexity is
+  high.
+
+### Decision: Option B
+
+The engagement ships Option B as the first deliverable. Reasoning:
+
+- **Minimum risk to existing APIs.** pcommon is the most widely-
+  imported pdata package; an API change there is the highest-friction
+  upstream move possible. Maintainers will weigh ergonomics heavily.
+- **Mirrors O2's already-approved pattern.** The
+  `cloneIfShared(...)` move in the `exporterhelper` batcher (commit
+  `3de2b3efc`) is the same shape: an explicit "I'm about to mutate
+  shared data, give me my own copy" call inside the mutator. If
+  maintainers approved that for the batcher, the same pattern applied
+  to in-tree + contrib processors is a natural extension.
+- **The safety net makes the contract enforceable.** `AssertMutable`
+  on `cowRefs > 0` panics with a clear pointer to `pdata/xpdata/cow`.
+  A processor that violates the contract gets a loud, debuggable
+  failure during dev/test, not silent corruption.
+- **Option C remains available as a future iteration.** If processor
+  authors find Option B's ergonomics costly, a Path Y v2 can
+  introduce the type-erased Handle without re-litigating the broader
+  design.
+
+The coverage gap is documented in `pdata/xpdata/cow/INTEGRATION.md`
+(to be updated as part of Phase 5): "pcommon mutators on cow-shared
+data require an explicit `cow.DetachX(md)` call by the surrounding
+signal-specific code." The audit's classification of conditional
+mutators flags which contrib processors are affected; the resume
+plan's Phase 5 includes an audit pass to list them.
+
 ## Motivation
 
 In multi-consumer pipelines, the fanout consumer
