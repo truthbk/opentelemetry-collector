@@ -60,6 +60,20 @@ func (req *metricsRequest) MergeSplit(_ context.Context, maxSize int, szt reques
 // other consumers from the upstream fanout's MarkReadOnly broadcast, and
 // this method returns a new *metricsRequest with a deep-copied md so the
 // caller can safely mutate it.
+//
+// Memory note: the clone path leaves the caller's req.md alive (the
+// queue / upstream fanout still references it) while the new md backs
+// the batch. Memory peak roughly doubles for the duration of one
+// MergeSplit call. This is bounded by the queue's QueueSize and is
+// reclaimed once the batch flushes; not unbounded.
+//
+// Concurrency note: req.md.IsReadOnly() is a plain uint32 field read
+// inside pdata's State (not atomic). The visibility guarantee here is
+// established by the queue's hand-off: MarkReadOnly() on the producer
+// side happens-before the channel send into the queue, and the
+// receive happens-before this read. partitionBatcher.consumeInternal
+// then holds currentBatchMu across MergeSplit, so no concurrent
+// writer to req.md.state observes a torn read here.
 func (req *metricsRequest) cloneIfShared() *metricsRequest {
 	if !req.md.IsReadOnly() {
 		return req
