@@ -35,7 +35,7 @@ func (req *profilesRequest) MergeSplit(_ context.Context, maxSize int, szt expor
 	// auto-injects MutatesData: true for batched exporters.
 	req = req.cloneIfShared()
 
-	if r2 != nil && r2.ItemsCount() > 0 {
+	if r2 != nil {
 		req2, ok := r2.(*profilesRequest)
 		if !ok {
 			return nil, errors.New("invalid input type")
@@ -56,11 +56,7 @@ func (req *profilesRequest) MergeSplit(_ context.Context, maxSize int, szt expor
 	return req.split(maxSize, sz)
 }
 
-// cloneIfShared returns req unchanged when req.pd is uniquely held by the
-// batcher. When req.pd.IsReadOnly() reports true, the data is shared with
-// other consumers from the upstream fanout's MarkReadOnly broadcast, and
-// this method returns a new *profilesRequest with a deep-copied pd so the
-// caller can safely mutate it.
+// cloneIfShared — see queuebatch/metrics_batch.go's symmetric helper.
 func (req *profilesRequest) cloneIfShared() *profilesRequest {
 	if !req.pd.IsReadOnly() {
 		return req

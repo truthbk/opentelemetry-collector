@@ -416,3 +416,31 @@ func TestProfilesRequest_CloneIfShared(t *testing.T) {
 			"original ResourceProfiles slice must not grow")
 	})
 }
+
+// TestMergeSplitProfiles_ReadOnlyR2NotMutated exercises the second-arg
+// cloneIfShared branch in MergeSplit: when r2 (the additional request
+// being merged into req) is read-only, the source data backing r2 must
+// remain untouched after the merge. Profiles is the fourth signal
+// mirror of the metrics/traces/logs ReadOnlyR2NotMutated coverage from
+// commit 21c725e23, with one extra twist: pprofile.Profiles.MergeTo
+// itself calls AssertMutable on the source, so without cloneIfShared
+// the merge would panic on a read-only r2 — this test also doubles as
+// a regression check for that panic.
+func TestMergeSplitProfiles_ReadOnlyR2NotMutated(t *testing.T) {
+	req := &profilesRequest{pd: testdata.GenerateProfiles(2), cachedSize: -1}
+
+	r2Source := testdata.GenerateProfiles(3)
+	r2Source.MarkReadOnly()
+	preLen := r2Source.ResourceProfiles().Len()
+	r2 := &profilesRequest{pd: r2Source, cachedSize: -1}
+
+	_, err := req.MergeSplit(context.Background(), 0, exporterhelper.RequestSizerTypeItems, r2)
+	require.NoError(t, err)
+
+	// r2's backing tree must not have been touched by MergeTo's
+	// MoveAndAppendTo / MarkReadOnly — the in-batcher cloneIfShared on
+	// r2 should have produced a clone that took the mutation instead.
+	assert.Equal(t, preLen, r2Source.ResourceProfiles().Len(),
+		"r2's source ResourceProfiles slice must not be cleared by mergeTo")
+	assert.True(t, r2Source.IsReadOnly(), "r2's source remains read-only")
+}
