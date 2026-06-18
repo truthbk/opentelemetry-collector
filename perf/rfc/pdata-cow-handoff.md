@@ -158,6 +158,95 @@ field that records the parent type + access path. Propagate through
 the template field map as `{ .pathFromRoot }`. The templates use it
 in `getOrig()` to walk the indices.
 
+## Locked design decisions for Phase 4-6
+
+Two decisions were surfaced by the pre-Phase-4 audit checkpoint
+(comparison of `pdata/internal/cowproto/` prototype against today's
+post-Phase-2/3 generated layout) and locked here so a future engineer
+doesn't re-litigate them during the regen.
+
+### Decision A: keep `internal.Handle[T]` generic, not concrete-per-signal
+
+The prototype at `pdata/internal/cowproto/types.go` uses a
+concrete `Handle` baked to one signal (Metrics). The Path Y
+foundation at `pdata/internal/handle.go` uses a generic
+`Handle[T any]`. Lock generic for the production templates.
+
+Rationale:
+* Generic is already in place (commit 8cc889aeb) and preserves
+  type-safety on `orig` per signal — no `unsafe.Pointer` escape.
+* Cross-signal symmetry: pmetric/ptrace/plog/pprofile templates
+  emit the same field declaration shape, parameterised differently.
+* The Go compiler monomorphises `*Handle[T]` per concrete T, so the
+  generated code is no slower than 4 hand-written concrete types.
+* The verbosity tax (every nested wrapper struct field becomes
+  `h *internal.Handle[internal.ExportMetricsServiceRequest]`) is
+  absorbed by codegen — not human-maintained.
+
+### Decision B: drop the deep-path generation cache from Phase 4 emission, reassess in Phase 6
+
+The cowproto prototype carries `cachedGauge + gen` fields on deep
+slice and datapoint wrappers (`NumberDataPointSlice`,
+`NumberDataPoint`, `DataPointAttrMap`) and short-circuits the
+index walk when the captured generation matches `state.Generation()`.
+The cache reduced the prototype's deep-path microbench overhead
+from +67% to +23% over baseline pdata.
+
+Even with the cache, the prototype failed the RFC's 5%/10% perf
+gate on `pdata/xpdata/internal/cowprotobench/`. That's why Path Y
+was chosen over the index-path-with-cache design originally.
+
+Lock for Phase 4: emit the plain index-walk layout. NO cache fields.
+The decision is justified by the simpler scope but the perf
+trade-off has NOT been measured at pipeline level — only at the
+microbench level documented in `perf/rfc/pdata-cow.md`'s
+Engagement-outcome section.
+
+### Phase 6 reassessment criteria (committed upfront)
+
+Phase 6's pipeline-bench validation MUST include:
+
+1. **`BenchmarkConditionalFanoutMetrics` under the cow gate**:
+   already-shipped bench, measures deferred-clone benefit at
+   pipeline level. Wrapper-access overhead from the index walk
+   shows up here as a tax against the benefit.
+
+2. **Deep-access pipeline bench (new)**: a processor that iterates
+   `RM[*].SM[*].M[*].DP[*].Attributes()` on the rich
+   100×5×50×10 shape. Models batchprocessor / attributesprocessor
+   with deep predicates — the unconditional ~21% of `MutatesData:
+   true` components from the contrib audit at commit `bac37790c`.
+   This is the deep-path workload the prototype's cache existed to
+   help.
+
+3. **Cache add-back harness**: emit the cache fields behind a
+   template flag (`-cache-deep-paths=true`), regen, benchstat
+   against the no-cache HEAD. Mechanical re-add because the cache
+   fields are additive — they go on slice/datapoint wrappers and
+   the fast path is one branch on `state.Generation() ==
+   cachedGen`.
+
+### Phase 6 decision threshold
+
+Based on the deep-access pipeline bench delta vs current pdata
+(baseline = perf/baselines/2026-06-17-4ff09b609 or a fresh capture
+on `o2/cow-aware-batcher`):
+
+| Slowdown | Action |
+| --- | --- |
+| < 5% | Ship without cache. Simplicity wins. |
+| 5-10% | Add cache back IF the template diff is < 100 LOC. |
+| > 10% | Add cache back regardless. |
+
+If the cache is added back, also rerun
+`BenchmarkConditionalFanoutMetrics` to confirm the deferred-clone
+benefit is preserved (cache overhead on the fast path is two
+atomic.Uint32 loads + compare — should be in the noise on the
+non-mutator branch).
+
+This explicit threshold replaces the "we'll look at it later" plan;
+the data dictates the outcome.
+
 ## Path Y resume plan
 
 For the engineer picking this up. Estimated 1-2 weeks of focused
