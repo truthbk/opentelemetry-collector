@@ -26,11 +26,18 @@ import (
 // debug builds (pdatacowdebug build tag). It surfaces the "captured nested
 // wrapper held across a mutation" contract violation as a development-time
 // panic; release builds skip the check entirely.
+//
+// detach is the per-signal detach closure. Set ONLY by cow.ShareX (which
+// produces a shared State); never set by NewXWrapper. This keeps freshly-
+// constructed non-shared States identical at reflect.DeepEqual level —
+// critical for the existing wire-compatibility tests that compare a
+// round-tripped wrapper against its source via assert.Equal.
 type State struct {
 	refs       atomic.Int32
 	cowRefs    atomic.Int32
 	state      uint32
 	generation atomic.Uint32
+	detach     func()
 }
 
 const (
@@ -53,6 +60,29 @@ func (st *State) MarkReadOnly() {
 
 func (st *State) IsReadOnly() bool {
 	return st.state&stateReadOnlyBit != 0
+}
+
+// SetDetacher installs the per-signal detach closure on this State.
+// Called by cow.ShareX after constructing the shared State; never
+// called by NewXWrapper. The closure captures the per-signal Handle +
+// cloneFn pair so any wrapper that derived its State pointer from
+// this one can trigger detach without knowing the proto type T.
+func (st *State) SetDetacher(detach func()) {
+	st.detach = detach
+}
+
+// DetachIfShared is the codegen-injected prelude for nested mutators.
+// If cowRefs > 0 AND a per-signal detacher is installed, invoke it to
+// rebind the top-level Handle's orig + state to a freshly-cloned pair.
+// On the gate-off / unshared path, the detacher is nil and this is
+// effectively cowRefs.Load() + branch — zero allocation.
+func (st *State) DetachIfShared() {
+	if st.cowRefs.Load() == 0 {
+		return
+	}
+	if st.detach != nil {
+		st.detach()
+	}
 }
 
 // AssertMutable panics if the state is not StateMutable.
