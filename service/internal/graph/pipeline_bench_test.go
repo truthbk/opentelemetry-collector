@@ -178,7 +178,6 @@ func buildMultiPipelineGraph(ctx context.Context, b *testing.B, signal pipeline.
 	return g
 }
 
-
 // BenchmarkPipelineFanoutMetrics measures the end-to-end cost of pushing
 // one pmetric.Metrics batch through a fully-built graph
 // (examplereceiver → [optional mutating processor] → N exampleexporter).
