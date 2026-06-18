@@ -3,6 +3,8 @@
 
 package pdata // import "go.opentelemetry.io/collector/internal/cmd/pdatagen/internal/pdata"
 
+import "strings"
+
 // PathSegment describes one step from a top-level wrapper's Handle.orig
 // down to a nested wrapper's orig. The path is what makes auto-detach
 // safe under pdata.cow: when a detach rebinds the top-level Handle's
@@ -30,6 +32,13 @@ type PathSegment struct {
 	Kind      PathSegmentKind
 	FieldName string // proto field name on the parent's orig (e.g. "ResourceMetrics")
 	IndexVar  string // for SliceIndex: the int field name on the wrapper (e.g. "rmIdx")
+	// ChildOriginName is the proto type name of the value at this path
+	// segment. For SliceIndex, it is the element type (e.g.
+	// "ResourceMetrics" for the ResourceMetrics slice). For FieldAccess,
+	// it is the field's type name. Used by RenderSyntheticParent and by
+	// the Phase 4 templates to emit `[]*internal.{ChildOriginName}{...}`
+	// literals when synthesizing the standalone Handle tree.
+	ChildOriginName string
 }
 
 type PathSegmentKind int
@@ -82,11 +91,15 @@ func ComputeNestedPaths(pkg *Package) {
 		if !ok || !ms.isTopLevel {
 			continue
 		}
-		walkNestedFields(ms, nil)
+		walkNestedFields(ms, nil, ms.getOriginName())
 	}
 }
 
-func walkNestedFields(parent *messageStruct, parentPath []PathSegment) {
+// walkNestedFields walks the type tree rooted at parent, filling nestedPath
+// and topLevelOriginName on each non-pcommon descendant. topLevelOriginName
+// is propagated unchanged through the recursion — every reachable type
+// inherits the same top-level orig name as the root that started the walk.
+func walkNestedFields(parent *messageStruct, parentPath []PathSegment, topLevelOriginName string) {
 	for _, f := range parent.fields {
 		switch fld := f.(type) {
 		case *MessageField:
@@ -95,11 +108,13 @@ func walkNestedFields(parent *messageStruct, parentPath []PathSegment) {
 				continue
 			}
 			childPath := append(clonePath(parentPath), PathSegment{
-				Kind:      PathSegmentFieldAccess,
-				FieldName: fld.fieldName,
+				Kind:            PathSegmentFieldAccess,
+				FieldName:       fld.fieldName,
+				ChildOriginName: child.getOriginName(),
 			})
 			child.nestedPath = childPath
-			walkNestedFields(child, childPath)
+			child.topLevelOriginName = topLevelOriginName
+			walkNestedFields(child, childPath, topLevelOriginName)
 		case *SliceField:
 			ms, ok := fld.returnSlice.(*messageSlice)
 			if !ok {
@@ -110,14 +125,72 @@ func walkNestedFields(parent *messageStruct, parentPath []PathSegment) {
 				continue
 			}
 			elemPath := append(clonePath(parentPath), PathSegment{
-				Kind:      PathSegmentSliceIndex,
-				FieldName: fld.fieldName,
-				IndexVar:  indexVarForSlice(fld.fieldName),
+				Kind:            PathSegmentSliceIndex,
+				FieldName:       fld.fieldName,
+				IndexVar:        indexVarForSlice(fld.fieldName),
+				ChildOriginName: elem.getOriginName(),
 			})
 			elem.nestedPath = elemPath
-			walkNestedFields(elem, elemPath)
+			elem.topLevelOriginName = topLevelOriginName
+			walkNestedFields(elem, elemPath, topLevelOriginName)
 		}
 	}
+}
+
+// RenderSyntheticParent emits a Go expression that constructs a single-element
+// top-level orig tree wrapping `leafOrigVar` at the slice-index path
+// described by segments. The result is a struct literal of the form:
+//
+//	&internal.{topLevelOriginName}{
+//	    {FieldName1}: []*internal.{ChildOriginName1}{
+//	        {  // (only for intermediate segments)
+//	            {FieldName2}: []*internal.{ChildOriginName2}{
+//	                {leafOrigVar},
+//	            },
+//	        },
+//	    },
+//	}
+//
+// Used by Phase 4 nested-wrapper constructors (new<X>(orig, state)) to
+// synthesize a standalone Handle whose getOrig walks back to the passed-in
+// orig. This is the "always-h" pattern from the engagement plan: every
+// wrapper carries a Handle regardless of how it was constructed, so the
+// struct shape is uniform across standalone and tree-embedded cases.
+//
+// Only SliceIndex segments are supported. FieldAccess segments are reserved
+// for pcommon-targeted paths, but pcommon types stay inline {orig, state}
+// per the Phase 1 decision and never need synthetic-parent rendering.
+func RenderSyntheticParent(topLevelOriginName string, segments []PathSegment, leafOrigVar string) string {
+	var sb strings.Builder
+	sb.WriteString("&internal.")
+	sb.WriteString(topLevelOriginName)
+	sb.WriteString("{")
+	for i, seg := range segments {
+		if seg.Kind != PathSegmentSliceIndex {
+			// FieldAccess synthesis is not implemented; the walker should
+			// have skipped pcommon-bound paths before reaching this helper.
+			return "/* unsupported: FieldAccess segment in synthetic-parent render */"
+		}
+		sb.WriteString(seg.FieldName)
+		sb.WriteString(": []*internal.")
+		sb.WriteString(seg.ChildOriginName)
+		sb.WriteString("{")
+		if i == len(segments)-1 {
+			sb.WriteString(leafOrigVar)
+		} else {
+			// Intermediate segment: open the next struct literal.
+			sb.WriteString("{")
+		}
+	}
+	// Close all opened braces. Per-segment opens: each segment opens 1
+	// slice literal; intermediate segments additionally open 1 struct
+	// literal. Plus the outer top-level struct.
+	// Total closes = 1 (outer) + len(segments) (slice) + (len(segments)-1)
+	//              = 2 * len(segments).
+	for i := 0; i < 2*len(segments); i++ {
+		sb.WriteString("}")
+	}
+	return sb.String()
 }
 
 func clonePath(p []PathSegment) []PathSegment {

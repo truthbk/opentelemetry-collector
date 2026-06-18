@@ -46,6 +46,15 @@ type messageStruct struct {
 	// Computed by ComputeNestedPaths; consumed by Phase 4 template
 	// emission. See nested_path.go.
 	nestedPath []PathSegment
+
+	// topLevelOriginName is the proto type name of the top-level wrapper
+	// at the root of this type's signal tree (e.g.
+	// "ExportMetricsServiceRequest" for every non-pcommon descendant of
+	// the metrics signal). Empty for top-level types themselves and for
+	// pcommon types. Used by Phase 4 templates to parameterise
+	// `internal.Handle[<topLevelOriginName>]` and to render the
+	// synthetic parent tree in nested-wrapper standalone constructors.
+	topLevelOriginName string
 }
 
 func (ms *messageStruct) getName() string {
@@ -102,8 +111,17 @@ func (ms *messageStruct) templateFields(packageInfo *PackageInfo) map[string]any
 		// Phase 1 pcommon-stays-inline decision). nestedPath carries
 		// the path from the top-level Handle.orig down to this type's
 		// orig — empty for top-level and pcommon types.
-		"isTopLevel": ms.isTopLevel,
-		"nestedPath": ms.nestedPath,
+		// topLevelOriginName is the proto type name at the root of
+		// this type's signal tree, used to parameterise
+		// internal.Handle[T] in the nested-wrapper struct fields.
+		// syntheticParent is the pre-rendered "&internal.{T}{...}"
+		// expression that nested-wrapper standalone constructors emit
+		// to synthesize a single-element parent tree wrapping the
+		// caller's orig.
+		"isTopLevel":         ms.isTopLevel,
+		"nestedPath":         ms.nestedPath,
+		"topLevelOriginName": ms.topLevelOriginName,
+		"syntheticParent":    RenderSyntheticParent(ms.topLevelOriginName, ms.nestedPath, "orig"),
 	}
 }
 
