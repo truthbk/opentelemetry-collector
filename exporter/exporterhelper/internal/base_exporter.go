@@ -91,9 +91,17 @@ func NewBaseExporter(set exporter.Settings, signal pipeline.Signal, pusher sende
 	// poisoning the wrapped exporter's public Capabilities() with MutatesData:true
 	// (and thereby forcing the upstream fanout to deep-clone the pdata for every
 	// downstream consumer in a multi-pipeline / multi-exporter topology), the
-	// clone is performed inside the batcher boundary instead — see
-	// queuebatch/{metrics,traces,logs,profiles}_batch.go's MergeSplit, which calls
-	// cloneIfShared on read-only-marked input requests. Audit finding #19.
+	// clone is performed inside the batcher boundary instead — see the
+	// cloneIfShared helper in queuebatch/{metrics,traces,logs}_batch.go and the
+	// symmetric one in xexporterhelper/profiles_batch.go, all called from each
+	// signal's MergeSplit on read-only-marked input requests. Audit finding #19.
+	//
+	// Trade-off: in pipelines with N all-batched exporters (and no readonly
+	// siblings) the fanout previously handed one of them the original via the
+	// "last mutator gets the source" optimisation, paying N-1 clones. Post-O2
+	// the fanout broadcasts read-only to all N and each batcher pays a clone,
+	// for a total of N. The deferred-clone follow-up (perf/rfc/pdata-cow.md)
+	// collapses this back to 1 under the pdata.cow gate.
 	if be.queueCfg.HasValue() {
 		qSet := queuebatch.AllSettings[request.Request]{
 			Settings:  be.queueBatchSettings,

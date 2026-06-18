@@ -28,11 +28,21 @@ func (req *profilesRequest) MergeSplit(_ context.Context, maxSize int, szt expor
 		return nil, errors.New("unknown sizer type")
 	}
 
+	// Clone if the input is shared with other consumers (the upstream fanout
+	// marks shared data read-only). See the symmetric helper in
+	// queuebatch/metrics_batch.go for the full audit-#19 rationale; profiles
+	// is the fourth signal that needs this since base_exporter.go no longer
+	// auto-injects MutatesData: true for batched exporters.
+	req = req.cloneIfShared()
+
 	if r2 != nil && r2.ItemsCount() > 0 {
 		req2, ok := r2.(*profilesRequest)
 		if !ok {
 			return nil, errors.New("invalid input type")
 		}
+		// mergeTo moves r2's ResourceProfiles into req via the proto-level
+		// MergeTo, mutating r2.pd in the process. Clone r2 first if shared.
+		req2 = req2.cloneIfShared()
 		err := req2.mergeTo(req, sz)
 		if err != nil {
 			return nil, fmt.Errorf("failed merging profiles; %w", err)
@@ -44,6 +54,20 @@ func (req *profilesRequest) MergeSplit(_ context.Context, maxSize int, szt expor
 		return []Request{req}, nil
 	}
 	return req.split(maxSize, sz)
+}
+
+// cloneIfShared returns req unchanged when req.pd is uniquely held by the
+// batcher. When req.pd.IsReadOnly() reports true, the data is shared with
+// other consumers from the upstream fanout's MarkReadOnly broadcast, and
+// this method returns a new *profilesRequest with a deep-copied pd so the
+// caller can safely mutate it.
+func (req *profilesRequest) cloneIfShared() *profilesRequest {
+	if !req.pd.IsReadOnly() {
+		return req
+	}
+	cloned := pprofile.NewProfiles()
+	req.pd.CopyTo(cloned)
+	return &profilesRequest{pd: cloned, cachedSize: -1}
 }
 
 func (req *profilesRequest) mergeTo(dst *profilesRequest, sz sizer.ProfilesSizer) error {

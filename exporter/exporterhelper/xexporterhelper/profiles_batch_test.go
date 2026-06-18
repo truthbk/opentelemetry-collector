@@ -377,3 +377,42 @@ func BenchmarkSplittingBasedOnByteSizeHugeProfiles(b *testing.B) {
 		assert.Len(b, merged, 10)
 	}
 }
+
+// TestProfilesRequest_CloneIfShared mirrors the contract that the
+// metrics / traces / logs symmetric tests verify (see audit-#19 commit
+// 3de2b3efc and queuebatch/metrics_batch_test.go's
+// TestMetricsRequest_CloneIfShared for the canonical comment).
+func TestProfilesRequest_CloneIfShared(t *testing.T) {
+	t.Run("mutable input returns same request", func(t *testing.T) {
+		pd := testdata.GenerateProfiles(10)
+		require.False(t, pd.IsReadOnly())
+		req := &profilesRequest{pd: pd, cachedSize: -1}
+
+		got := req.cloneIfShared()
+
+		// Same pointer — no clone happened.
+		assert.Same(t, req, got)
+	})
+
+	t.Run("read-only input is deep-cloned", func(t *testing.T) {
+		original := testdata.GenerateProfiles(10)
+		original.MarkReadOnly()
+		require.True(t, original.IsReadOnly())
+		preLen := original.ResourceProfiles().Len()
+		req := &profilesRequest{pd: original, cachedSize: -1}
+
+		got := req.cloneIfShared()
+
+		// Different request, mutable pd, no shared backing.
+		assert.NotSame(t, req, got)
+		assert.False(t, got.pd.IsReadOnly())
+		assert.Equal(t, req.pd.SampleCount(), got.pd.SampleCount())
+
+		// Mutating the clone does not touch the original — verifies the
+		// deep-clone happened, not just a shallow handle swap.
+		got.pd.ResourceProfiles().AppendEmpty()
+		assert.Equal(t, preLen+1, got.pd.ResourceProfiles().Len())
+		assert.Equal(t, preLen, original.ResourceProfiles().Len(),
+			"original ResourceProfiles slice must not grow")
+	})
+}

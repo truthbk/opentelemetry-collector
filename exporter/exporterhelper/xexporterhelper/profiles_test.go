@@ -30,6 +30,7 @@ import (
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exporterhelper/internal"
 	"go.opentelemetry.io/collector/exporter/exporterhelper/internal/hosttest"
+	"go.opentelemetry.io/collector/exporter/exporterhelper/internal/queuebatch"
 	"go.opentelemetry.io/collector/exporter/exporterhelper/internal/oteltest"
 	"go.opentelemetry.io/collector/exporter/exporterhelper/internal/queue"
 	"go.opentelemetry.io/collector/exporter/exporterhelper/internal/requesttest"
@@ -136,6 +137,25 @@ func TestProfilesRequestExporter_WithCapabilities(t *testing.T) {
 	require.NotNil(t, le)
 
 	assert.Equal(t, capabilities, le.Capabilities())
+}
+
+// TestProfilesRequestExporter_QueueBatchPreservesCapabilities — see
+// the symmetric Test{Logs,Traces,Metrics}Request_QueueBatchPreservesCapabilities
+// tests in exporter/exporterhelper/internal/new_request_test.go for the
+// audit-#19 rationale. Profiles is the fourth signal that must report
+// MutatesData=false when sending_queue.batch is enabled, now that the
+// auto-injection at base_exporter.go has been removed and the in-batcher
+// cloneIfShared in profiles_batch.go covers the contract.
+func TestProfilesRequestExporter_QueueBatchPreservesCapabilities(t *testing.T) {
+	qCfg := internal.NewDefaultQueueConfig()
+	qCfg.Batch.GetOrInsertDefault()
+	le, err := NewProfilesRequest(context.Background(), exportertest.NewNopSettings(exportertest.NopType),
+		requestFromProfilesFunc(nil), sendertest.NewNopSenderFunc[Request](),
+		internal.WithQueueBatchSettings(NewProfilesQueueBatchSettings()),
+		internal.WithQueueBatch(configoptional.Some(qCfg), queuebatch.Settings[Request]{}))
+	require.NoError(t, err)
+	require.NotNil(t, le)
+	assert.Equal(t, consumer.Capabilities{MutatesData: false}, le.Capabilities())
 }
 
 func TestProfilesExporter_Default_ReturnError(t *testing.T) {
