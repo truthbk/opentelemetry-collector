@@ -4,6 +4,7 @@
 package cow
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -232,4 +233,53 @@ func TestShareProfiles_GateEnabled_BumpsCowRefs(t *testing.T) {
 
 	ReleaseProfiles(shared)
 	assert.False(t, IsSharedProfiles(shared))
+}
+
+// TestShareMetrics_Concurrent — fan-out under realistic concurrency:
+// N goroutines each Share a fresh wrapper from the same source, Release
+// it, and report. The source's State is read by every Share but never
+// written (eager-clone semantics: Share allocates a fresh State for the
+// share, never touches the source's). cowRefs on the source stays 0
+// throughout, and -race detection on this test must report no warnings.
+//
+// This is the contract that makes cow.Share usable from the fanout's
+// per-consumer dispatch loop without requiring per-share locking.
+func TestShareMetrics_Concurrent(t *testing.T) {
+	withGate(t)
+	const workers = 8
+	const iters = 256
+
+	src := pmetric.NewMetrics()
+	src.ResourceMetrics().AppendEmpty().Resource().Attributes().PutStr("k", "v")
+
+	var wg sync.WaitGroup
+	wg.Add(workers)
+	for range workers {
+		go func() {
+			defer wg.Done()
+			for range iters {
+				shared := ShareMetrics(src)
+				if !IsSharedMetrics(shared) {
+					t.Errorf("share missing cowRefs bump")
+					return
+				}
+				ReleaseMetrics(shared)
+				if IsSharedMetrics(shared) {
+					t.Errorf("share still marked after release")
+					return
+				}
+			}
+		}()
+	}
+	wg.Wait()
+
+	// Source is never written by Share/Release under eager-clone semantics.
+	assert.False(t, IsSharedMetrics(src), "source's cowRefs must remain 0 throughout")
+
+	// The source's data is also intact — concurrent Share calls don't
+	// mutate the source's tree (they share its backing by pointer but
+	// only read; the safety net would panic on a write).
+	v, ok := src.ResourceMetrics().At(0).Resource().Attributes().Get("k")
+	require.True(t, ok)
+	assert.Equal(t, "v", v.Str())
 }

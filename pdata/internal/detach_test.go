@@ -61,10 +61,30 @@ func TestDetachIfShared_Readonly_StaysShortCircuit(t *testing.T) {
 	assert.Same(t, preState, h.state, "readonly+shared: no rebind")
 }
 
-// NOTE: A TestDetachMetricsIfShared_PerSignalWrapper test was previously
-// here to exercise the per-signal entry point that codegen-injected
-// prelude calls. That helper (DetachMetricsIfShared) is emitted by the
-// templates as part of Path Y Phase 4 (template update for Handle
-// layout). Phase 2 reverted the hand-added helper since it has no
-// corresponding template emission yet; the test will be reinstated in
-// Phase 4 when the helper is generated correctly.
+// TestDetachIfShared_Shared_BumpsGeneration — the detach path bumps
+// the OLD state's generation before rebinding the Handle. The bump is
+// the signal a debug-tag nested wrapper would observe to know its
+// captured pointer is stale. Today no production code reads generation
+// (the debug build tag is unimplemented; see state.go's BumpGeneration
+// doc), but the detach contract still includes the bump so the new
+// state's reader sees a monotonic counter. This test fails if a future
+// refactor accidentally drops the bump call.
+func TestDetachIfShared_Shared_BumpsGeneration(t *testing.T) {
+	st := NewState()
+	st.IncCowRefs()
+	preGen := st.Generation()
+	origReq := &ExportMetricsServiceRequest{}
+	h := &Handle[ExportMetricsServiceRequest]{orig: origReq, state: st}
+
+	DetachIfShared(h, CopyExportMetricsServiceRequest)
+
+	// The OLD state's generation must have been bumped. The post-bump
+	// value lives on `st` (the original state we kept a reference to),
+	// not on h.state (which now points at a fresh state with
+	// generation == 0). Verifies the bump fires on the source of the
+	// detach, not on the rebound state.
+	assert.Equal(t, preGen+1, st.Generation(),
+		"detach must bump the source state's generation")
+	assert.Equal(t, uint32(0), h.state.Generation(),
+		"rebound state starts at generation 0")
+}
