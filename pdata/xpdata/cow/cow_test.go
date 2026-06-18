@@ -107,7 +107,7 @@ func TestDetachMetrics_NotShared_IsPassthrough(t *testing.T) {
 }
 
 // TestDetachMetrics_Shared_DeepClonesAndDecrements — the load-bearing
-// detach behaviour: a share's mutation branch calls Detach, receives an
+// detach behavior: a share's mutation branch calls Detach, receives an
 // independent wrapper backed by a fresh proto tree, and the share's
 // cowRefs is decremented (so a paired Release would be a no-op or
 // caller can skip the Release on the detached value).

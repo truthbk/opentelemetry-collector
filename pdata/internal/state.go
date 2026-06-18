@@ -146,7 +146,7 @@ func (st *State) IncCowRefs() {
 
 // DecCowRefs decrements the COW share counter and returns the post-decrement
 // value. Called by xpdata/cow.Release when a Share's lifecycle ends, and by
-// the detach path when a mutation materialises a private clone (and releases
+// the detach path when a mutation materializes a private clone (and releases
 // the current Share from the original State).
 func (st *State) DecCowRefs() int32 {
 	v := st.cowRefs.Add(-1)

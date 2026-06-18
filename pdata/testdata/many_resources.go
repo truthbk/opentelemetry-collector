@@ -49,7 +49,7 @@ func GenerateMetricsManyResources(rmCount, smCount, dpCount, attrCount int) pmet
 	return md
 }
 
-// GenerateTracesManyResources is the ptrace.Traces analogue of
+// GenerateTracesManyResources is the ptrace.Traces analog of
 // GenerateMetricsManyResources: rsCount × ssCount × spanCount with
 // attrCount attributes per span.
 func GenerateTracesManyResources(rsCount, ssCount, spanCount, attrCount int) ptrace.Traces {
@@ -79,7 +79,7 @@ func GenerateTracesManyResources(rsCount, ssCount, spanCount, attrCount int) ptr
 	return td
 }
 
-// GenerateLogsManyResources is the plog.Logs analogue of
+// GenerateLogsManyResources is the plog.Logs analog of
 // GenerateMetricsManyResources: rlCount × slCount × recordCount with
 // attrCount attributes per record.
 func GenerateLogsManyResources(rlCount, slCount, recordCount, attrCount int) plog.Logs {

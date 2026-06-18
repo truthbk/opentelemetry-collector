@@ -18,7 +18,7 @@ package internal // import "go.opentelemetry.io/collector/pdata/internal"
 //
 // Concurrency: a single wrapper is single-writer per the existing
 // pdata contract; concurrent goroutines mutating the same wrapper
-// is undefined behaviour today and is unchanged here. Multiple
+// is undefined behavior today and is unchanged here. Multiple
 // shares (returned by separate cow.ShareX calls) each have their
 // own Handle and State, so their detach operations are independent.
 //

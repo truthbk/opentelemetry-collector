@@ -5,7 +5,6 @@ package fanoutconsumer
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"go.opentelemetry.io/collector/consumer"
@@ -70,7 +69,7 @@ func (c *conditionalMutatorMetrics) ConsumeMetrics(_ context.Context, md pmetric
 //   - 2   (50%)
 //   - 1   (always)        — matches today's cost; ceiling for Alt A
 //
-// Compared to today's behaviour (the fanout pays the clone eagerly
+// Compared to today's behavior (the fanout pays the clone eagerly
 // regardless of hit rate), Alt A's clone cost scales with hit rate.
 func BenchmarkConditionalFanoutMetrics(b *testing.B) {
 	hitRates := []struct {
@@ -113,6 +112,3 @@ func benchConditional(b *testing.B, hitEvery int, gen func() pmetric.Metrics) {
 	}
 }
 
-// guard against unused-import linting when the file is built outside
-// a bench run.
-var _ = fmt.Sprintf

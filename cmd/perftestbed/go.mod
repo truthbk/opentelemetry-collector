@@ -18,6 +18,7 @@ require (
 	go.opentelemetry.io/collector/consumer/xconsumer v0.152.0 // indirect
 	go.opentelemetry.io/collector/featuregate v1.58.0 // indirect
 	go.opentelemetry.io/collector/pdata/pprofile v0.152.0 // indirect
+	go.opentelemetry.io/collector/pdata/xpdata v0.0.0-00010101000000-000000000000 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 )
 
@@ -36,3 +37,5 @@ replace go.opentelemetry.io/collector/pdata => ../../pdata
 replace go.opentelemetry.io/collector/pdata/pprofile => ../../pdata/pprofile
 
 replace go.opentelemetry.io/collector/pdata/testdata => ../../pdata/testdata
+
+replace go.opentelemetry.io/collector/pdata/xpdata => ../../pdata/xpdata
