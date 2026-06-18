@@ -7,6 +7,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"go.opentelemetry.io/collector/component"
@@ -36,7 +37,15 @@ import (
 // indefinitely until the bounded queue rejects with ErrQueueIsFull and
 // b.Fatal fires — silently NOT exercising the post-O2 batcher path the
 // bench is meant to validate.
-func startRealHelperGraph(b *testing.B, g *Graph) {
+//
+// The ctx argument is the bench's parent context; passing it through
+// (rather than constructing a fresh context.Background here) keeps
+// contextcheck satisfied and lets a future caller wire cancellation
+// in if the bench needs it. Shutdown uses assert (not require) so an
+// error during teardown is reported without aborting the cleanup chain
+// — bench measurements are still useful even if a transient shutdown
+// error fires.
+func startRealHelperGraph(ctx context.Context, b *testing.B, g *Graph) {
 	b.Helper()
 	host := &Host{
 		Reporter: status.NewReporter(
@@ -44,9 +53,9 @@ func startRealHelperGraph(b *testing.B, g *Graph) {
 			func(error) {},
 		),
 	}
-	require.NoError(b, g.StartAll(context.Background(), host))
+	require.NoError(b, g.StartAll(ctx, host))
 	b.Cleanup(func() {
-		require.NoError(b, g.ShutdownAll(context.Background(), status.NewNopStatusReporter()))
+		assert.NoError(b, g.ShutdownAll(ctx, status.NewNopStatusReporter()))
 	})
 }
 
@@ -198,7 +207,7 @@ func BenchmarkRealHelperMultiPipelineMetrics(b *testing.B) {
 	for _, shape := range shapes {
 		b.Run("shape="+shape.name, func(b *testing.B) {
 			g := buildRealHelperMultiPipelineGraph(ctx, b, pipeline.SignalMetrics)
-			startRealHelperGraph(b, g)
+			startRealHelperGraph(ctx, b, g)
 			rcv := receiverFor(b, g, pipeline.SignalMetrics)
 			md := shape.gen()
 			b.ReportAllocs()
@@ -227,7 +236,7 @@ func BenchmarkRealHelperMultiPipelineTraces(b *testing.B) {
 	for _, shape := range shapes {
 		b.Run("shape="+shape.name, func(b *testing.B) {
 			g := buildRealHelperMultiPipelineGraph(ctx, b, pipeline.SignalTraces)
-			startRealHelperGraph(b, g)
+			startRealHelperGraph(ctx, b, g)
 			rcv := receiverFor(b, g, pipeline.SignalTraces)
 			td := shape.gen()
 			b.ReportAllocs()
@@ -256,7 +265,7 @@ func BenchmarkRealHelperMultiPipelineLogs(b *testing.B) {
 	for _, shape := range shapes {
 		b.Run("shape="+shape.name, func(b *testing.B) {
 			g := buildRealHelperMultiPipelineGraph(ctx, b, pipeline.SignalLogs)
-			startRealHelperGraph(b, g)
+			startRealHelperGraph(ctx, b, g)
 			rcv := receiverFor(b, g, pipeline.SignalLogs)
 			ld := shape.gen()
 			b.ReportAllocs()
