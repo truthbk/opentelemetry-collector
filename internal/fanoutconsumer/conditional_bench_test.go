@@ -111,4 +111,3 @@ func benchConditional(b *testing.B, hitEvery int, gen func() pmetric.Metrics) {
 		}
 	}
 }
-

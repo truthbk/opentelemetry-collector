@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
 	//nolint:gosec // G108: developer tool; the pprof endpoint is intentional.
 	_ "net/http/pprof" // registers /debug/pprof/* handlers on DefaultServeMux
 	"os"
