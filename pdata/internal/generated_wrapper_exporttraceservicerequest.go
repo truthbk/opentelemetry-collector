@@ -7,20 +7,19 @@
 package internal
 
 type TracesWrapper struct {
-	orig  *ExportTraceServiceRequest
-	state *State
+	h *Handle[ExportTraceServiceRequest]
 }
 
 func GetTracesOrig(ms TracesWrapper) *ExportTraceServiceRequest {
-	return ms.orig
+	return ms.h.GetOrig()
 }
 
 func GetTracesState(ms TracesWrapper) *State {
-	return ms.state
+	return ms.h.GetState()
 }
 
 func NewTracesWrapper(orig *ExportTraceServiceRequest, state *State) TracesWrapper {
-	return TracesWrapper{orig: orig, state: state}
+	return TracesWrapper{h: NewHandle(orig, state)}
 }
 
 func GenTestTracesWrapper() TracesWrapper {

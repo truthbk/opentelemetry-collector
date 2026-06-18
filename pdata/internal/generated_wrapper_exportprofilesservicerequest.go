@@ -7,20 +7,19 @@
 package internal
 
 type ProfilesWrapper struct {
-	orig  *ExportProfilesServiceRequest
-	state *State
+	h *Handle[ExportProfilesServiceRequest]
 }
 
 func GetProfilesOrig(ms ProfilesWrapper) *ExportProfilesServiceRequest {
-	return ms.orig
+	return ms.h.GetOrig()
 }
 
 func GetProfilesState(ms ProfilesWrapper) *State {
-	return ms.state
+	return ms.h.GetState()
 }
 
 func NewProfilesWrapper(orig *ExportProfilesServiceRequest, state *State) ProfilesWrapper {
-	return ProfilesWrapper{orig: orig, state: state}
+	return ProfilesWrapper{h: NewHandle(orig, state)}
 }
 
 func GenTestProfilesWrapper() ProfilesWrapper {

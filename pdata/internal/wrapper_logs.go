@@ -6,7 +6,7 @@ package internal // import "go.opentelemetry.io/collector/pdata/internal"
 // LogsToProto internal helper to convert Logs to protobuf representation.
 func LogsToProto(l LogsWrapper) LogsData {
 	return LogsData{
-		ResourceLogs: l.orig.ResourceLogs,
+		ResourceLogs: GetLogsOrig(l).ResourceLogs,
 	}
 }
 

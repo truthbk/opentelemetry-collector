@@ -12,6 +12,23 @@ import (
 	{{ end }}
 )
 
+{{- if .isTopLevel }}
+type {{ .structName }}Wrapper struct {
+	h *Handle[{{ .originName }}]
+}
+
+func Get{{ .structName }}Orig(ms {{ .structName }}Wrapper) *{{ .originName }} {
+	return ms.h.GetOrig()
+}
+
+func Get{{ .structName }}State(ms {{ .structName }}Wrapper) *State {
+	return ms.h.GetState()
+}
+
+func New{{ .structName }}Wrapper(orig *{{ .originName }}, state *State) {{ .structName }}Wrapper {
+	return {{ .structName }}Wrapper{h: NewHandle(orig, state)}
+}
+{{- else }}
 type {{ .structName }}Wrapper struct {
 	orig *{{ .originName }}
 	state *State
@@ -28,6 +45,7 @@ func Get{{ .structName }}State(ms {{ .structName }}Wrapper) *State {
 func New{{ .structName }}Wrapper(orig *{{ .originName }}, state *State) {{ .structName }}Wrapper {
 	return {{ .structName }}Wrapper{orig: orig, state: state}
 }
+{{- end }}
 
 func GenTest{{ .structName }}Wrapper() {{ .structName }}Wrapper {
     return New{{ .structName }}Wrapper(GenTest{{ .originName }}(), NewState())

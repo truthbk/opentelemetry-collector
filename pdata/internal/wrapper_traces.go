@@ -6,7 +6,7 @@ package internal // import "go.opentelemetry.io/collector/pdata/internal"
 // TracesToProto internal helper to convert Traces to protobuf representation.
 func TracesToProto(l TracesWrapper) TracesData {
 	return TracesData{
-		ResourceSpans: l.orig.ResourceSpans,
+		ResourceSpans: GetTracesOrig(l).ResourceSpans,
 	}
 }
 

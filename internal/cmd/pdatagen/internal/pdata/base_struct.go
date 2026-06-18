@@ -95,6 +95,15 @@ func (ms *messageStruct) templateFields(packageInfo *PackageInfo) map[string]any
 		"packageName":   packageInfo.name,
 		"imports":       packageInfo.imports,
 		"testImports":   packageInfo.testImports,
+
+		// Path Y Phase 4: isTopLevel switches the wrapper template
+		// between Handle[T]-backed (the 4 signal roots) and inline
+		// {orig, state} (pcommon shared types — kept inline per the
+		// Phase 1 pcommon-stays-inline decision). nestedPath carries
+		// the path from the top-level Handle.orig down to this type's
+		// orig — empty for top-level and pcommon types.
+		"isTopLevel": ms.isTopLevel,
+		"nestedPath": ms.nestedPath,
 	}
 }
 

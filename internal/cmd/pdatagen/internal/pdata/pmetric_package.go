@@ -86,6 +86,7 @@ var metrics = &messageStruct{
 		},
 	},
 	hasWrapper: true,
+	isTopLevel: true,
 }
 
 var metricsData = &messageStruct{

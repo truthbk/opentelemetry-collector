@@ -7,20 +7,19 @@
 package internal
 
 type MetricsWrapper struct {
-	orig  *ExportMetricsServiceRequest
-	state *State
+	h *Handle[ExportMetricsServiceRequest]
 }
 
 func GetMetricsOrig(ms MetricsWrapper) *ExportMetricsServiceRequest {
-	return ms.orig
+	return ms.h.GetOrig()
 }
 
 func GetMetricsState(ms MetricsWrapper) *State {
-	return ms.state
+	return ms.h.GetState()
 }
 
 func NewMetricsWrapper(orig *ExportMetricsServiceRequest, state *State) MetricsWrapper {
-	return MetricsWrapper{orig: orig, state: state}
+	return MetricsWrapper{h: NewHandle(orig, state)}
 }
 
 func GenTestMetricsWrapper() MetricsWrapper {

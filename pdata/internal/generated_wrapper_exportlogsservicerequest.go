@@ -7,20 +7,19 @@
 package internal
 
 type LogsWrapper struct {
-	orig  *ExportLogsServiceRequest
-	state *State
+	h *Handle[ExportLogsServiceRequest]
 }
 
 func GetLogsOrig(ms LogsWrapper) *ExportLogsServiceRequest {
-	return ms.orig
+	return ms.h.GetOrig()
 }
 
 func GetLogsState(ms LogsWrapper) *State {
-	return ms.state
+	return ms.h.GetState()
 }
 
 func NewLogsWrapper(orig *ExportLogsServiceRequest, state *State) LogsWrapper {
-	return LogsWrapper{orig: orig, state: state}
+	return LogsWrapper{h: NewHandle(orig, state)}
 }
 
 func GenTestLogsWrapper() LogsWrapper {
