@@ -428,6 +428,7 @@ func TestLogsRequest_CloneIfShared(t *testing.T) {
 		original := testdata.GenerateLogs(10)
 		original.MarkReadOnly()
 		require.True(t, original.IsReadOnly())
+		preLen := original.ResourceLogs().Len()
 		req := &logsRequest{ld: original, cachedSize: -1}
 
 		got := req.cloneIfShared()
@@ -437,6 +438,25 @@ func TestLogsRequest_CloneIfShared(t *testing.T) {
 		assert.Equal(t, req.ld.LogRecordCount(), got.ld.LogRecordCount())
 
 		got.ld.ResourceLogs().AppendEmpty()
-		assert.Equal(t, original.ResourceLogs().Len()+1, got.ld.ResourceLogs().Len())
+		assert.Equal(t, preLen+1, got.ld.ResourceLogs().Len())
+		assert.Equal(t, preLen, original.ResourceLogs().Len(),
+			"original ResourceLogs slice must not grow")
 	})
+}
+
+// TestMergeSplitLogs_ReadOnlyR2NotMutated — see TestMergeSplitMetrics_ReadOnlyR2NotMutated.
+func TestMergeSplitLogs_ReadOnlyR2NotMutated(t *testing.T) {
+	req := &logsRequest{ld: testdata.GenerateLogs(2), cachedSize: -1}
+
+	r2Source := testdata.GenerateLogs(3)
+	r2Source.MarkReadOnly()
+	preLen := r2Source.ResourceLogs().Len()
+	r2 := &logsRequest{ld: r2Source, cachedSize: -1}
+
+	_, err := req.MergeSplit(context.Background(), 0, request.SizerTypeItems, r2)
+	require.NoError(t, err)
+
+	assert.Equal(t, preLen, r2Source.ResourceLogs().Len(),
+		"r2's source ResourceLogs slice must not be cleared by mergeTo")
+	assert.True(t, r2Source.IsReadOnly(), "r2's source remains read-only")
 }

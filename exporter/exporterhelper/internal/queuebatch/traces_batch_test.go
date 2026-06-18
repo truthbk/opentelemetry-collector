@@ -397,6 +397,7 @@ func TestTracesRequest_CloneIfShared(t *testing.T) {
 		original := testdata.GenerateTraces(10)
 		original.MarkReadOnly()
 		require.True(t, original.IsReadOnly())
+		preLen := original.ResourceSpans().Len()
 		req := &tracesRequest{td: original, cachedSize: -1}
 
 		got := req.cloneIfShared()
@@ -406,6 +407,25 @@ func TestTracesRequest_CloneIfShared(t *testing.T) {
 		assert.Equal(t, req.td.SpanCount(), got.td.SpanCount())
 
 		got.td.ResourceSpans().AppendEmpty()
-		assert.Equal(t, original.ResourceSpans().Len()+1, got.td.ResourceSpans().Len())
+		assert.Equal(t, preLen+1, got.td.ResourceSpans().Len())
+		assert.Equal(t, preLen, original.ResourceSpans().Len(),
+			"original ResourceSpans slice must not grow")
 	})
+}
+
+// TestMergeSplitTraces_ReadOnlyR2NotMutated — see TestMergeSplitMetrics_ReadOnlyR2NotMutated.
+func TestMergeSplitTraces_ReadOnlyR2NotMutated(t *testing.T) {
+	req := &tracesRequest{td: testdata.GenerateTraces(2), cachedSize: -1}
+
+	r2Source := testdata.GenerateTraces(3)
+	r2Source.MarkReadOnly()
+	preLen := r2Source.ResourceSpans().Len()
+	r2 := &tracesRequest{td: r2Source, cachedSize: -1}
+
+	_, err := req.MergeSplit(context.Background(), 0, request.SizerTypeItems, r2)
+	require.NoError(t, err)
+
+	assert.Equal(t, preLen, r2Source.ResourceSpans().Len(),
+		"r2's source ResourceSpans slice must not be cleared by mergeTo")
+	assert.True(t, r2Source.IsReadOnly(), "r2's source remains read-only")
 }

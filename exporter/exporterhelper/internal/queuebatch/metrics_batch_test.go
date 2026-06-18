@@ -798,6 +798,7 @@ func TestMetricsRequest_CloneIfShared(t *testing.T) {
 		original := testdata.GenerateMetrics(10)
 		original.MarkReadOnly()
 		require.True(t, original.IsReadOnly())
+		preLen := original.ResourceMetrics().Len()
 		req := &metricsRequest{md: original, cachedSize: -1}
 
 		got := req.cloneIfShared()
@@ -807,8 +808,39 @@ func TestMetricsRequest_CloneIfShared(t *testing.T) {
 		assert.False(t, got.md.IsReadOnly())
 		assert.Equal(t, req.md.DataPointCount(), got.md.DataPointCount())
 
-		// Mutating the clone does not touch the original.
+		// Mutating the clone does not touch the original — explicitly
+		// pin the original.ResourceMetrics().Len() to the pre-clone
+		// snapshot so the invariant is asserted directly rather than
+		// inferred from the clone's growth.
 		got.md.ResourceMetrics().AppendEmpty()
-		assert.Equal(t, original.ResourceMetrics().Len()+1, got.md.ResourceMetrics().Len())
+		assert.Equal(t, preLen+1, got.md.ResourceMetrics().Len())
+		assert.Equal(t, preLen, original.ResourceMetrics().Len(),
+			"original ResourceMetrics slice must not grow")
 	})
+}
+
+// TestMergeSplitMetrics_ReadOnlyR2NotMutated exercises the second-arg
+// cloneIfShared branch in MergeSplit: when r2 (the additional request
+// being merged into req) is read-only, the source data backing r2 must
+// remain untouched after the merge. Coverage gap the original
+// TestMetricsRequest_CloneIfShared didn't close — that test exercised
+// the helper directly with one request; this test exercises it via
+// MergeSplit on the r2 path that the partition batcher uses.
+func TestMergeSplitMetrics_ReadOnlyR2NotMutated(t *testing.T) {
+	req := &metricsRequest{md: testdata.GenerateMetrics(2), cachedSize: -1}
+
+	r2Source := testdata.GenerateMetrics(3)
+	r2Source.MarkReadOnly()
+	preLen := r2Source.ResourceMetrics().Len()
+	r2 := &metricsRequest{md: r2Source, cachedSize: -1}
+
+	_, err := req.MergeSplit(context.Background(), 0, request.SizerTypeItems, r2)
+	require.NoError(t, err)
+
+	// r2's backing tree must not have been touched by mergeTo's
+	// MoveAndAppendTo — the in-batcher cloneIfShared on r2 should have
+	// produced a clone that took the mutation instead.
+	assert.Equal(t, preLen, r2Source.ResourceMetrics().Len(),
+		"r2's source ResourceMetrics slice must not be cleared by mergeTo")
+	assert.True(t, r2Source.IsReadOnly(), "r2's source remains read-only")
 }
