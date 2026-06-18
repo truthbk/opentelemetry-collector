@@ -19,10 +19,17 @@ func TestExemplar_MoveTo(t *testing.T) {
 	ms := generateTestExemplar()
 	dest := NewExemplar()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewExemplar(), ms)
-	assert.Equal(t, generateTestExemplar(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewExemplar().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestExemplar().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestExemplar(), dest)
+	assert.Equal(t, *generateTestExemplar().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newExemplar(internal.NewExemplar(), sharedState)) })
@@ -33,10 +40,10 @@ func TestExemplar_CopyTo(t *testing.T) {
 	ms := NewExemplar()
 	orig := NewExemplar()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestExemplar()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newExemplar(internal.NewExemplar(), sharedState)) })
@@ -44,9 +51,12 @@ func TestExemplar_CopyTo(t *testing.T) {
 
 func TestExemplar_FilteredAttributes(t *testing.T) {
 	ms := NewExemplar()
-	assert.Equal(t, pcommon.NewMap(), ms.FilteredAttributes())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetMapOrig(internal.MapWrapper(pcommon.NewMap())), *internal.GetMapOrig(internal.MapWrapper(ms.FilteredAttributes())))
 	ms.getOrig().FilteredAttributes = internal.GenTestKeyValueSlice()
-	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.FilteredAttributes())
+	assert.Equal(t, *internal.GetMapOrig(internal.GenTestMapWrapper()), *internal.GetMapOrig(internal.MapWrapper(ms.FilteredAttributes())))
 }
 
 func TestExemplar_Timestamp(t *testing.T) {

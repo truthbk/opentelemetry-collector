@@ -19,10 +19,17 @@ func TestSummaryDataPoint_MoveTo(t *testing.T) {
 	ms := generateTestSummaryDataPoint()
 	dest := NewSummaryDataPoint()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewSummaryDataPoint(), ms)
-	assert.Equal(t, generateTestSummaryDataPoint(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewSummaryDataPoint().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestSummaryDataPoint().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestSummaryDataPoint(), dest)
+	assert.Equal(t, *generateTestSummaryDataPoint().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newSummaryDataPoint(internal.NewSummaryDataPoint(), sharedState)) })
@@ -33,10 +40,10 @@ func TestSummaryDataPoint_CopyTo(t *testing.T) {
 	ms := NewSummaryDataPoint()
 	orig := NewSummaryDataPoint()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestSummaryDataPoint()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newSummaryDataPoint(internal.NewSummaryDataPoint(), sharedState)) })
@@ -44,9 +51,12 @@ func TestSummaryDataPoint_CopyTo(t *testing.T) {
 
 func TestSummaryDataPoint_Attributes(t *testing.T) {
 	ms := NewSummaryDataPoint()
-	assert.Equal(t, pcommon.NewMap(), ms.Attributes())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetMapOrig(internal.MapWrapper(pcommon.NewMap())), *internal.GetMapOrig(internal.MapWrapper(ms.Attributes())))
 	ms.getOrig().Attributes = internal.GenTestKeyValueSlice()
-	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Attributes())
+	assert.Equal(t, *internal.GetMapOrig(internal.GenTestMapWrapper()), *internal.GetMapOrig(internal.MapWrapper(ms.Attributes())))
 }
 
 func TestSummaryDataPoint_StartTimestamp(t *testing.T) {
@@ -87,9 +97,12 @@ func TestSummaryDataPoint_Sum(t *testing.T) {
 
 func TestSummaryDataPoint_QuantileValues(t *testing.T) {
 	ms := NewSummaryDataPoint()
-	assert.Equal(t, NewSummaryDataPointValueAtQuantileSlice(), ms.QuantileValues())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewSummaryDataPointValueAtQuantileSlice().getOrig(), *ms.QuantileValues().getOrig())
 	ms.getOrig().QuantileValues = internal.GenTestSummaryDataPointValueAtQuantilePtrSlice()
-	assert.Equal(t, generateTestSummaryDataPointValueAtQuantileSlice(), ms.QuantileValues())
+	assert.Equal(t, *generateTestSummaryDataPointValueAtQuantileSlice().getOrig(), *ms.QuantileValues().getOrig())
 }
 
 func TestSummaryDataPoint_Flags(t *testing.T) {

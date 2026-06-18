@@ -19,10 +19,17 @@ func TestStack_MoveTo(t *testing.T) {
 	ms := generateTestStack()
 	dest := NewStack()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewStack(), ms)
-	assert.Equal(t, generateTestStack(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewStack().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestStack().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestStack(), dest)
+	assert.Equal(t, *generateTestStack().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newStack(internal.NewStack(), sharedState)) })
@@ -33,10 +40,10 @@ func TestStack_CopyTo(t *testing.T) {
 	ms := NewStack()
 	orig := NewStack()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestStack()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newStack(internal.NewStack(), sharedState)) })
@@ -44,9 +51,12 @@ func TestStack_CopyTo(t *testing.T) {
 
 func TestStack_LocationIndices(t *testing.T) {
 	ms := NewStack()
-	assert.Equal(t, pcommon.NewInt32Slice(), ms.LocationIndices())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetInt32SliceOrig(internal.Int32SliceWrapper(pcommon.NewInt32Slice())), *internal.GetInt32SliceOrig(internal.Int32SliceWrapper(ms.LocationIndices())))
 	ms.getOrig().LocationIndices = internal.GenTestInt32Slice()
-	assert.Equal(t, pcommon.Int32Slice(internal.GenTestInt32SliceWrapper()), ms.LocationIndices())
+	assert.Equal(t, *internal.GetInt32SliceOrig(internal.GenTestInt32SliceWrapper()), *internal.GetInt32SliceOrig(internal.Int32SliceWrapper(ms.LocationIndices())))
 }
 
 func generateTestStack() Stack {

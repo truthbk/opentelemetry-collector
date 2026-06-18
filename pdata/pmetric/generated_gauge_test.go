@@ -18,10 +18,17 @@ func TestGauge_MoveTo(t *testing.T) {
 	ms := generateTestGauge()
 	dest := NewGauge()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewGauge(), ms)
-	assert.Equal(t, generateTestGauge(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewGauge().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestGauge().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestGauge(), dest)
+	assert.Equal(t, *generateTestGauge().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newGauge(internal.NewGauge(), sharedState)) })
@@ -32,10 +39,10 @@ func TestGauge_CopyTo(t *testing.T) {
 	ms := NewGauge()
 	orig := NewGauge()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestGauge()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newGauge(internal.NewGauge(), sharedState)) })
@@ -43,9 +50,12 @@ func TestGauge_CopyTo(t *testing.T) {
 
 func TestGauge_DataPoints(t *testing.T) {
 	ms := NewGauge()
-	assert.Equal(t, NewNumberDataPointSlice(), ms.DataPoints())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewNumberDataPointSlice().getOrig(), *ms.DataPoints().getOrig())
 	ms.getOrig().DataPoints = internal.GenTestNumberDataPointPtrSlice()
-	assert.Equal(t, generateTestNumberDataPointSlice(), ms.DataPoints())
+	assert.Equal(t, *generateTestNumberDataPointSlice().getOrig(), *ms.DataPoints().getOrig())
 }
 
 func generateTestGauge() Gauge {

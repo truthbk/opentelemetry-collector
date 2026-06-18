@@ -19,10 +19,17 @@ func TestScopeProfiles_MoveTo(t *testing.T) {
 	ms := generateTestScopeProfiles()
 	dest := NewScopeProfiles()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewScopeProfiles(), ms)
-	assert.Equal(t, generateTestScopeProfiles(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewScopeProfiles().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestScopeProfiles().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestScopeProfiles(), dest)
+	assert.Equal(t, *generateTestScopeProfiles().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newScopeProfiles(internal.NewScopeProfiles(), sharedState)) })
@@ -33,10 +40,10 @@ func TestScopeProfiles_CopyTo(t *testing.T) {
 	ms := NewScopeProfiles()
 	orig := NewScopeProfiles()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestScopeProfiles()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newScopeProfiles(internal.NewScopeProfiles(), sharedState)) })
@@ -44,16 +51,25 @@ func TestScopeProfiles_CopyTo(t *testing.T) {
 
 func TestScopeProfiles_Scope(t *testing.T) {
 	ms := NewScopeProfiles()
-	assert.Equal(t, pcommon.NewInstrumentationScope(), ms.Scope())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	assert.Equal(t, *internal.GetInstrumentationScopeOrig(internal.InstrumentationScopeWrapper(pcommon.NewInstrumentationScope())), *internal.GetInstrumentationScopeOrig(internal.InstrumentationScopeWrapper(ms.Scope())))
 	ms.getOrig().Scope = *internal.GenTestInstrumentationScope()
-	assert.Equal(t, pcommon.InstrumentationScope(internal.GenTestInstrumentationScopeWrapper()), ms.Scope())
+	assert.Equal(t, *internal.GetInstrumentationScopeOrig(internal.GenTestInstrumentationScopeWrapper()), *internal.GetInstrumentationScopeOrig(internal.InstrumentationScopeWrapper(ms.Scope())))
 }
 
 func TestScopeProfiles_Profiles(t *testing.T) {
 	ms := NewScopeProfiles()
-	assert.Equal(t, NewProfilesSlice(), ms.Profiles())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewProfilesSlice().getOrig(), *ms.Profiles().getOrig())
 	ms.getOrig().Profiles = internal.GenTestProfilePtrSlice()
-	assert.Equal(t, generateTestProfilesSlice(), ms.Profiles())
+	assert.Equal(t, *generateTestProfilesSlice().getOrig(), *ms.Profiles().getOrig())
 }
 
 func TestScopeProfiles_SchemaUrl(t *testing.T) {

@@ -19,10 +19,17 @@ func TestScopeLogs_MoveTo(t *testing.T) {
 	ms := generateTestScopeLogs()
 	dest := NewScopeLogs()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewScopeLogs(), ms)
-	assert.Equal(t, generateTestScopeLogs(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewScopeLogs().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestScopeLogs().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestScopeLogs(), dest)
+	assert.Equal(t, *generateTestScopeLogs().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newScopeLogs(internal.NewScopeLogs(), sharedState)) })
@@ -33,10 +40,10 @@ func TestScopeLogs_CopyTo(t *testing.T) {
 	ms := NewScopeLogs()
 	orig := NewScopeLogs()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestScopeLogs()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newScopeLogs(internal.NewScopeLogs(), sharedState)) })
@@ -44,16 +51,25 @@ func TestScopeLogs_CopyTo(t *testing.T) {
 
 func TestScopeLogs_Scope(t *testing.T) {
 	ms := NewScopeLogs()
-	assert.Equal(t, pcommon.NewInstrumentationScope(), ms.Scope())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	assert.Equal(t, *internal.GetInstrumentationScopeOrig(internal.InstrumentationScopeWrapper(pcommon.NewInstrumentationScope())), *internal.GetInstrumentationScopeOrig(internal.InstrumentationScopeWrapper(ms.Scope())))
 	ms.getOrig().Scope = *internal.GenTestInstrumentationScope()
-	assert.Equal(t, pcommon.InstrumentationScope(internal.GenTestInstrumentationScopeWrapper()), ms.Scope())
+	assert.Equal(t, *internal.GetInstrumentationScopeOrig(internal.GenTestInstrumentationScopeWrapper()), *internal.GetInstrumentationScopeOrig(internal.InstrumentationScopeWrapper(ms.Scope())))
 }
 
 func TestScopeLogs_LogRecords(t *testing.T) {
 	ms := NewScopeLogs()
-	assert.Equal(t, NewLogRecordSlice(), ms.LogRecords())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewLogRecordSlice().getOrig(), *ms.LogRecords().getOrig())
 	ms.getOrig().LogRecords = internal.GenTestLogRecordPtrSlice()
-	assert.Equal(t, generateTestLogRecordSlice(), ms.LogRecords())
+	assert.Equal(t, *generateTestLogRecordSlice().getOrig(), *ms.LogRecords().getOrig())
 }
 
 func TestScopeLogs_SchemaUrl(t *testing.T) {

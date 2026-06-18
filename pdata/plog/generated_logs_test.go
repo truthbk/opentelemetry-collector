@@ -18,10 +18,17 @@ func TestLogs_MoveTo(t *testing.T) {
 	ms := generateTestLogs()
 	dest := NewLogs()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewLogs(), ms)
-	assert.Equal(t, generateTestLogs(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewLogs().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestLogs().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestLogs(), dest)
+	assert.Equal(t, *generateTestLogs().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newLogs(internal.NewExportLogsServiceRequest(), sharedState)) })
@@ -32,10 +39,10 @@ func TestLogs_CopyTo(t *testing.T) {
 	ms := NewLogs()
 	orig := NewLogs()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestLogs()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newLogs(internal.NewExportLogsServiceRequest(), sharedState)) })
@@ -43,9 +50,12 @@ func TestLogs_CopyTo(t *testing.T) {
 
 func TestLogs_ResourceLogs(t *testing.T) {
 	ms := NewLogs()
-	assert.Equal(t, NewResourceLogsSlice(), ms.ResourceLogs())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewResourceLogsSlice().getOrig(), *ms.ResourceLogs().getOrig())
 	ms.getOrig().ResourceLogs = internal.GenTestResourceLogsPtrSlice()
-	assert.Equal(t, generateTestResourceLogsSlice(), ms.ResourceLogs())
+	assert.Equal(t, *generateTestResourceLogsSlice().getOrig(), *ms.ResourceLogs().getOrig())
 }
 
 func generateTestLogs() Logs {

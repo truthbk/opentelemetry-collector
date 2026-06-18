@@ -19,10 +19,17 @@ func TestScopeMetrics_MoveTo(t *testing.T) {
 	ms := generateTestScopeMetrics()
 	dest := NewScopeMetrics()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewScopeMetrics(), ms)
-	assert.Equal(t, generateTestScopeMetrics(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewScopeMetrics().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestScopeMetrics().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestScopeMetrics(), dest)
+	assert.Equal(t, *generateTestScopeMetrics().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newScopeMetrics(internal.NewScopeMetrics(), sharedState)) })
@@ -33,10 +40,10 @@ func TestScopeMetrics_CopyTo(t *testing.T) {
 	ms := NewScopeMetrics()
 	orig := NewScopeMetrics()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestScopeMetrics()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newScopeMetrics(internal.NewScopeMetrics(), sharedState)) })
@@ -44,16 +51,25 @@ func TestScopeMetrics_CopyTo(t *testing.T) {
 
 func TestScopeMetrics_Scope(t *testing.T) {
 	ms := NewScopeMetrics()
-	assert.Equal(t, pcommon.NewInstrumentationScope(), ms.Scope())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	assert.Equal(t, *internal.GetInstrumentationScopeOrig(internal.InstrumentationScopeWrapper(pcommon.NewInstrumentationScope())), *internal.GetInstrumentationScopeOrig(internal.InstrumentationScopeWrapper(ms.Scope())))
 	ms.getOrig().Scope = *internal.GenTestInstrumentationScope()
-	assert.Equal(t, pcommon.InstrumentationScope(internal.GenTestInstrumentationScopeWrapper()), ms.Scope())
+	assert.Equal(t, *internal.GetInstrumentationScopeOrig(internal.GenTestInstrumentationScopeWrapper()), *internal.GetInstrumentationScopeOrig(internal.InstrumentationScopeWrapper(ms.Scope())))
 }
 
 func TestScopeMetrics_Metrics(t *testing.T) {
 	ms := NewScopeMetrics()
-	assert.Equal(t, NewMetricSlice(), ms.Metrics())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewMetricSlice().getOrig(), *ms.Metrics().getOrig())
 	ms.getOrig().Metrics = internal.GenTestMetricPtrSlice()
-	assert.Equal(t, generateTestMetricSlice(), ms.Metrics())
+	assert.Equal(t, *generateTestMetricSlice().getOrig(), *ms.Metrics().getOrig())
 }
 
 func TestScopeMetrics_SchemaUrl(t *testing.T) {

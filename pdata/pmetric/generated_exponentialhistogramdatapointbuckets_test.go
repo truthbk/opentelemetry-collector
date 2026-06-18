@@ -19,10 +19,17 @@ func TestExponentialHistogramDataPointBuckets_MoveTo(t *testing.T) {
 	ms := generateTestExponentialHistogramDataPointBuckets()
 	dest := NewExponentialHistogramDataPointBuckets()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewExponentialHistogramDataPointBuckets(), ms)
-	assert.Equal(t, generateTestExponentialHistogramDataPointBuckets(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewExponentialHistogramDataPointBuckets().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestExponentialHistogramDataPointBuckets().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestExponentialHistogramDataPointBuckets(), dest)
+	assert.Equal(t, *generateTestExponentialHistogramDataPointBuckets().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() {
@@ -37,10 +44,10 @@ func TestExponentialHistogramDataPointBuckets_CopyTo(t *testing.T) {
 	ms := NewExponentialHistogramDataPointBuckets()
 	orig := NewExponentialHistogramDataPointBuckets()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestExponentialHistogramDataPointBuckets()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() {
@@ -62,9 +69,12 @@ func TestExponentialHistogramDataPointBuckets_Offset(t *testing.T) {
 
 func TestExponentialHistogramDataPointBuckets_BucketCounts(t *testing.T) {
 	ms := NewExponentialHistogramDataPointBuckets()
-	assert.Equal(t, pcommon.NewUInt64Slice(), ms.BucketCounts())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetUInt64SliceOrig(internal.UInt64SliceWrapper(pcommon.NewUInt64Slice())), *internal.GetUInt64SliceOrig(internal.UInt64SliceWrapper(ms.BucketCounts())))
 	ms.getOrig().BucketCounts = internal.GenTestUint64Slice()
-	assert.Equal(t, pcommon.UInt64Slice(internal.GenTestUInt64SliceWrapper()), ms.BucketCounts())
+	assert.Equal(t, *internal.GetUInt64SliceOrig(internal.GenTestUInt64SliceWrapper()), *internal.GetUInt64SliceOrig(internal.UInt64SliceWrapper(ms.BucketCounts())))
 }
 
 func generateTestExponentialHistogramDataPointBuckets() ExponentialHistogramDataPointBuckets {

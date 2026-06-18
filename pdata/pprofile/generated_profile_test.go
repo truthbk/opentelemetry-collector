@@ -19,10 +19,17 @@ func TestProfile_MoveTo(t *testing.T) {
 	ms := generateTestProfile()
 	dest := NewProfile()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewProfile(), ms)
-	assert.Equal(t, generateTestProfile(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewProfile().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestProfile().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestProfile(), dest)
+	assert.Equal(t, *generateTestProfile().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newProfile(internal.NewProfile(), sharedState)) })
@@ -33,10 +40,10 @@ func TestProfile_CopyTo(t *testing.T) {
 	ms := NewProfile()
 	orig := NewProfile()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestProfile()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newProfile(internal.NewProfile(), sharedState)) })
@@ -44,16 +51,25 @@ func TestProfile_CopyTo(t *testing.T) {
 
 func TestProfile_SampleType(t *testing.T) {
 	ms := NewProfile()
-	assert.Equal(t, NewValueType(), ms.SampleType())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	assert.Equal(t, *NewValueType().getOrig(), *ms.SampleType().getOrig())
 	ms.getOrig().SampleType = *internal.GenTestValueType()
-	assert.Equal(t, generateTestValueType(), ms.SampleType())
+	assert.Equal(t, *generateTestValueType().getOrig(), *ms.SampleType().getOrig())
 }
 
 func TestProfile_Samples(t *testing.T) {
 	ms := NewProfile()
-	assert.Equal(t, NewSampleSlice(), ms.Samples())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewSampleSlice().getOrig(), *ms.Samples().getOrig())
 	ms.getOrig().Samples = internal.GenTestSamplePtrSlice()
-	assert.Equal(t, generateTestSampleSlice(), ms.Samples())
+	assert.Equal(t, *generateTestSampleSlice().getOrig(), *ms.Samples().getOrig())
 }
 
 func TestProfile_Time(t *testing.T) {
@@ -76,9 +92,15 @@ func TestProfile_DurationNano(t *testing.T) {
 
 func TestProfile_PeriodType(t *testing.T) {
 	ms := NewProfile()
-	assert.Equal(t, NewValueType(), ms.PeriodType())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	assert.Equal(t, *NewValueType().getOrig(), *ms.PeriodType().getOrig())
 	ms.getOrig().PeriodType = *internal.GenTestValueType()
-	assert.Equal(t, generateTestValueType(), ms.PeriodType())
+	assert.Equal(t, *generateTestValueType().getOrig(), *ms.PeriodType().getOrig())
 }
 
 func TestProfile_Period(t *testing.T) {
@@ -123,16 +145,22 @@ func TestProfile_OriginalPayloadFormat(t *testing.T) {
 
 func TestProfile_OriginalPayload(t *testing.T) {
 	ms := NewProfile()
-	assert.Equal(t, pcommon.NewByteSlice(), ms.OriginalPayload())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetByteSliceOrig(internal.ByteSliceWrapper(pcommon.NewByteSlice())), *internal.GetByteSliceOrig(internal.ByteSliceWrapper(ms.OriginalPayload())))
 	ms.getOrig().OriginalPayload = internal.GenTestByteSlice()
-	assert.Equal(t, pcommon.ByteSlice(internal.GenTestByteSliceWrapper()), ms.OriginalPayload())
+	assert.Equal(t, *internal.GetByteSliceOrig(internal.GenTestByteSliceWrapper()), *internal.GetByteSliceOrig(internal.ByteSliceWrapper(ms.OriginalPayload())))
 }
 
 func TestProfile_AttributeIndices(t *testing.T) {
 	ms := NewProfile()
-	assert.Equal(t, pcommon.NewInt32Slice(), ms.AttributeIndices())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetInt32SliceOrig(internal.Int32SliceWrapper(pcommon.NewInt32Slice())), *internal.GetInt32SliceOrig(internal.Int32SliceWrapper(ms.AttributeIndices())))
 	ms.getOrig().AttributeIndices = internal.GenTestInt32Slice()
-	assert.Equal(t, pcommon.Int32Slice(internal.GenTestInt32SliceWrapper()), ms.AttributeIndices())
+	assert.Equal(t, *internal.GetInt32SliceOrig(internal.GenTestInt32SliceWrapper()), *internal.GetInt32SliceOrig(internal.Int32SliceWrapper(ms.AttributeIndices())))
 }
 
 func generateTestProfile() Profile {

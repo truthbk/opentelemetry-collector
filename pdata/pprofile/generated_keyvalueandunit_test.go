@@ -19,10 +19,17 @@ func TestKeyValueAndUnit_MoveTo(t *testing.T) {
 	ms := generateTestKeyValueAndUnit()
 	dest := NewKeyValueAndUnit()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewKeyValueAndUnit(), ms)
-	assert.Equal(t, generateTestKeyValueAndUnit(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewKeyValueAndUnit().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestKeyValueAndUnit().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestKeyValueAndUnit(), dest)
+	assert.Equal(t, *generateTestKeyValueAndUnit().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newKeyValueAndUnit(internal.NewKeyValueAndUnit(), sharedState)) })
@@ -33,10 +40,10 @@ func TestKeyValueAndUnit_CopyTo(t *testing.T) {
 	ms := NewKeyValueAndUnit()
 	orig := NewKeyValueAndUnit()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestKeyValueAndUnit()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newKeyValueAndUnit(internal.NewKeyValueAndUnit(), sharedState)) })
@@ -54,9 +61,15 @@ func TestKeyValueAndUnit_KeyStrindex(t *testing.T) {
 
 func TestKeyValueAndUnit_Value(t *testing.T) {
 	ms := NewKeyValueAndUnit()
-	assert.Equal(t, pcommon.NewValueEmpty(), ms.Value())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	assert.Equal(t, *internal.GetValueOrig(internal.ValueWrapper(pcommon.NewValueEmpty())), *internal.GetValueOrig(internal.ValueWrapper(ms.Value())))
 	ms.getOrig().Value = *internal.GenTestAnyValue()
-	assert.Equal(t, pcommon.Value(internal.GenTestValueWrapper()), ms.Value())
+	assert.Equal(t, *internal.GetValueOrig(internal.GenTestValueWrapper()), *internal.GetValueOrig(internal.ValueWrapper(ms.Value())))
 }
 
 func TestKeyValueAndUnit_UnitStrindex(t *testing.T) {

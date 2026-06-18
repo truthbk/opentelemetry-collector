@@ -18,10 +18,17 @@ func TestSum_MoveTo(t *testing.T) {
 	ms := generateTestSum()
 	dest := NewSum()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewSum(), ms)
-	assert.Equal(t, generateTestSum(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewSum().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestSum().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestSum(), dest)
+	assert.Equal(t, *generateTestSum().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newSum(internal.NewSum(), sharedState)) })
@@ -32,10 +39,10 @@ func TestSum_CopyTo(t *testing.T) {
 	ms := NewSum()
 	orig := NewSum()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestSum()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newSum(internal.NewSum(), sharedState)) })
@@ -43,9 +50,12 @@ func TestSum_CopyTo(t *testing.T) {
 
 func TestSum_DataPoints(t *testing.T) {
 	ms := NewSum()
-	assert.Equal(t, NewNumberDataPointSlice(), ms.DataPoints())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewNumberDataPointSlice().getOrig(), *ms.DataPoints().getOrig())
 	ms.getOrig().DataPoints = internal.GenTestNumberDataPointPtrSlice()
-	assert.Equal(t, generateTestNumberDataPointSlice(), ms.DataPoints())
+	assert.Equal(t, *generateTestNumberDataPointSlice().getOrig(), *ms.DataPoints().getOrig())
 }
 
 func TestSum_AggregationTemporality(t *testing.T) {

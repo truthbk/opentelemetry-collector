@@ -18,10 +18,17 @@ func TestHistogram_MoveTo(t *testing.T) {
 	ms := generateTestHistogram()
 	dest := NewHistogram()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewHistogram(), ms)
-	assert.Equal(t, generateTestHistogram(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewHistogram().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestHistogram().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestHistogram(), dest)
+	assert.Equal(t, *generateTestHistogram().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newHistogram(internal.NewHistogram(), sharedState)) })
@@ -32,10 +39,10 @@ func TestHistogram_CopyTo(t *testing.T) {
 	ms := NewHistogram()
 	orig := NewHistogram()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestHistogram()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newHistogram(internal.NewHistogram(), sharedState)) })
@@ -43,9 +50,12 @@ func TestHistogram_CopyTo(t *testing.T) {
 
 func TestHistogram_DataPoints(t *testing.T) {
 	ms := NewHistogram()
-	assert.Equal(t, NewHistogramDataPointSlice(), ms.DataPoints())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewHistogramDataPointSlice().getOrig(), *ms.DataPoints().getOrig())
 	ms.getOrig().DataPoints = internal.GenTestHistogramDataPointPtrSlice()
-	assert.Equal(t, generateTestHistogramDataPointSlice(), ms.DataPoints())
+	assert.Equal(t, *generateTestHistogramDataPointSlice().getOrig(), *ms.DataPoints().getOrig())
 }
 
 func TestHistogram_AggregationTemporality(t *testing.T) {

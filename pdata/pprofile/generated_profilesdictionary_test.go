@@ -19,10 +19,17 @@ func TestProfilesDictionary_MoveTo(t *testing.T) {
 	ms := generateTestProfilesDictionary()
 	dest := NewProfilesDictionary()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewProfilesDictionary(), ms)
-	assert.Equal(t, generateTestProfilesDictionary(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewProfilesDictionary().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestProfilesDictionary().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestProfilesDictionary(), dest)
+	assert.Equal(t, *generateTestProfilesDictionary().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newProfilesDictionary(internal.NewProfilesDictionary(), sharedState)) })
@@ -33,10 +40,10 @@ func TestProfilesDictionary_CopyTo(t *testing.T) {
 	ms := NewProfilesDictionary()
 	orig := NewProfilesDictionary()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestProfilesDictionary()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newProfilesDictionary(internal.NewProfilesDictionary(), sharedState)) })
@@ -44,51 +51,72 @@ func TestProfilesDictionary_CopyTo(t *testing.T) {
 
 func TestProfilesDictionary_MappingTable(t *testing.T) {
 	ms := NewProfilesDictionary()
-	assert.Equal(t, NewMappingSlice(), ms.MappingTable())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewMappingSlice().getOrig(), *ms.MappingTable().getOrig())
 	ms.getOrig().MappingTable = internal.GenTestMappingPtrSlice()
-	assert.Equal(t, generateTestMappingSlice(), ms.MappingTable())
+	assert.Equal(t, *generateTestMappingSlice().getOrig(), *ms.MappingTable().getOrig())
 }
 
 func TestProfilesDictionary_LocationTable(t *testing.T) {
 	ms := NewProfilesDictionary()
-	assert.Equal(t, NewLocationSlice(), ms.LocationTable())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewLocationSlice().getOrig(), *ms.LocationTable().getOrig())
 	ms.getOrig().LocationTable = internal.GenTestLocationPtrSlice()
-	assert.Equal(t, generateTestLocationSlice(), ms.LocationTable())
+	assert.Equal(t, *generateTestLocationSlice().getOrig(), *ms.LocationTable().getOrig())
 }
 
 func TestProfilesDictionary_FunctionTable(t *testing.T) {
 	ms := NewProfilesDictionary()
-	assert.Equal(t, NewFunctionSlice(), ms.FunctionTable())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewFunctionSlice().getOrig(), *ms.FunctionTable().getOrig())
 	ms.getOrig().FunctionTable = internal.GenTestFunctionPtrSlice()
-	assert.Equal(t, generateTestFunctionSlice(), ms.FunctionTable())
+	assert.Equal(t, *generateTestFunctionSlice().getOrig(), *ms.FunctionTable().getOrig())
 }
 
 func TestProfilesDictionary_LinkTable(t *testing.T) {
 	ms := NewProfilesDictionary()
-	assert.Equal(t, NewLinkSlice(), ms.LinkTable())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewLinkSlice().getOrig(), *ms.LinkTable().getOrig())
 	ms.getOrig().LinkTable = internal.GenTestLinkPtrSlice()
-	assert.Equal(t, generateTestLinkSlice(), ms.LinkTable())
+	assert.Equal(t, *generateTestLinkSlice().getOrig(), *ms.LinkTable().getOrig())
 }
 
 func TestProfilesDictionary_StringTable(t *testing.T) {
 	ms := NewProfilesDictionary()
-	assert.Equal(t, pcommon.NewStringSlice(), ms.StringTable())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetStringSliceOrig(internal.StringSliceWrapper(pcommon.NewStringSlice())), *internal.GetStringSliceOrig(internal.StringSliceWrapper(ms.StringTable())))
 	ms.getOrig().StringTable = internal.GenTestStringSlice()
-	assert.Equal(t, pcommon.StringSlice(internal.GenTestStringSliceWrapper()), ms.StringTable())
+	assert.Equal(t, *internal.GetStringSliceOrig(internal.GenTestStringSliceWrapper()), *internal.GetStringSliceOrig(internal.StringSliceWrapper(ms.StringTable())))
 }
 
 func TestProfilesDictionary_AttributeTable(t *testing.T) {
 	ms := NewProfilesDictionary()
-	assert.Equal(t, NewKeyValueAndUnitSlice(), ms.AttributeTable())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewKeyValueAndUnitSlice().getOrig(), *ms.AttributeTable().getOrig())
 	ms.getOrig().AttributeTable = internal.GenTestKeyValueAndUnitPtrSlice()
-	assert.Equal(t, generateTestKeyValueAndUnitSlice(), ms.AttributeTable())
+	assert.Equal(t, *generateTestKeyValueAndUnitSlice().getOrig(), *ms.AttributeTable().getOrig())
 }
 
 func TestProfilesDictionary_StackTable(t *testing.T) {
 	ms := NewProfilesDictionary()
-	assert.Equal(t, NewStackSlice(), ms.StackTable())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewStackSlice().getOrig(), *ms.StackTable().getOrig())
 	ms.getOrig().StackTable = internal.GenTestStackPtrSlice()
-	assert.Equal(t, generateTestStackSlice(), ms.StackTable())
+	assert.Equal(t, *generateTestStackSlice().getOrig(), *ms.StackTable().getOrig())
 }
 
 func generateTestProfilesDictionary() ProfilesDictionary {

@@ -18,10 +18,17 @@ func TestTraces_MoveTo(t *testing.T) {
 	ms := generateTestTraces()
 	dest := NewTraces()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewTraces(), ms)
-	assert.Equal(t, generateTestTraces(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewTraces().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestTraces().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestTraces(), dest)
+	assert.Equal(t, *generateTestTraces().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newTraces(internal.NewExportTraceServiceRequest(), sharedState)) })
@@ -32,10 +39,10 @@ func TestTraces_CopyTo(t *testing.T) {
 	ms := NewTraces()
 	orig := NewTraces()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestTraces()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newTraces(internal.NewExportTraceServiceRequest(), sharedState)) })
@@ -43,9 +50,12 @@ func TestTraces_CopyTo(t *testing.T) {
 
 func TestTraces_ResourceSpans(t *testing.T) {
 	ms := NewTraces()
-	assert.Equal(t, NewResourceSpansSlice(), ms.ResourceSpans())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewResourceSpansSlice().getOrig(), *ms.ResourceSpans().getOrig())
 	ms.getOrig().ResourceSpans = internal.GenTestResourceSpansPtrSlice()
-	assert.Equal(t, generateTestResourceSpansSlice(), ms.ResourceSpans())
+	assert.Equal(t, *generateTestResourceSpansSlice().getOrig(), *ms.ResourceSpans().getOrig())
 }
 
 func generateTestTraces() Traces {

@@ -19,10 +19,17 @@ func TestNumberDataPoint_MoveTo(t *testing.T) {
 	ms := generateTestNumberDataPoint()
 	dest := NewNumberDataPoint()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewNumberDataPoint(), ms)
-	assert.Equal(t, generateTestNumberDataPoint(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewNumberDataPoint().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestNumberDataPoint().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestNumberDataPoint(), dest)
+	assert.Equal(t, *generateTestNumberDataPoint().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newNumberDataPoint(internal.NewNumberDataPoint(), sharedState)) })
@@ -33,10 +40,10 @@ func TestNumberDataPoint_CopyTo(t *testing.T) {
 	ms := NewNumberDataPoint()
 	orig := NewNumberDataPoint()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestNumberDataPoint()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newNumberDataPoint(internal.NewNumberDataPoint(), sharedState)) })
@@ -44,9 +51,12 @@ func TestNumberDataPoint_CopyTo(t *testing.T) {
 
 func TestNumberDataPoint_Attributes(t *testing.T) {
 	ms := NewNumberDataPoint()
-	assert.Equal(t, pcommon.NewMap(), ms.Attributes())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetMapOrig(internal.MapWrapper(pcommon.NewMap())), *internal.GetMapOrig(internal.MapWrapper(ms.Attributes())))
 	ms.getOrig().Attributes = internal.GenTestKeyValueSlice()
-	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Attributes())
+	assert.Equal(t, *internal.GetMapOrig(internal.GenTestMapWrapper()), *internal.GetMapOrig(internal.MapWrapper(ms.Attributes())))
 }
 
 func TestNumberDataPoint_StartTimestamp(t *testing.T) {
@@ -95,9 +105,12 @@ func TestNumberDataPoint_IntValue(t *testing.T) {
 
 func TestNumberDataPoint_Exemplars(t *testing.T) {
 	ms := NewNumberDataPoint()
-	assert.Equal(t, NewExemplarSlice(), ms.Exemplars())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewExemplarSlice().getOrig(), *ms.Exemplars().getOrig())
 	ms.getOrig().Exemplars = internal.GenTestExemplarSlice()
-	assert.Equal(t, generateTestExemplarSlice(), ms.Exemplars())
+	assert.Equal(t, *generateTestExemplarSlice().getOrig(), *ms.Exemplars().getOrig())
 }
 
 func TestNumberDataPoint_Flags(t *testing.T) {

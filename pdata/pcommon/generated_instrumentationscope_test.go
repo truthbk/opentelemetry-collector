@@ -18,10 +18,17 @@ func TestInstrumentationScope_MoveTo(t *testing.T) {
 	ms := generateTestInstrumentationScope()
 	dest := NewInstrumentationScope()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewInstrumentationScope(), ms)
-	assert.Equal(t, generateTestInstrumentationScope(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewInstrumentationScope().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestInstrumentationScope().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestInstrumentationScope(), dest)
+	assert.Equal(t, *generateTestInstrumentationScope().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newInstrumentationScope(internal.NewInstrumentationScope(), sharedState)) })
@@ -32,10 +39,10 @@ func TestInstrumentationScope_CopyTo(t *testing.T) {
 	ms := NewInstrumentationScope()
 	orig := NewInstrumentationScope()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestInstrumentationScope()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newInstrumentationScope(internal.NewInstrumentationScope(), sharedState)) })
@@ -65,9 +72,12 @@ func TestInstrumentationScope_Version(t *testing.T) {
 
 func TestInstrumentationScope_Attributes(t *testing.T) {
 	ms := NewInstrumentationScope()
-	assert.Equal(t, NewMap(), ms.Attributes())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetMapOrig(internal.MapWrapper(NewMap())), *internal.GetMapOrig(internal.MapWrapper(ms.Attributes())))
 	ms.getOrig().Attributes = internal.GenTestKeyValueSlice()
-	assert.Equal(t, Map(internal.GenTestMapWrapper()), ms.Attributes())
+	assert.Equal(t, *internal.GetMapOrig(internal.GenTestMapWrapper()), *internal.GetMapOrig(internal.MapWrapper(ms.Attributes())))
 }
 
 func TestInstrumentationScope_DroppedAttributesCount(t *testing.T) {

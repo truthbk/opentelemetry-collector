@@ -19,10 +19,17 @@ func TestResourceLogs_MoveTo(t *testing.T) {
 	ms := generateTestResourceLogs()
 	dest := NewResourceLogs()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewResourceLogs(), ms)
-	assert.Equal(t, generateTestResourceLogs(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewResourceLogs().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestResourceLogs().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestResourceLogs(), dest)
+	assert.Equal(t, *generateTestResourceLogs().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newResourceLogs(internal.NewResourceLogs(), sharedState)) })
@@ -33,10 +40,10 @@ func TestResourceLogs_CopyTo(t *testing.T) {
 	ms := NewResourceLogs()
 	orig := NewResourceLogs()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestResourceLogs()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newResourceLogs(internal.NewResourceLogs(), sharedState)) })
@@ -44,16 +51,25 @@ func TestResourceLogs_CopyTo(t *testing.T) {
 
 func TestResourceLogs_Resource(t *testing.T) {
 	ms := NewResourceLogs()
-	assert.Equal(t, pcommon.NewResource(), ms.Resource())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	assert.Equal(t, *internal.GetResourceOrig(internal.ResourceWrapper(pcommon.NewResource())), *internal.GetResourceOrig(internal.ResourceWrapper(ms.Resource())))
 	ms.getOrig().Resource = *internal.GenTestResource()
-	assert.Equal(t, pcommon.Resource(internal.GenTestResourceWrapper()), ms.Resource())
+	assert.Equal(t, *internal.GetResourceOrig(internal.GenTestResourceWrapper()), *internal.GetResourceOrig(internal.ResourceWrapper(ms.Resource())))
 }
 
 func TestResourceLogs_ScopeLogs(t *testing.T) {
 	ms := NewResourceLogs()
-	assert.Equal(t, NewScopeLogsSlice(), ms.ScopeLogs())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewScopeLogsSlice().getOrig(), *ms.ScopeLogs().getOrig())
 	ms.getOrig().ScopeLogs = internal.GenTestScopeLogsPtrSlice()
-	assert.Equal(t, generateTestScopeLogsSlice(), ms.ScopeLogs())
+	assert.Equal(t, *generateTestScopeLogsSlice().getOrig(), *ms.ScopeLogs().getOrig())
 }
 
 func TestResourceLogs_SchemaUrl(t *testing.T) {

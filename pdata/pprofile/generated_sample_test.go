@@ -19,10 +19,17 @@ func TestSample_MoveTo(t *testing.T) {
 	ms := generateTestSample()
 	dest := NewSample()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewSample(), ms)
-	assert.Equal(t, generateTestSample(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewSample().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestSample().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestSample(), dest)
+	assert.Equal(t, *generateTestSample().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newSample(internal.NewSample(), sharedState)) })
@@ -33,10 +40,10 @@ func TestSample_CopyTo(t *testing.T) {
 	ms := NewSample()
 	orig := NewSample()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestSample()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newSample(internal.NewSample(), sharedState)) })
@@ -54,9 +61,12 @@ func TestSample_StackIndex(t *testing.T) {
 
 func TestSample_AttributeIndices(t *testing.T) {
 	ms := NewSample()
-	assert.Equal(t, pcommon.NewInt32Slice(), ms.AttributeIndices())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetInt32SliceOrig(internal.Int32SliceWrapper(pcommon.NewInt32Slice())), *internal.GetInt32SliceOrig(internal.Int32SliceWrapper(ms.AttributeIndices())))
 	ms.getOrig().AttributeIndices = internal.GenTestInt32Slice()
-	assert.Equal(t, pcommon.Int32Slice(internal.GenTestInt32SliceWrapper()), ms.AttributeIndices())
+	assert.Equal(t, *internal.GetInt32SliceOrig(internal.GenTestInt32SliceWrapper()), *internal.GetInt32SliceOrig(internal.Int32SliceWrapper(ms.AttributeIndices())))
 }
 
 func TestSample_LinkIndex(t *testing.T) {
@@ -71,16 +81,22 @@ func TestSample_LinkIndex(t *testing.T) {
 
 func TestSample_Values(t *testing.T) {
 	ms := NewSample()
-	assert.Equal(t, pcommon.NewInt64Slice(), ms.Values())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetInt64SliceOrig(internal.Int64SliceWrapper(pcommon.NewInt64Slice())), *internal.GetInt64SliceOrig(internal.Int64SliceWrapper(ms.Values())))
 	ms.getOrig().Values = internal.GenTestInt64Slice()
-	assert.Equal(t, pcommon.Int64Slice(internal.GenTestInt64SliceWrapper()), ms.Values())
+	assert.Equal(t, *internal.GetInt64SliceOrig(internal.GenTestInt64SliceWrapper()), *internal.GetInt64SliceOrig(internal.Int64SliceWrapper(ms.Values())))
 }
 
 func TestSample_TimestampsUnixNano(t *testing.T) {
 	ms := NewSample()
-	assert.Equal(t, pcommon.NewUInt64Slice(), ms.TimestampsUnixNano())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetUInt64SliceOrig(internal.UInt64SliceWrapper(pcommon.NewUInt64Slice())), *internal.GetUInt64SliceOrig(internal.UInt64SliceWrapper(ms.TimestampsUnixNano())))
 	ms.getOrig().TimestampsUnixNano = internal.GenTestUint64Slice()
-	assert.Equal(t, pcommon.UInt64Slice(internal.GenTestUInt64SliceWrapper()), ms.TimestampsUnixNano())
+	assert.Equal(t, *internal.GetUInt64SliceOrig(internal.GenTestUInt64SliceWrapper()), *internal.GetUInt64SliceOrig(internal.UInt64SliceWrapper(ms.TimestampsUnixNano())))
 }
 
 func generateTestSample() Sample {

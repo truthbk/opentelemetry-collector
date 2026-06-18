@@ -19,10 +19,17 @@ func TestMetric_MoveTo(t *testing.T) {
 	ms := generateTestMetric()
 	dest := NewMetric()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewMetric(), ms)
-	assert.Equal(t, generateTestMetric(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewMetric().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestMetric().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestMetric(), dest)
+	assert.Equal(t, *generateTestMetric().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newMetric(internal.NewMetric(), sharedState)) })
@@ -33,10 +40,10 @@ func TestMetric_CopyTo(t *testing.T) {
 	ms := NewMetric()
 	orig := NewMetric()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestMetric()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newMetric(internal.NewMetric(), sharedState)) })
@@ -80,10 +87,11 @@ func TestMetric_Type(t *testing.T) {
 func TestMetric_Gauge(t *testing.T) {
 	ms := NewMetric()
 	ms.SetEmptyGauge()
-	assert.Equal(t, NewGauge(), ms.Gauge())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	assert.Equal(t, *NewGauge().getOrig(), *ms.Gauge().getOrig())
 	ms.getOrig().GetData().(*internal.Metric_Gauge).Gauge = internal.GenTestGauge()
 	assert.Equal(t, MetricTypeGauge, ms.Type())
-	assert.Equal(t, generateTestGauge(), ms.Gauge())
+	assert.Equal(t, *generateTestGauge().getOrig(), *ms.Gauge().getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { newMetric(internal.NewMetric(), sharedState).SetEmptyGauge() })
@@ -91,10 +99,11 @@ func TestMetric_Gauge(t *testing.T) {
 func TestMetric_Sum(t *testing.T) {
 	ms := NewMetric()
 	ms.SetEmptySum()
-	assert.Equal(t, NewSum(), ms.Sum())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	assert.Equal(t, *NewSum().getOrig(), *ms.Sum().getOrig())
 	ms.getOrig().GetData().(*internal.Metric_Sum).Sum = internal.GenTestSum()
 	assert.Equal(t, MetricTypeSum, ms.Type())
-	assert.Equal(t, generateTestSum(), ms.Sum())
+	assert.Equal(t, *generateTestSum().getOrig(), *ms.Sum().getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { newMetric(internal.NewMetric(), sharedState).SetEmptySum() })
@@ -102,10 +111,11 @@ func TestMetric_Sum(t *testing.T) {
 func TestMetric_Histogram(t *testing.T) {
 	ms := NewMetric()
 	ms.SetEmptyHistogram()
-	assert.Equal(t, NewHistogram(), ms.Histogram())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	assert.Equal(t, *NewHistogram().getOrig(), *ms.Histogram().getOrig())
 	ms.getOrig().GetData().(*internal.Metric_Histogram).Histogram = internal.GenTestHistogram()
 	assert.Equal(t, MetricTypeHistogram, ms.Type())
-	assert.Equal(t, generateTestHistogram(), ms.Histogram())
+	assert.Equal(t, *generateTestHistogram().getOrig(), *ms.Histogram().getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { newMetric(internal.NewMetric(), sharedState).SetEmptyHistogram() })
@@ -113,10 +123,11 @@ func TestMetric_Histogram(t *testing.T) {
 func TestMetric_ExponentialHistogram(t *testing.T) {
 	ms := NewMetric()
 	ms.SetEmptyExponentialHistogram()
-	assert.Equal(t, NewExponentialHistogram(), ms.ExponentialHistogram())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	assert.Equal(t, *NewExponentialHistogram().getOrig(), *ms.ExponentialHistogram().getOrig())
 	ms.getOrig().GetData().(*internal.Metric_ExponentialHistogram).ExponentialHistogram = internal.GenTestExponentialHistogram()
 	assert.Equal(t, MetricTypeExponentialHistogram, ms.Type())
-	assert.Equal(t, generateTestExponentialHistogram(), ms.ExponentialHistogram())
+	assert.Equal(t, *generateTestExponentialHistogram().getOrig(), *ms.ExponentialHistogram().getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { newMetric(internal.NewMetric(), sharedState).SetEmptyExponentialHistogram() })
@@ -124,10 +135,11 @@ func TestMetric_ExponentialHistogram(t *testing.T) {
 func TestMetric_Summary(t *testing.T) {
 	ms := NewMetric()
 	ms.SetEmptySummary()
-	assert.Equal(t, NewSummary(), ms.Summary())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	assert.Equal(t, *NewSummary().getOrig(), *ms.Summary().getOrig())
 	ms.getOrig().GetData().(*internal.Metric_Summary).Summary = internal.GenTestSummary()
 	assert.Equal(t, MetricTypeSummary, ms.Type())
-	assert.Equal(t, generateTestSummary(), ms.Summary())
+	assert.Equal(t, *generateTestSummary().getOrig(), *ms.Summary().getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { newMetric(internal.NewMetric(), sharedState).SetEmptySummary() })
@@ -135,9 +147,12 @@ func TestMetric_Summary(t *testing.T) {
 
 func TestMetric_Metadata(t *testing.T) {
 	ms := NewMetric()
-	assert.Equal(t, pcommon.NewMap(), ms.Metadata())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetMapOrig(internal.MapWrapper(pcommon.NewMap())), *internal.GetMapOrig(internal.MapWrapper(ms.Metadata())))
 	ms.getOrig().Metadata = internal.GenTestKeyValueSlice()
-	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Metadata())
+	assert.Equal(t, *internal.GetMapOrig(internal.GenTestMapWrapper()), *internal.GetMapOrig(internal.MapWrapper(ms.Metadata())))
 }
 
 func generateTestMetric() Metric {

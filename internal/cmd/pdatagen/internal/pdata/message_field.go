@@ -21,12 +21,22 @@ func (ms {{ .structName }}) {{ .fieldName }}() {{ .packageName }}{{ .returnType 
 
 const messageAccessorsTestTemplate = `func Test{{ .structName }}_{{ .fieldName }}(t *testing.T) {
 	ms := New{{ .structName }}()
-	assert.Equal(t, {{ .packageName }}New{{ .returnType }}{{- if eq .returnType "Value" }}Empty{{- end }}(), ms.{{ .fieldName }}())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	{{- if .messageHasWrapper }}
+	assert.Equal(t, *internal.Get{{ .returnType }}Orig(internal.{{ .returnType }}Wrapper({{ .packageName }}New{{ .returnType }}{{- if eq .returnType "Value" }}Empty{{- end }}())), *internal.Get{{ .returnType }}Orig(internal.{{ .returnType }}Wrapper(ms.{{ .fieldName }}())))
+	{{- else }}
+	assert.Equal(t, *{{ .packageName }}New{{ .returnType }}().getOrig(), *ms.{{ .fieldName }}().getOrig())
+	{{- end }}
 	ms.{{ .origAccessor }}.{{ .fieldOriginFullName }} = *internal.GenTest{{ .fieldOriginName }}()
 	{{- if .messageHasWrapper }}
-	assert.Equal(t, {{ .packageName }}{{ .returnType }}(internal.GenTest{{ .returnType }}Wrapper()), ms.{{ .fieldName }}())
+	assert.Equal(t, *internal.Get{{ .returnType }}Orig(internal.GenTest{{ .returnType }}Wrapper()), *internal.Get{{ .returnType }}Orig(internal.{{ .returnType }}Wrapper(ms.{{ .fieldName }}())))
 	{{- else }}
-	assert.Equal(t, generateTest{{ .returnType }}(), ms.{{ .fieldName }}())
+	assert.Equal(t, *generateTest{{ .returnType }}().getOrig(), *ms.{{ .fieldName }}().getOrig())
 	{{- end }}
 }`
 

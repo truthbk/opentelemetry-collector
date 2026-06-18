@@ -25,9 +25,12 @@ func TestResourceMetricsSlice(t *testing.T) {
 	testVal := generateTestResourceMetrics()
 	for i := 0; i < 7; i++ {
 		es.AppendEmpty()
-		assert.Equal(t, emptyVal, es.At(i))
+		// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl
+		// for the full doc comment. Compare *getOrig() of the element so the
+		// assertion survives the upcoming Handle-based wrapper layout.
+		assert.Equal(t, *emptyVal.getOrig(), *es.At(i).getOrig())
 		(*es.getOrig())[i] = internal.GenTestResourceMetrics()
-		assert.Equal(t, testVal, es.At(i))
+		assert.Equal(t, *testVal.getOrig(), *es.At(i).getOrig())
 	}
 	assert.Equal(t, 7, es.Len())
 }
@@ -50,9 +53,9 @@ func TestResourceMetricsSlice_CopyTo(t *testing.T) {
 	dest := NewResourceMetricsSlice()
 	src := generateTestResourceMetricsSlice()
 	src.CopyTo(dest)
-	assert.Equal(t, generateTestResourceMetricsSlice(), dest)
+	assert.Equal(t, *generateTestResourceMetricsSlice().getOrig(), *dest.getOrig())
 	dest.CopyTo(dest)
-	assert.Equal(t, generateTestResourceMetricsSlice(), dest)
+	assert.Equal(t, *generateTestResourceMetricsSlice().getOrig(), *dest.getOrig())
 }
 
 func TestResourceMetricsSlice_EnsureCapacity(t *testing.T) {
@@ -63,14 +66,14 @@ func TestResourceMetricsSlice_EnsureCapacity(t *testing.T) {
 	es.EnsureCapacity(ensureSmallLen)
 	assert.Less(t, ensureSmallLen, es.Len())
 	assert.Equal(t, es.Len(), cap(*es.getOrig()))
-	assert.Equal(t, generateTestResourceMetricsSlice(), es)
+	assert.Equal(t, *generateTestResourceMetricsSlice().getOrig(), *es.getOrig())
 
 	// Test ensure larger capacity
 	const ensureLargeLen = 9
 	es.EnsureCapacity(ensureLargeLen)
 	assert.Less(t, generateTestResourceMetricsSlice().Len(), ensureLargeLen)
 	assert.Equal(t, ensureLargeLen, cap(*es.getOrig()))
-	assert.Equal(t, generateTestResourceMetricsSlice(), es)
+	assert.Equal(t, *generateTestResourceMetricsSlice().getOrig(), *es.getOrig())
 }
 
 func TestResourceMetricsSlice_MoveAndAppendTo(t *testing.T) {
@@ -79,13 +82,13 @@ func TestResourceMetricsSlice_MoveAndAppendTo(t *testing.T) {
 	dest := NewResourceMetricsSlice()
 	src := generateTestResourceMetricsSlice()
 	src.MoveAndAppendTo(dest)
-	assert.Equal(t, generateTestResourceMetricsSlice(), dest)
+	assert.Equal(t, *generateTestResourceMetricsSlice().getOrig(), *dest.getOrig())
 	assert.Equal(t, 0, src.Len())
 	assert.Equal(t, expectedSlice.Len(), dest.Len())
 
 	// Test MoveAndAppendTo empty slice
 	src.MoveAndAppendTo(dest)
-	assert.Equal(t, generateTestResourceMetricsSlice(), dest)
+	assert.Equal(t, *generateTestResourceMetricsSlice().getOrig(), *dest.getOrig())
 	assert.Equal(t, 0, src.Len())
 	assert.Equal(t, expectedSlice.Len(), dest.Len())
 
@@ -93,15 +96,15 @@ func TestResourceMetricsSlice_MoveAndAppendTo(t *testing.T) {
 	generateTestResourceMetricsSlice().MoveAndAppendTo(dest)
 	assert.Equal(t, 2*expectedSlice.Len(), dest.Len())
 	for i := 0; i < expectedSlice.Len(); i++ {
-		assert.Equal(t, expectedSlice.At(i), dest.At(i))
-		assert.Equal(t, expectedSlice.At(i), dest.At(i+expectedSlice.Len()))
+		assert.Equal(t, *expectedSlice.At(i).getOrig(), *dest.At(i).getOrig())
+		assert.Equal(t, *expectedSlice.At(i).getOrig(), *dest.At(i + expectedSlice.Len()).getOrig())
 	}
 
 	dest.MoveAndAppendTo(dest)
 	assert.Equal(t, 2*expectedSlice.Len(), dest.Len())
 	for i := 0; i < expectedSlice.Len(); i++ {
-		assert.Equal(t, expectedSlice.At(i), dest.At(i))
-		assert.Equal(t, expectedSlice.At(i), dest.At(i+expectedSlice.Len()))
+		assert.Equal(t, *expectedSlice.At(i).getOrig(), *dest.At(i).getOrig())
+		assert.Equal(t, *expectedSlice.At(i).getOrig(), *dest.At(i + expectedSlice.Len()).getOrig())
 	}
 }
 
@@ -137,7 +140,7 @@ func TestResourceMetricsSliceAll(t *testing.T) {
 
 	var c int
 	for i, v := range ms.All() {
-		assert.Equal(t, ms.At(i), v, "element should match")
+		assert.Equal(t, *ms.At(i).getOrig(), *v.getOrig(), "element should match")
 		c++
 	}
 	assert.Equal(t, ms.Len(), c, "All elements should have been visited")

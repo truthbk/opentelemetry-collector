@@ -18,10 +18,17 @@ func TestSummary_MoveTo(t *testing.T) {
 	ms := generateTestSummary()
 	dest := NewSummary()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewSummary(), ms)
-	assert.Equal(t, generateTestSummary(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewSummary().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestSummary().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestSummary(), dest)
+	assert.Equal(t, *generateTestSummary().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newSummary(internal.NewSummary(), sharedState)) })
@@ -32,10 +39,10 @@ func TestSummary_CopyTo(t *testing.T) {
 	ms := NewSummary()
 	orig := NewSummary()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestSummary()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newSummary(internal.NewSummary(), sharedState)) })
@@ -43,9 +50,12 @@ func TestSummary_CopyTo(t *testing.T) {
 
 func TestSummary_DataPoints(t *testing.T) {
 	ms := NewSummary()
-	assert.Equal(t, NewSummaryDataPointSlice(), ms.DataPoints())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewSummaryDataPointSlice().getOrig(), *ms.DataPoints().getOrig())
 	ms.getOrig().DataPoints = internal.GenTestSummaryDataPointPtrSlice()
-	assert.Equal(t, generateTestSummaryDataPointSlice(), ms.DataPoints())
+	assert.Equal(t, *generateTestSummaryDataPointSlice().getOrig(), *ms.DataPoints().getOrig())
 }
 
 func generateTestSummary() Summary {

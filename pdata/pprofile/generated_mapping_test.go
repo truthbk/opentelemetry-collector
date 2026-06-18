@@ -19,10 +19,17 @@ func TestMapping_MoveTo(t *testing.T) {
 	ms := generateTestMapping()
 	dest := NewMapping()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewMapping(), ms)
-	assert.Equal(t, generateTestMapping(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewMapping().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestMapping().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestMapping(), dest)
+	assert.Equal(t, *generateTestMapping().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newMapping(internal.NewMapping(), sharedState)) })
@@ -33,10 +40,10 @@ func TestMapping_CopyTo(t *testing.T) {
 	ms := NewMapping()
 	orig := NewMapping()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestMapping()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newMapping(internal.NewMapping(), sharedState)) })
@@ -84,9 +91,12 @@ func TestMapping_FilenameStrindex(t *testing.T) {
 
 func TestMapping_AttributeIndices(t *testing.T) {
 	ms := NewMapping()
-	assert.Equal(t, pcommon.NewInt32Slice(), ms.AttributeIndices())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetInt32SliceOrig(internal.Int32SliceWrapper(pcommon.NewInt32Slice())), *internal.GetInt32SliceOrig(internal.Int32SliceWrapper(ms.AttributeIndices())))
 	ms.getOrig().AttributeIndices = internal.GenTestInt32Slice()
-	assert.Equal(t, pcommon.Int32Slice(internal.GenTestInt32SliceWrapper()), ms.AttributeIndices())
+	assert.Equal(t, *internal.GetInt32SliceOrig(internal.GenTestInt32SliceWrapper()), *internal.GetInt32SliceOrig(internal.Int32SliceWrapper(ms.AttributeIndices())))
 }
 
 func generateTestMapping() Mapping {

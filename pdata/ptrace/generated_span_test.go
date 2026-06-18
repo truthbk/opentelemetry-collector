@@ -19,10 +19,17 @@ func TestSpan_MoveTo(t *testing.T) {
 	ms := generateTestSpan()
 	dest := NewSpan()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewSpan(), ms)
-	assert.Equal(t, generateTestSpan(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewSpan().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestSpan().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestSpan(), dest)
+	assert.Equal(t, *generateTestSpan().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newSpan(internal.NewSpan(), sharedState)) })
@@ -33,10 +40,10 @@ func TestSpan_CopyTo(t *testing.T) {
 	ms := NewSpan()
 	orig := NewSpan()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestSpan()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newSpan(internal.NewSpan(), sharedState)) })
@@ -60,9 +67,15 @@ func TestSpan_SpanID(t *testing.T) {
 
 func TestSpan_TraceState(t *testing.T) {
 	ms := NewSpan()
-	assert.Equal(t, pcommon.NewTraceState(), ms.TraceState())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	assert.Equal(t, *internal.GetTraceStateOrig(internal.TraceStateWrapper(pcommon.NewTraceState())), *internal.GetTraceStateOrig(internal.TraceStateWrapper(ms.TraceState())))
 	ms.getOrig().TraceState = *internal.GenTestTraceState()
-	assert.Equal(t, pcommon.TraceState(internal.GenTestTraceStateWrapper()), ms.TraceState())
+	assert.Equal(t, *internal.GetTraceStateOrig(internal.GenTestTraceStateWrapper()), *internal.GetTraceStateOrig(internal.TraceStateWrapper(ms.TraceState())))
 }
 
 func TestSpan_ParentSpanID(t *testing.T) {
@@ -119,9 +132,12 @@ func TestSpan_EndTimestamp(t *testing.T) {
 
 func TestSpan_Attributes(t *testing.T) {
 	ms := NewSpan()
-	assert.Equal(t, pcommon.NewMap(), ms.Attributes())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetMapOrig(internal.MapWrapper(pcommon.NewMap())), *internal.GetMapOrig(internal.MapWrapper(ms.Attributes())))
 	ms.getOrig().Attributes = internal.GenTestKeyValueSlice()
-	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Attributes())
+	assert.Equal(t, *internal.GetMapOrig(internal.GenTestMapWrapper()), *internal.GetMapOrig(internal.MapWrapper(ms.Attributes())))
 }
 
 func TestSpan_DroppedAttributesCount(t *testing.T) {
@@ -136,9 +152,12 @@ func TestSpan_DroppedAttributesCount(t *testing.T) {
 
 func TestSpan_Events(t *testing.T) {
 	ms := NewSpan()
-	assert.Equal(t, NewSpanEventSlice(), ms.Events())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewSpanEventSlice().getOrig(), *ms.Events().getOrig())
 	ms.getOrig().Events = internal.GenTestSpanEventPtrSlice()
-	assert.Equal(t, generateTestSpanEventSlice(), ms.Events())
+	assert.Equal(t, *generateTestSpanEventSlice().getOrig(), *ms.Events().getOrig())
 }
 
 func TestSpan_DroppedEventsCount(t *testing.T) {
@@ -153,9 +172,12 @@ func TestSpan_DroppedEventsCount(t *testing.T) {
 
 func TestSpan_Links(t *testing.T) {
 	ms := NewSpan()
-	assert.Equal(t, NewSpanLinkSlice(), ms.Links())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewSpanLinkSlice().getOrig(), *ms.Links().getOrig())
 	ms.getOrig().Links = internal.GenTestSpanLinkPtrSlice()
-	assert.Equal(t, generateTestSpanLinkSlice(), ms.Links())
+	assert.Equal(t, *generateTestSpanLinkSlice().getOrig(), *ms.Links().getOrig())
 }
 
 func TestSpan_DroppedLinksCount(t *testing.T) {
@@ -170,9 +192,15 @@ func TestSpan_DroppedLinksCount(t *testing.T) {
 
 func TestSpan_Status(t *testing.T) {
 	ms := NewSpan()
-	assert.Equal(t, NewStatus(), ms.Status())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	assert.Equal(t, *NewStatus().getOrig(), *ms.Status().getOrig())
 	ms.getOrig().Status = *internal.GenTestStatus()
-	assert.Equal(t, generateTestStatus(), ms.Status())
+	assert.Equal(t, *generateTestStatus().getOrig(), *ms.Status().getOrig())
 }
 
 func generateTestSpan() Span {

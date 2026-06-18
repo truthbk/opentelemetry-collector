@@ -45,10 +45,11 @@ func (ms {{ .structName }}) SetEmpty{{ .fieldName }}() {{ .returnType }} {
 const oneOfMessageAccessorsTestTemplate = `func Test{{ .structName }}_{{ .fieldName }}(t *testing.T) {
 	ms := New{{ .structName }}()
 	ms.SetEmpty{{ .fieldName }}()
-	assert.Equal(t, New{{ .returnType }}(), ms.{{ .fieldName }}())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	assert.Equal(t, *New{{ .returnType }}().getOrig(), *ms.{{ .fieldName }}().getOrig())
 	ms.{{ .origAccessor }}.Get{{ .originOneOfFieldName }}().(*internal.{{ .originStructType }}).{{ .fieldName }} = internal.GenTest{{ .returnType }}()
 	assert.Equal(t, {{ .typeName }}, ms.{{ .originOneOfTypeFuncName }}())
-	assert.Equal(t, generateTest{{ .returnType }}(), ms.{{ .fieldName }}())
+	assert.Equal(t, *generateTest{{ .returnType }}().getOrig(), *ms.{{ .fieldName }}().getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { new{{ .structName }}(internal.New{{ .originStructName }}(), sharedState).SetEmpty{{ .fieldName }}() })

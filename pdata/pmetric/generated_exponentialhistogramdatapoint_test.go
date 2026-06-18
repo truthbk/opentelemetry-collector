@@ -19,10 +19,17 @@ func TestExponentialHistogramDataPoint_MoveTo(t *testing.T) {
 	ms := generateTestExponentialHistogramDataPoint()
 	dest := NewExponentialHistogramDataPoint()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewExponentialHistogramDataPoint(), ms)
-	assert.Equal(t, generateTestExponentialHistogramDataPoint(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewExponentialHistogramDataPoint().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestExponentialHistogramDataPoint().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestExponentialHistogramDataPoint(), dest)
+	assert.Equal(t, *generateTestExponentialHistogramDataPoint().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() {
@@ -37,10 +44,10 @@ func TestExponentialHistogramDataPoint_CopyTo(t *testing.T) {
 	ms := NewExponentialHistogramDataPoint()
 	orig := NewExponentialHistogramDataPoint()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestExponentialHistogramDataPoint()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() {
@@ -50,9 +57,12 @@ func TestExponentialHistogramDataPoint_CopyTo(t *testing.T) {
 
 func TestExponentialHistogramDataPoint_Attributes(t *testing.T) {
 	ms := NewExponentialHistogramDataPoint()
-	assert.Equal(t, pcommon.NewMap(), ms.Attributes())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetMapOrig(internal.MapWrapper(pcommon.NewMap())), *internal.GetMapOrig(internal.MapWrapper(ms.Attributes())))
 	ms.getOrig().Attributes = internal.GenTestKeyValueSlice()
-	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Attributes())
+	assert.Equal(t, *internal.GetMapOrig(internal.GenTestMapWrapper()), *internal.GetMapOrig(internal.MapWrapper(ms.Attributes())))
 }
 
 func TestExponentialHistogramDataPoint_StartTimestamp(t *testing.T) {
@@ -123,16 +133,28 @@ func TestExponentialHistogramDataPoint_ZeroCount(t *testing.T) {
 
 func TestExponentialHistogramDataPoint_Positive(t *testing.T) {
 	ms := NewExponentialHistogramDataPoint()
-	assert.Equal(t, NewExponentialHistogramDataPointBuckets(), ms.Positive())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	assert.Equal(t, *NewExponentialHistogramDataPointBuckets().getOrig(), *ms.Positive().getOrig())
 	ms.getOrig().Positive = *internal.GenTestExponentialHistogramDataPointBuckets()
-	assert.Equal(t, generateTestExponentialHistogramDataPointBuckets(), ms.Positive())
+	assert.Equal(t, *generateTestExponentialHistogramDataPointBuckets().getOrig(), *ms.Positive().getOrig())
 }
 
 func TestExponentialHistogramDataPoint_Negative(t *testing.T) {
 	ms := NewExponentialHistogramDataPoint()
-	assert.Equal(t, NewExponentialHistogramDataPointBuckets(), ms.Negative())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	assert.Equal(t, *NewExponentialHistogramDataPointBuckets().getOrig(), *ms.Negative().getOrig())
 	ms.getOrig().Negative = *internal.GenTestExponentialHistogramDataPointBuckets()
-	assert.Equal(t, generateTestExponentialHistogramDataPointBuckets(), ms.Negative())
+	assert.Equal(t, *generateTestExponentialHistogramDataPointBuckets().getOrig(), *ms.Negative().getOrig())
 }
 
 func TestExponentialHistogramDataPoint_Flags(t *testing.T) {
@@ -145,9 +167,12 @@ func TestExponentialHistogramDataPoint_Flags(t *testing.T) {
 
 func TestExponentialHistogramDataPoint_Exemplars(t *testing.T) {
 	ms := NewExponentialHistogramDataPoint()
-	assert.Equal(t, NewExemplarSlice(), ms.Exemplars())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewExemplarSlice().getOrig(), *ms.Exemplars().getOrig())
 	ms.getOrig().Exemplars = internal.GenTestExemplarSlice()
-	assert.Equal(t, generateTestExemplarSlice(), ms.Exemplars())
+	assert.Equal(t, *generateTestExemplarSlice().getOrig(), *ms.Exemplars().getOrig())
 }
 
 func TestExponentialHistogramDataPoint_Min(t *testing.T) {

@@ -19,12 +19,19 @@ func (ms {{ .structName }}) {{ .fieldName }}() {{ .packageName }}{{ .returnType 
 
 const sliceAccessorsTestTemplate = `func Test{{ .structName }}_{{ .fieldName }}(t *testing.T) {
 	ms := New{{ .structName }}()
-	assert.Equal(t, {{ .packageName }}New{{ .returnType }}(), ms.{{ .fieldName }}())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	{{- if .elementHasWrapper }}
+	assert.Equal(t, *internal.Get{{ .returnType }}Orig(internal.{{ .returnType }}Wrapper({{ .packageName }}New{{ .returnType }}())), *internal.Get{{ .returnType }}Orig(internal.{{ .returnType }}Wrapper(ms.{{ .fieldName }}())))
+	{{- else }}
+	assert.Equal(t, *{{ .packageName }}New{{ .returnType }}().getOrig(), *ms.{{ .fieldName }}().getOrig())
+	{{- end }}
 	ms.{{ .origAccessor }}.{{ .originFieldName }} = internal.GenTest{{ .elementOriginName }}{{ if .elementNullable }}Ptr{{ end }}Slice()
 	{{- if .elementHasWrapper }}
-	assert.Equal(t, {{ .packageName }}{{ .returnType }}(internal.GenTest{{ .returnType }}Wrapper()), ms.{{ .fieldName }}())
+	assert.Equal(t, *internal.Get{{ .returnType }}Orig(internal.GenTest{{ .returnType }}Wrapper()), *internal.Get{{ .returnType }}Orig(internal.{{ .returnType }}Wrapper(ms.{{ .fieldName }}())))
 	{{- else }}
-	assert.Equal(t, generateTest{{ .returnType }}(), ms.{{ .fieldName }}())
+	assert.Equal(t, *generateTest{{ .returnType }}().getOrig(), *ms.{{ .fieldName }}().getOrig())
 	{{- end }}
 }`
 

@@ -18,10 +18,17 @@ func TestSummaryDataPointValueAtQuantile_MoveTo(t *testing.T) {
 	ms := generateTestSummaryDataPointValueAtQuantile()
 	dest := NewSummaryDataPointValueAtQuantile()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewSummaryDataPointValueAtQuantile(), ms)
-	assert.Equal(t, generateTestSummaryDataPointValueAtQuantile(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewSummaryDataPointValueAtQuantile().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestSummaryDataPointValueAtQuantile().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestSummaryDataPointValueAtQuantile(), dest)
+	assert.Equal(t, *generateTestSummaryDataPointValueAtQuantile().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() {
@@ -36,10 +43,10 @@ func TestSummaryDataPointValueAtQuantile_CopyTo(t *testing.T) {
 	ms := NewSummaryDataPointValueAtQuantile()
 	orig := NewSummaryDataPointValueAtQuantile()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestSummaryDataPointValueAtQuantile()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() {

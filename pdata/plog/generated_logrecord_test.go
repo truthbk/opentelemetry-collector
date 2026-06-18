@@ -19,10 +19,17 @@ func TestLogRecord_MoveTo(t *testing.T) {
 	ms := generateTestLogRecord()
 	dest := NewLogRecord()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewLogRecord(), ms)
-	assert.Equal(t, generateTestLogRecord(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewLogRecord().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestLogRecord().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestLogRecord(), dest)
+	assert.Equal(t, *generateTestLogRecord().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newLogRecord(internal.NewLogRecord(), sharedState)) })
@@ -33,10 +40,10 @@ func TestLogRecord_CopyTo(t *testing.T) {
 	ms := NewLogRecord()
 	orig := NewLogRecord()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestLogRecord()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newLogRecord(internal.NewLogRecord(), sharedState)) })
@@ -78,16 +85,25 @@ func TestLogRecord_SeverityText(t *testing.T) {
 
 func TestLogRecord_Body(t *testing.T) {
 	ms := NewLogRecord()
-	assert.Equal(t, pcommon.NewValueEmpty(), ms.Body())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	assert.Equal(t, *internal.GetValueOrig(internal.ValueWrapper(pcommon.NewValueEmpty())), *internal.GetValueOrig(internal.ValueWrapper(ms.Body())))
 	ms.getOrig().Body = *internal.GenTestAnyValue()
-	assert.Equal(t, pcommon.Value(internal.GenTestValueWrapper()), ms.Body())
+	assert.Equal(t, *internal.GetValueOrig(internal.GenTestValueWrapper()), *internal.GetValueOrig(internal.ValueWrapper(ms.Body())))
 }
 
 func TestLogRecord_Attributes(t *testing.T) {
 	ms := NewLogRecord()
-	assert.Equal(t, pcommon.NewMap(), ms.Attributes())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetMapOrig(internal.MapWrapper(pcommon.NewMap())), *internal.GetMapOrig(internal.MapWrapper(ms.Attributes())))
 	ms.getOrig().Attributes = internal.GenTestKeyValueSlice()
-	assert.Equal(t, pcommon.Map(internal.GenTestMapWrapper()), ms.Attributes())
+	assert.Equal(t, *internal.GetMapOrig(internal.GenTestMapWrapper()), *internal.GetMapOrig(internal.MapWrapper(ms.Attributes())))
 }
 
 func TestLogRecord_DroppedAttributesCount(t *testing.T) {

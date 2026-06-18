@@ -19,10 +19,17 @@ func TestEntityRef_MoveTo(t *testing.T) {
 	ms := generateTestEntityRef()
 	dest := NewEntityRef()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewEntityRef(), ms)
-	assert.Equal(t, generateTestEntityRef(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewEntityRef().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestEntityRef().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestEntityRef(), dest)
+	assert.Equal(t, *generateTestEntityRef().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newEntityRef(internal.NewEntityRef(), sharedState)) })
@@ -33,10 +40,10 @@ func TestEntityRef_CopyTo(t *testing.T) {
 	ms := NewEntityRef()
 	orig := NewEntityRef()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestEntityRef()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newEntityRef(internal.NewEntityRef(), sharedState)) })
@@ -64,16 +71,22 @@ func TestEntityRef_Type(t *testing.T) {
 
 func TestEntityRef_IdKeys(t *testing.T) {
 	ms := NewEntityRef()
-	assert.Equal(t, pcommon.NewStringSlice(), ms.IdKeys())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetStringSliceOrig(internal.StringSliceWrapper(pcommon.NewStringSlice())), *internal.GetStringSliceOrig(internal.StringSliceWrapper(ms.IdKeys())))
 	ms.getOrig().IdKeys = internal.GenTestStringSlice()
-	assert.Equal(t, pcommon.StringSlice(internal.GenTestStringSliceWrapper()), ms.IdKeys())
+	assert.Equal(t, *internal.GetStringSliceOrig(internal.GenTestStringSliceWrapper()), *internal.GetStringSliceOrig(internal.StringSliceWrapper(ms.IdKeys())))
 }
 
 func TestEntityRef_DescriptionKeys(t *testing.T) {
 	ms := NewEntityRef()
-	assert.Equal(t, pcommon.NewStringSlice(), ms.DescriptionKeys())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *internal.GetStringSliceOrig(internal.StringSliceWrapper(pcommon.NewStringSlice())), *internal.GetStringSliceOrig(internal.StringSliceWrapper(ms.DescriptionKeys())))
 	ms.getOrig().DescriptionKeys = internal.GenTestStringSlice()
-	assert.Equal(t, pcommon.StringSlice(internal.GenTestStringSliceWrapper()), ms.DescriptionKeys())
+	assert.Equal(t, *internal.GetStringSliceOrig(internal.GenTestStringSliceWrapper()), *internal.GetStringSliceOrig(internal.StringSliceWrapper(ms.DescriptionKeys())))
 }
 
 func generateTestEntityRef() EntityRef {

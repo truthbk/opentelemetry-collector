@@ -18,10 +18,17 @@ func TestMetrics_MoveTo(t *testing.T) {
 	ms := generateTestMetrics()
 	dest := NewMetrics()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewMetrics(), ms)
-	assert.Equal(t, generateTestMetrics(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewMetrics().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestMetrics().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestMetrics(), dest)
+	assert.Equal(t, *generateTestMetrics().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newMetrics(internal.NewExportMetricsServiceRequest(), sharedState)) })
@@ -32,10 +39,10 @@ func TestMetrics_CopyTo(t *testing.T) {
 	ms := NewMetrics()
 	orig := NewMetrics()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestMetrics()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newMetrics(internal.NewExportMetricsServiceRequest(), sharedState)) })
@@ -43,9 +50,12 @@ func TestMetrics_CopyTo(t *testing.T) {
 
 func TestMetrics_ResourceMetrics(t *testing.T) {
 	ms := NewMetrics()
-	assert.Equal(t, NewResourceMetricsSlice(), ms.ResourceMetrics())
+	// Semantic equality (Path Y Phase 4 step 2a) — see message_test.go.tmpl.
+	// Cross-package wrappers (elementHasWrapper=pcommon) use internal.Get<X>Orig
+	// since getOrig() is package-private.
+	assert.Equal(t, *NewResourceMetricsSlice().getOrig(), *ms.ResourceMetrics().getOrig())
 	ms.getOrig().ResourceMetrics = internal.GenTestResourceMetricsPtrSlice()
-	assert.Equal(t, generateTestResourceMetricsSlice(), ms.ResourceMetrics())
+	assert.Equal(t, *generateTestResourceMetricsSlice().getOrig(), *ms.ResourceMetrics().getOrig())
 }
 
 func generateTestMetrics() Metrics {

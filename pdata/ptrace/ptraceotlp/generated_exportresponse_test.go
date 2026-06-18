@@ -18,10 +18,17 @@ func TestExportResponse_MoveTo(t *testing.T) {
 	ms := generateTestExportResponse()
 	dest := NewExportResponse()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewExportResponse(), ms)
-	assert.Equal(t, generateTestExportResponse(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewExportResponse().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestExportResponse().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestExportResponse(), dest)
+	assert.Equal(t, *generateTestExportResponse().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newExportResponse(internal.NewExportTraceServiceResponse(), sharedState)) })
@@ -32,10 +39,10 @@ func TestExportResponse_CopyTo(t *testing.T) {
 	ms := NewExportResponse()
 	orig := NewExportResponse()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestExportResponse()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newExportResponse(internal.NewExportTraceServiceResponse(), sharedState)) })
@@ -43,9 +50,15 @@ func TestExportResponse_CopyTo(t *testing.T) {
 
 func TestExportResponse_PartialSuccess(t *testing.T) {
 	ms := NewExportResponse()
-	assert.Equal(t, NewExportPartialSuccess(), ms.PartialSuccess())
+	// Semantic equality (Path Y Phase 4 step 2a): compare *getOrig() rather
+	// than the wrapper struct itself. See message_test.go.tmpl for rationale.
+	// When the field type lives in a different package (.messageHasWrapper),
+	// use the exported internal.Get<X>Orig accessor since getOrig() is
+	// package-private. When it lives in the same package, use getOrig()
+	// directly.
+	assert.Equal(t, *NewExportPartialSuccess().getOrig(), *ms.PartialSuccess().getOrig())
 	ms.getOrig().PartialSuccess = *internal.GenTestExportTracePartialSuccess()
-	assert.Equal(t, generateTestExportPartialSuccess(), ms.PartialSuccess())
+	assert.Equal(t, *generateTestExportPartialSuccess().getOrig(), *ms.PartialSuccess().getOrig())
 }
 
 func generateTestExportResponse() ExportResponse {

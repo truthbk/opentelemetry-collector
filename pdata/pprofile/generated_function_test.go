@@ -18,10 +18,17 @@ func TestFunction_MoveTo(t *testing.T) {
 	ms := generateTestFunction()
 	dest := NewFunction()
 	ms.MoveTo(dest)
-	assert.Equal(t, NewFunction(), ms)
-	assert.Equal(t, generateTestFunction(), dest)
+	// Semantic equality (Path Y Phase 4 step 2a): compare the underlying
+	// proto data via *getOrig() rather than the wrapper struct itself.
+	// Under the upcoming nested-wrapper Handle layout, two semantically-
+	// equal wrappers may carry different Handles + indices and fail
+	// reflect.DeepEqual on the struct shape; comparing *getOrig()
+	// dereferences to the proto message and gives field-by-field
+	// equality that survives the layout change.
+	assert.Equal(t, *NewFunction().getOrig(), *ms.getOrig())
+	assert.Equal(t, *generateTestFunction().getOrig(), *dest.getOrig())
 	dest.MoveTo(dest)
-	assert.Equal(t, generateTestFunction(), dest)
+	assert.Equal(t, *generateTestFunction().getOrig(), *dest.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.MoveTo(newFunction(internal.NewFunction(), sharedState)) })
@@ -32,10 +39,10 @@ func TestFunction_CopyTo(t *testing.T) {
 	ms := NewFunction()
 	orig := NewFunction()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	orig = generateTestFunction()
 	orig.CopyTo(ms)
-	assert.Equal(t, orig, ms)
+	assert.Equal(t, *orig.getOrig(), *ms.getOrig())
 	sharedState := internal.NewState()
 	sharedState.MarkReadOnly()
 	assert.Panics(t, func() { ms.CopyTo(newFunction(internal.NewFunction(), sharedState)) })
