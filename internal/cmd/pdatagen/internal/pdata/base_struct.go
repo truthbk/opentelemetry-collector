@@ -32,6 +32,20 @@ type messageStruct struct {
 	fields          []Field
 	hasWrapper      bool
 	hasOnlyInternal bool
+
+	// isTopLevel marks the per-signal root types (Metrics, Traces, Logs,
+	// Profiles) under Path Y. ComputeNestedPaths uses this as the entry
+	// point for the tree walk that fills in nestedPath on reachable
+	// non-pcommon descendants. Default false.
+	isTopLevel bool
+
+	// nestedPath records the path from a top-level wrapper's Handle.orig
+	// down to this type's orig, expressed as a chain of slice indices
+	// and direct field accesses. Empty for top-level types and for
+	// types in pcommon (which stay inline per the Phase 1 decision).
+	// Computed by ComputeNestedPaths; consumed by Phase 4 template
+	// emission. See nested_path.go.
+	nestedPath []PathSegment
 }
 
 func (ms *messageStruct) getName() string {

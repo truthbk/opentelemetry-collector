@@ -33,11 +33,11 @@ import (
 // critical for the existing wire-compatibility tests that compare a
 // round-tripped wrapper against its source via assert.Equal.
 type State struct {
+	detach     func()
 	refs       atomic.Int32
 	cowRefs    atomic.Int32
 	state      uint32
 	generation atomic.Uint32
-	detach     func()
 }
 
 const (

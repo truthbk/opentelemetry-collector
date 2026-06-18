@@ -55,6 +55,7 @@ var plog = &Package{
 }
 
 var logs = &messageStruct{
+	isTopLevel:    true,
 	structName:    "Logs",
 	description:   "// Logs is the top-level struct that is propagated through the logs pipeline.\n// Use NewLogs to create new instance, zero-initialized instance is not valid for use.",
 	protoName:     "ExportLogsServiceRequest",

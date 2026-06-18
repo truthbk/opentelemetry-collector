@@ -72,6 +72,7 @@ var pprofile = &Package{
 }
 
 var profiles = &messageStruct{
+	isTopLevel:    true,
 	structName:    "Profiles",
 	description:   "// Profiles is the top-level struct that is propagated through the profiles pipeline.\n// Use NewProfiles to create new instance, zero-initialized instance is not valid for use.",
 	protoName:     "ExportProfilesServiceRequest",

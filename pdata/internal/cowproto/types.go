@@ -204,8 +204,8 @@ func (m Metric) GaugeDataPoints() NumberDataPointSlice {
 
 type NumberDataPointSlice struct {
 	h                  *Handle
-	rmIdx, smIdx, mIdx int
 	cachedGauge        *internal.Gauge
+	rmIdx, smIdx, mIdx int
 	gen                uint32
 }
 
@@ -236,8 +236,8 @@ func (s NumberDataPointSlice) At(i int) NumberDataPoint {
 
 type NumberDataPoint struct {
 	h                         *Handle
-	rmIdx, smIdx, mIdx, dpIdx int
 	cachedGauge               *internal.Gauge
+	rmIdx, smIdx, mIdx, dpIdx int
 	gen                       uint32
 }
 
@@ -280,8 +280,8 @@ func (dp NumberDataPoint) Attributes() DataPointAttrMap {
 // fast path. Stale generation falls back to the full re-derive.
 type DataPointAttrMap struct {
 	h                         *Handle
-	rmIdx, smIdx, mIdx, dpIdx int
 	cachedGauge               *internal.Gauge
+	rmIdx, smIdx, mIdx, dpIdx int
 	gen                       uint32
 }
 

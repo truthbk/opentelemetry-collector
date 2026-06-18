@@ -26,6 +26,13 @@ func main() {
 	flag.Parse()
 
 	checkErr(os.Chdir(workdir))
+	// Path Y Phase 3: compute nestedPath on every reachable non-pcommon
+	// messageStruct BEFORE generation, so templates can use the info
+	// in Phase 4. Idempotent and side-effect-free for any consumer that
+	// doesn't read nestedPath, so it's safe to enable unconditionally.
+	for _, fp := range pdata.AllPackages {
+		pdata.ComputeNestedPaths(fp)
+	}
 	checkErr(pdata.DeleteGeneratedFiles(filepath.Join("pdata", "internal")))
 	for _, fp := range pdata.AllPackages {
 		checkErr(pdata.DeleteGeneratedFiles(filepath.Join("pdata", fp.Path())))

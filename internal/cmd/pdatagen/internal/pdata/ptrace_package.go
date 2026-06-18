@@ -61,6 +61,7 @@ var ptrace = &Package{
 }
 
 var traces = &messageStruct{
+	isTopLevel:    true,
 	structName:    "Traces",
 	description:   "// Traces is the top-level struct that is propagated through the traces pipeline.\n// Use NewTraces to create new instance, zero-initialized instance is not valid for use.",
 	protoName:     "ExportTraceServiceRequest",
