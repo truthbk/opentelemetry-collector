@@ -8,7 +8,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/ptrace"
 )
 
-// ShareTraces — see ShareMetrics for the full doc + Phase 1 limitation.
+// ShareTraces — see ShareMetrics for the full doc + safety model.
 func ShareTraces(td ptrace.Traces) ptrace.Traces {
 	if !FeatureGate.IsEnabled() {
 		return td
@@ -35,7 +35,7 @@ func IsSharedTraces(td ptrace.Traces) bool {
 	return internal.GetTracesState(internal.TracesWrapper(td)).CowRefs() > 0
 }
 
-// DetachTraces — see DetachMetrics for the full doc + Phase 1 contract.
+// DetachTraces — see DetachMetrics for the full doc + safety model.
 func DetachTraces(td ptrace.Traces) ptrace.Traces {
 	if !FeatureGate.IsEnabled() {
 		return td

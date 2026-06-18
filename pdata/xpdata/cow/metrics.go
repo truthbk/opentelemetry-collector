@@ -23,17 +23,21 @@ import (
 //   - The source's State is untouched. A MarkReadOnly broadcast on the
 //     source does not affect this share's mutability.
 //
-// CURRENT LIMITATION (Phase 1 validation, before codegen migration):
-// Auto-detach-on-mutation is NOT wired into the leaf wrapper accessors.
-// A consumer that DECLARES MutatesData=true but does not actually mutate
-// (the audit's "false-positive mutator" — e.g. a transform/filter
-// processor on a no-match batch) works correctly: no mutation, no
-// corruption, the clone today's fanout would have done is skipped. A
-// consumer that ACTUALLY mutates writes to the source's backing tree
-// (corruption). Phase 2 adds the codegen migration that makes auto-
-// detach safe for real mutators; Phase 1 is for measuring whether the
-// deferred-clone benefit is real at the pipeline level before
-// committing to that work.
+// SAFETY MODEL: a consumer that DECLARES MutatesData=true but does not
+// actually mutate (the audit's "false-positive mutator" — e.g. a
+// transform/filter processor on a no-match batch) works correctly: no
+// mutation, no clone, the eager-clone today's fanout would have done is
+// skipped. A consumer that ACTUALLY mutates a share without first
+// calling cow.DetachMetrics panics at the first mutating accessor via
+// state.AssertMutable's cowRefs>0 check (see pdata/internal/state.go).
+// Silent corruption is impossible under the gate — the safety net
+// (commit 5f2370aac) replaces the deferred-clone correctness gap from
+// the original Phase 1 design.
+//
+// Phases 4-6 of Path Y will replace the explicit DetachX call sites
+// with auto-detach codegen so mutators get the deferred-clone benefit
+// without explicit opt-in. This commit lands the Path X-hybrid (opt-in
+// explicit DetachX with AssertMutable backstop).
 //
 // When the pdata.cow feature gate is disabled, ShareMetrics returns md
 // unchanged.

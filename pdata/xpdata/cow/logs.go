@@ -8,7 +8,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 )
 
-// ShareLogs — see ShareMetrics for the full doc + Phase 1 limitation.
+// ShareLogs — see ShareMetrics for the full doc + safety model.
 func ShareLogs(ld plog.Logs) plog.Logs {
 	if !FeatureGate.IsEnabled() {
 		return ld
@@ -35,7 +35,7 @@ func IsSharedLogs(ld plog.Logs) bool {
 	return internal.GetLogsState(internal.LogsWrapper(ld)).CowRefs() > 0
 }
 
-// DetachLogs — see DetachMetrics for the full doc + Phase 1 contract.
+// DetachLogs — see DetachMetrics for the full doc + safety model.
 func DetachLogs(ld plog.Logs) plog.Logs {
 	if !FeatureGate.IsEnabled() {
 		return ld

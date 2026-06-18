@@ -8,7 +8,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/pprofile"
 )
 
-// ShareProfiles — see ShareMetrics for the full doc + Phase 1 limitation.
+// ShareProfiles — see ShareMetrics for the full doc + safety model.
 func ShareProfiles(pd pprofile.Profiles) pprofile.Profiles {
 	if !FeatureGate.IsEnabled() {
 		return pd
@@ -35,7 +35,7 @@ func IsSharedProfiles(pd pprofile.Profiles) bool {
 	return internal.GetProfilesState(internal.ProfilesWrapper(pd)).CowRefs() > 0
 }
 
-// DetachProfiles — see DetachMetrics for the full doc + Phase 1 contract.
+// DetachProfiles — see DetachMetrics for the full doc + safety model.
 func DetachProfiles(pd pprofile.Profiles) pprofile.Profiles {
 	if !FeatureGate.IsEnabled() {
 		return pd
