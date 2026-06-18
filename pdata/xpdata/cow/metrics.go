@@ -48,6 +48,15 @@ func ShareMetrics(md pmetric.Metrics) pmetric.Metrics {
 	sourceOrig := internal.GetMetricsOrig(internal.MetricsWrapper(md))
 	sharedState := internal.NewState()
 	sharedState.IncCowRefs()
+	// TODO Path Y Phase 5: install the per-signal detacher closure here
+	// (sharedState.SetDetacher(func() { internal.DetachIfShared(handle,
+	// internal.CopyExportMetricsServiceRequest) })) so nested mutators
+	// can dispatch through State.DetachIfShared without knowing T. See
+	// the package-level doc on pdata/internal/detach.go for the wiring
+	// contract between the generic free function and the nested-wrapper
+	// method on State. Today the detacher stays nil; nested mutators
+	// don't yet trigger auto-detach because Phase 4 hasn't emitted the
+	// prelude code in the generated wrappers.
 	return pmetric.Metrics(internal.NewMetricsWrapper(sourceOrig, sharedState))
 }
 

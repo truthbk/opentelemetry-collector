@@ -3,6 +3,31 @@
 
 package internal // import "go.opentelemetry.io/collector/pdata/internal"
 
+// Two symbols named DetachIfShared live in this package; they are NOT
+// interchangeable and a Phase-5 implementor must wire the right one:
+//
+//   - This file's generic free function DetachIfShared[T](h, cloneFn)
+//     is the TOP-LEVEL wrapper path. It takes the top-level Handle (the
+//     one returned by NewXWrapper) and the per-signal clone function;
+//     it rebinds h.orig + h.state atomically so subsequent accessors
+//     observe the new backing. Use this from generated mutators on the
+//     top-level signal types (Metrics.MoveTo, Traces.CopyTo, ...).
+//
+//   - state.go's DetachIfShared method on *State is the NESTED-wrapper
+//     dispatch path. Nested wrappers (e.g. Resource.Attributes() on a
+//     shared Metrics) don't have access to the top-level Handle but do
+//     share its *State; they call st.DetachIfShared(), which in turn
+//     dispatches to the closure that cow.ShareX installed via
+//     SetDetacher. The closure ultimately calls THIS file's generic
+//     function with the captured Handle and cloneFn.
+//
+// In short: generated code at the top level calls internal.DetachIfShared
+// directly; generated code at nested levels calls state.DetachIfShared().
+// Today neither path is invoked by any production code — both are
+// scaffolding for Path Y phases 4-6 (template emission + auto-detach
+// wiring). cow.ShareX will gain a SetDetacher call in Phase 5 to install
+// the per-signal closure that bridges nested → generic.
+
 // DetachIfShared is the load-bearing primitive of Path Y's auto-detach
 // mechanism. Called from a mutating wrapper before any actual mutation
 // fires: if the wrapper's State carries an outstanding COW share

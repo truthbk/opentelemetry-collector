@@ -71,11 +71,16 @@ func (st *State) SetDetacher(detach func()) {
 	st.detach = detach
 }
 
-// DetachIfShared is the codegen-injected prelude for nested mutators.
+// DetachIfShared is the codegen-injected prelude for NESTED mutators.
 // If cowRefs > 0 AND a per-signal detacher is installed, invoke it to
 // rebind the top-level Handle's orig + state to a freshly-cloned pair.
 // On the gate-off / unshared path, the detacher is nil and this is
 // effectively cowRefs.Load() + branch — zero allocation.
+//
+// This is the nested-wrapper sibling of the generic free function
+// internal.DetachIfShared[T] in detach.go — see that file's package-
+// level doc comment for the wiring contract. Top-level mutators call
+// the generic function directly; nested mutators call this method.
 func (st *State) DetachIfShared() {
 	if st.cowRefs.Load() == 0 {
 		return

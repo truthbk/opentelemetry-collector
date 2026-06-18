@@ -16,6 +16,7 @@ func ShareTraces(td ptrace.Traces) ptrace.Traces {
 	sourceOrig := internal.GetTracesOrig(internal.TracesWrapper(td))
 	sharedState := internal.NewState()
 	sharedState.IncCowRefs()
+	// TODO Path Y Phase 5: install per-signal detacher closure — see ShareMetrics.
 	return ptrace.Traces(internal.NewTracesWrapper(sourceOrig, sharedState))
 }
 
