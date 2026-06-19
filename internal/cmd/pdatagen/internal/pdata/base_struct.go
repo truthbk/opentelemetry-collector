@@ -55,6 +55,17 @@ type messageStruct struct {
 	// `internal.Handle[<topLevelOriginName>]` and to render the
 	// synthetic parent tree in nested-wrapper standalone constructors.
 	topLevelOriginName string
+
+	// useHandleLayout is true iff nestedPath is non-empty AND every
+	// segment is a SliceIndex (no FieldAccess). Only types with pure
+	// SliceIndex paths can use the new {h, indices} layout in Phase 4
+	// step 2b.ii — FieldAccess segments would require the getOrig walk
+	// to emit `.Field` without a `[idx]` suffix, and renderSyntheticParent
+	// to emit nested struct literals (vs. slice literals). FieldAccess
+	// support is deferred; types like Span.Status (whose path ends in
+	// FieldAccess for the `Status` field) stay on the inline {orig,
+	// state} layout. Computed during ComputeNestedPaths.
+	useHandleLayout bool
 }
 
 func (ms *messageStruct) getName() string {
@@ -92,14 +103,14 @@ func (ms *messageStruct) templateFields(packageInfo *PackageInfo) map[string]any
 		hasWrapper = usedByOtherDataTypes(ms.packageName)
 	}
 
-	// Path Y Phase 4 — synthetic parent is only meaningful for
-	// nested-non-pcommon types (where nestedPath is non-empty). For
-	// top-level types and pcommon types, the syntheticParent string
-	// is left empty; the upcoming step 2b.ii templates branch on
-	// `len .nestedPath > 0` before emitting it. Mirrors the guard in
-	// messageSlice.templateFields().
+	// Path Y Phase 4 — synthetic parent is only meaningful for types
+	// using the new {h, indices} layout (useHandleLayout=true, set by
+	// the walker only when nestedPath is pure SliceIndex). For top-level,
+	// pcommon, and FieldAccess-bearing types, the syntheticParent string
+	// is left empty so templates can branch on `useHandleLayout` to
+	// decide whether to emit the new layout.
 	var syntheticParent string
-	if len(ms.nestedPath) > 0 {
+	if ms.useHandleLayout {
 		syntheticParent = renderSyntheticParent(ms.topLevelOriginName, ms.nestedPath, "orig")
 	}
 
@@ -134,6 +145,7 @@ func (ms *messageStruct) templateFields(packageInfo *PackageInfo) map[string]any
 		"nestedPath":         ms.nestedPath,
 		"topLevelOriginName": ms.topLevelOriginName,
 		"syntheticParent":    syntheticParent,
+		"useHandleLayout":    ms.useHandleLayout,
 	}
 }
 

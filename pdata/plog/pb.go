@@ -19,15 +19,15 @@ func (e *ProtoMarshaler) LogsSize(ld Logs) int {
 }
 
 func (e *ProtoMarshaler) ResourceLogsSize(ld ResourceLogs) int {
-	return ld.orig.SizeProto()
+	return ld.getOrig().SizeProto()
 }
 
 func (e *ProtoMarshaler) ScopeLogsSize(ld ScopeLogs) int {
-	return ld.orig.SizeProto()
+	return ld.getOrig().SizeProto()
 }
 
 func (e *ProtoMarshaler) LogRecordSize(ld LogRecord) int {
-	return ld.orig.SizeProto()
+	return ld.getOrig().SizeProto()
 }
 
 var _ Unmarshaler = (*ProtoUnmarshaler)(nil)

@@ -18,13 +18,24 @@ import (
 //
 // Must use NewResourceProfiles function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-wrapper layout: carries a top-level Handle (shared with
+// the parent tree under cow.Share*) and the index path that locates this
+// type's orig inside that tree. getOrig() walks h.GetOrig() + indices.
+// See perf/rfc/pdata-cow.md and internal/cmd/pdatagen/internal/pdata/nested_path.go.
 type ResourceProfiles struct {
-	orig  *internal.ResourceProfiles
-	state *internal.State
+	h     *internal.Handle[internal.ExportProfilesServiceRequest]
+	rpIdx int
 }
 
 func newResourceProfiles(orig *internal.ResourceProfiles, state *internal.State) ResourceProfiles {
-	return ResourceProfiles{orig: orig, state: state}
+	// Path Y "always-h" pattern: synthesize a single-element parent tree
+	// wrapping orig so this standalone wrapper has the same struct shape
+	// as a tree-embedded one. The synthetic tree contains orig by pointer
+	// (not by copy), so mutations through this wrapper propagate to orig.
+	return ResourceProfiles{
+		h:     internal.NewHandle(&internal.ExportProfilesServiceRequest{ResourceProfiles: []*internal.ResourceProfiles{orig}}, state),
+		rpIdx: 0,
+	}
 }
 
 // NewResourceProfiles creates a new empty ResourceProfiles.
@@ -76,9 +87,9 @@ func (ms ResourceProfiles) CopyTo(dest ResourceProfiles) {
 }
 
 func (ms ResourceProfiles) getOrig() *internal.ResourceProfiles {
-	return ms.orig
+	return ms.h.GetOrig().ResourceProfiles[ms.rpIdx]
 }
 
 func (ms ResourceProfiles) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

@@ -18,13 +18,26 @@ import (
 //
 // Must use NewScopeMetrics function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-wrapper layout: carries a top-level Handle (shared with
+// the parent tree under cow.Share*) and the index path that locates this
+// type's orig inside that tree. getOrig() walks h.GetOrig() + indices.
+// See perf/rfc/pdata-cow.md and internal/cmd/pdatagen/internal/pdata/nested_path.go.
 type ScopeMetrics struct {
-	orig  *internal.ScopeMetrics
-	state *internal.State
+	h     *internal.Handle[internal.ExportMetricsServiceRequest]
+	rmIdx int
+	smIdx int
 }
 
 func newScopeMetrics(orig *internal.ScopeMetrics, state *internal.State) ScopeMetrics {
-	return ScopeMetrics{orig: orig, state: state}
+	// Path Y "always-h" pattern: synthesize a single-element parent tree
+	// wrapping orig so this standalone wrapper has the same struct shape
+	// as a tree-embedded one. The synthetic tree contains orig by pointer
+	// (not by copy), so mutations through this wrapper propagate to orig.
+	return ScopeMetrics{
+		h:     internal.NewHandle(&internal.ExportMetricsServiceRequest{ResourceMetrics: []*internal.ResourceMetrics{{ScopeMetrics: []*internal.ScopeMetrics{orig}}}}, state),
+		rmIdx: 0,
+		smIdx: 0,
+	}
 }
 
 // NewScopeMetrics creates a new empty ScopeMetrics.
@@ -76,9 +89,9 @@ func (ms ScopeMetrics) CopyTo(dest ScopeMetrics) {
 }
 
 func (ms ScopeMetrics) getOrig() *internal.ScopeMetrics {
-	return ms.orig
+	return ms.h.GetOrig().ResourceMetrics[ms.rmIdx].ScopeMetrics[ms.smIdx]
 }
 
 func (ms ScopeMetrics) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

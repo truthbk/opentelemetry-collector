@@ -21,6 +21,17 @@ import (
 // Important: zero-initialized instance is not valid for use.
 {{- if .hasWrapper }}
 type {{ .structName }} internal.{{ .structName }}Wrapper
+{{- else if .useHandleLayout }}
+// Path Y nested-wrapper layout: carries a top-level Handle (shared with
+// the parent tree under cow.Share*) and the index path that locates this
+// type's orig inside that tree. getOrig() walks h.GetOrig() + indices.
+// See perf/rfc/pdata-cow.md and internal/cmd/pdatagen/internal/pdata/nested_path.go.
+type {{ .structName }} struct {
+	h *internal.Handle[internal.{{ .topLevelOriginName }}]
+	{{- range .nestedPath }}
+	{{ .IndexVar }} int
+	{{- end }}
+}
 {{- else }}
 type {{ .structName }} struct {
 	orig *internal.{{ .originName }}
@@ -31,6 +42,17 @@ type {{ .structName }} struct {
 func new{{ .structName }}(orig *internal.{{ .originName }}, state *internal.State) {{ .structName }} {
 	{{- if .hasWrapper }}
 	return {{ .structName }}(internal.New{{ .structName }}Wrapper(orig, state))
+	{{- else if .useHandleLayout }}
+	// Path Y "always-h" pattern: synthesize a single-element parent tree
+	// wrapping orig so this standalone wrapper has the same struct shape
+	// as a tree-embedded one. The synthetic tree contains orig by pointer
+	// (not by copy), so mutations through this wrapper propagate to orig.
+	return {{ .structName }}{
+		h: internal.NewHandle({{ .syntheticParent }}, state),
+		{{- range .nestedPath }}
+		{{ .IndexVar }}: 0,
+		{{- end }}
+	}
 	{{- else }}
 	return {{ .structName }}{orig: orig, state: state}
 	{{- end }}
@@ -70,6 +92,8 @@ func (ms {{ .structName }}) CopyTo(dest {{ .structName }}) {
 func (ms {{ .structName }}) getOrig() *internal.{{ .originName }} {
 {{- if .hasWrapper }}
 	return internal.Get{{ .structName }}Orig(internal.{{ .structName }}Wrapper(ms))
+{{- else if .useHandleLayout }}
+	return ms.h.GetOrig(){{- range .nestedPath }}.{{ .FieldName }}[ms.{{ .IndexVar }}]{{- end }}
 {{- else }}
 	return ms.orig
 {{- end }}
@@ -78,6 +102,8 @@ func (ms {{ .structName }}) getOrig() *internal.{{ .originName }} {
 func (ms {{ .structName }}) getState() *internal.State {
 {{- if .hasWrapper }}
 	return internal.Get{{ .structName }}State(internal.{{ .structName }}Wrapper(ms))
+{{- else if .useHandleLayout }}
+	return ms.h.GetState()
 {{- else }}
 	return ms.state
 {{- end }}

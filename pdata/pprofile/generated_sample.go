@@ -18,13 +18,30 @@ import (
 //
 // Must use NewSample function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-wrapper layout: carries a top-level Handle (shared with
+// the parent tree under cow.Share*) and the index path that locates this
+// type's orig inside that tree. getOrig() walks h.GetOrig() + indices.
+// See perf/rfc/pdata-cow.md and internal/cmd/pdatagen/internal/pdata/nested_path.go.
 type Sample struct {
-	orig  *internal.Sample
-	state *internal.State
+	h     *internal.Handle[internal.ExportProfilesServiceRequest]
+	rpIdx int
+	spIdx int
+	pIdx  int
+	sIdx  int
 }
 
 func newSample(orig *internal.Sample, state *internal.State) Sample {
-	return Sample{orig: orig, state: state}
+	// Path Y "always-h" pattern: synthesize a single-element parent tree
+	// wrapping orig so this standalone wrapper has the same struct shape
+	// as a tree-embedded one. The synthetic tree contains orig by pointer
+	// (not by copy), so mutations through this wrapper propagate to orig.
+	return Sample{
+		h:     internal.NewHandle(&internal.ExportProfilesServiceRequest{ResourceProfiles: []*internal.ResourceProfiles{{ScopeProfiles: []*internal.ScopeProfiles{{Profiles: []*internal.Profile{{Samples: []*internal.Sample{orig}}}}}}}}, state),
+		rpIdx: 0,
+		spIdx: 0,
+		pIdx:  0,
+		sIdx:  0,
+	}
 }
 
 // NewSample creates a new empty Sample.
@@ -92,9 +109,9 @@ func (ms Sample) CopyTo(dest Sample) {
 }
 
 func (ms Sample) getOrig() *internal.Sample {
-	return ms.orig
+	return ms.h.GetOrig().ResourceProfiles[ms.rpIdx].ScopeProfiles[ms.spIdx].Profiles[ms.pIdx].Samples[ms.sIdx]
 }
 
 func (ms Sample) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

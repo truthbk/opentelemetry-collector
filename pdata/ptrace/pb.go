@@ -19,15 +19,15 @@ func (e *ProtoMarshaler) TracesSize(td Traces) int {
 }
 
 func (e *ProtoMarshaler) ResourceSpansSize(td ResourceSpans) int {
-	return td.orig.SizeProto()
+	return td.getOrig().SizeProto()
 }
 
 func (e *ProtoMarshaler) ScopeSpansSize(td ScopeSpans) int {
-	return td.orig.SizeProto()
+	return td.getOrig().SizeProto()
 }
 
 func (e *ProtoMarshaler) SpanSize(td Span) int {
-	return td.orig.SizeProto()
+	return td.getOrig().SizeProto()
 }
 
 type ProtoUnmarshaler struct{}

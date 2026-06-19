@@ -114,6 +114,7 @@ func walkNestedFields(parent *messageStruct, parentPath []PathSegment, topLevelO
 			})
 			child.nestedPath = childPath
 			child.topLevelOriginName = topLevelOriginName
+			child.useHandleLayout = allSliceIndex(childPath)
 			walkNestedFields(child, childPath, topLevelOriginName)
 		case *SliceField:
 			ms, ok := fld.returnSlice.(*messageSlice)
@@ -132,9 +133,23 @@ func walkNestedFields(parent *messageStruct, parentPath []PathSegment, topLevelO
 			})
 			elem.nestedPath = elemPath
 			elem.topLevelOriginName = topLevelOriginName
+			elem.useHandleLayout = allSliceIndex(elemPath)
 			walkNestedFields(elem, elemPath, topLevelOriginName)
 		}
 	}
+}
+
+// allSliceIndex reports whether every segment in path is a SliceIndex.
+// Used to gate the Phase 4 step 2b.ii {h, indices} layout to types whose
+// walk path doesn't include FieldAccess segments — FieldAccess support
+// is deferred (Span.Status etc. stay on the inline {orig, state} layout).
+func allSliceIndex(path []PathSegment) bool {
+	for _, seg := range path {
+		if seg.Kind != PathSegmentSliceIndex {
+			return false
+		}
+	}
+	return true
 }
 
 // renderSliceSyntheticParent emits a Go expression that constructs a top-level

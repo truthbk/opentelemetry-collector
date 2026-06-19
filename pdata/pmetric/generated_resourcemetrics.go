@@ -18,13 +18,24 @@ import (
 //
 // Must use NewResourceMetrics function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-wrapper layout: carries a top-level Handle (shared with
+// the parent tree under cow.Share*) and the index path that locates this
+// type's orig inside that tree. getOrig() walks h.GetOrig() + indices.
+// See perf/rfc/pdata-cow.md and internal/cmd/pdatagen/internal/pdata/nested_path.go.
 type ResourceMetrics struct {
-	orig  *internal.ResourceMetrics
-	state *internal.State
+	h     *internal.Handle[internal.ExportMetricsServiceRequest]
+	rmIdx int
 }
 
 func newResourceMetrics(orig *internal.ResourceMetrics, state *internal.State) ResourceMetrics {
-	return ResourceMetrics{orig: orig, state: state}
+	// Path Y "always-h" pattern: synthesize a single-element parent tree
+	// wrapping orig so this standalone wrapper has the same struct shape
+	// as a tree-embedded one. The synthetic tree contains orig by pointer
+	// (not by copy), so mutations through this wrapper propagate to orig.
+	return ResourceMetrics{
+		h:     internal.NewHandle(&internal.ExportMetricsServiceRequest{ResourceMetrics: []*internal.ResourceMetrics{orig}}, state),
+		rmIdx: 0,
+	}
 }
 
 // NewResourceMetrics creates a new empty ResourceMetrics.
@@ -76,9 +87,9 @@ func (ms ResourceMetrics) CopyTo(dest ResourceMetrics) {
 }
 
 func (ms ResourceMetrics) getOrig() *internal.ResourceMetrics {
-	return ms.orig
+	return ms.h.GetOrig().ResourceMetrics[ms.rmIdx]
 }
 
 func (ms ResourceMetrics) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

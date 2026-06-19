@@ -33,15 +33,15 @@ func (e *ProtoMarshaler) ProfilesSize(pd Profiles) int {
 }
 
 func (e *ProtoMarshaler) ResourceProfilesSize(pd ResourceProfiles) int {
-	return pd.orig.SizeProto()
+	return pd.getOrig().SizeProto()
 }
 
 func (e *ProtoMarshaler) ScopeProfilesSize(pd ScopeProfiles) int {
-	return pd.orig.SizeProto()
+	return pd.getOrig().SizeProto()
 }
 
 func (e *ProtoMarshaler) ProfileSize(pd Profile) int {
-	return pd.orig.SizeProto()
+	return pd.getOrig().SizeProto()
 }
 
 type ProtoUnmarshaler struct{}

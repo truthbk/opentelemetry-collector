@@ -19,13 +19,30 @@ import (
 //
 // Must use NewSpanEvent function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-wrapper layout: carries a top-level Handle (shared with
+// the parent tree under cow.Share*) and the index path that locates this
+// type's orig inside that tree. getOrig() walks h.GetOrig() + indices.
+// See perf/rfc/pdata-cow.md and internal/cmd/pdatagen/internal/pdata/nested_path.go.
 type SpanEvent struct {
-	orig  *internal.SpanEvent
-	state *internal.State
+	h     *internal.Handle[internal.ExportTraceServiceRequest]
+	rsIdx int
+	ssIdx int
+	sIdx  int
+	eIdx  int
 }
 
 func newSpanEvent(orig *internal.SpanEvent, state *internal.State) SpanEvent {
-	return SpanEvent{orig: orig, state: state}
+	// Path Y "always-h" pattern: synthesize a single-element parent tree
+	// wrapping orig so this standalone wrapper has the same struct shape
+	// as a tree-embedded one. The synthetic tree contains orig by pointer
+	// (not by copy), so mutations through this wrapper propagate to orig.
+	return SpanEvent{
+		h:     internal.NewHandle(&internal.ExportTraceServiceRequest{ResourceSpans: []*internal.ResourceSpans{{ScopeSpans: []*internal.ScopeSpans{{Spans: []*internal.Span{{Events: []*internal.SpanEvent{orig}}}}}}}}, state),
+		rsIdx: 0,
+		ssIdx: 0,
+		sIdx:  0,
+		eIdx:  0,
+	}
 }
 
 // NewSpanEvent creates a new empty SpanEvent.
@@ -94,9 +111,9 @@ func (ms SpanEvent) CopyTo(dest SpanEvent) {
 }
 
 func (ms SpanEvent) getOrig() *internal.SpanEvent {
-	return ms.orig
+	return ms.h.GetOrig().ResourceSpans[ms.rsIdx].ScopeSpans[ms.ssIdx].Spans[ms.sIdx].Events[ms.eIdx]
 }
 
 func (ms SpanEvent) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }
