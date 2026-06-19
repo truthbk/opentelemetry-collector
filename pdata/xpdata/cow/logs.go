@@ -16,8 +16,13 @@ func ShareLogs(ld plog.Logs) plog.Logs {
 	sourceOrig := internal.GetLogsOrig(internal.LogsWrapper(ld))
 	sharedState := internal.NewState()
 	sharedState.IncCowRefs()
-	// TODO Path Y Phase 5: install per-signal detacher closure — see ShareMetrics.
-	return plog.Logs(internal.NewLogsWrapper(sourceOrig, sharedState))
+	wrapper := internal.NewLogsWrapper(sourceOrig, sharedState)
+	// Path Y Phase 5 — see ShareMetrics for the full doc.
+	sharedHandle := internal.GetLogsHandle(wrapper)
+	sharedState.SetDetacher(func() {
+		internal.DetachIfShared(sharedHandle, internal.CopyExportLogsServiceRequest)
+	})
+	return plog.Logs(wrapper)
 }
 
 // ReleaseLogs — see ReleaseMetrics.

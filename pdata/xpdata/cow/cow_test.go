@@ -175,25 +175,44 @@ func TestDetachProfiles(t *testing.T) {
 	assert.False(t, IsSharedProfiles(detached))
 }
 
-// TestSafetyNet_MutateSharedWithoutDetach_Panics — the contract-violation
-// safety net: a consumer that declares MutatesData=true and mutates a
-// share without first calling cow.Detach* gets a clear panic at the
-// AssertMutable callsite, rather than silently corrupting the source's
-// backing tree. This is what makes Path X (opt-in explicit detach)
-// safe to ship — operators integrating a new processor will see the
-// panic during testing.
-func TestSafetyNet_MutateSharedWithoutDetach_Panics(t *testing.T) {
+// TestAutoDetach_MutateShared_TriggersDetach — Phase 5 auto-detach
+// behavior on a useHandleLayout type. A consumer that mutates a shared
+// wrapper triggers detach transparently via the codegen-injected
+// prelude (state.DetachIfShared() before AssertMutable). The mutation
+// writes to a freshly-cloned tree; the source's tree is unchanged;
+// the wrapper's cowRefs goes to 0 (no longer a share).
+//
+// Replaces the pre-Phase-5 contract-violation panic. Under Path X-hybrid
+// (Phase 1 design), mutating a share without explicit cow.Detach
+// panicked at AssertMutable's cowRefs>0 check. Phase 5's auto-detach
+// closes that gap: the prelude fires the installed detacher closure
+// BEFORE AssertMutable would see the cowRefs>0 state.
+//
+// The pcommon Path-X-hybrid contract still applies: mutations through
+// pcommon types (Resource.Attributes etc.) still require explicit
+// cow.DetachMetrics, since the pcommon inline {orig, state} layout
+// doesn't carry a Handle for the rebind to flow through.
+func TestAutoDetach_MutateShared_TriggersDetach(t *testing.T) {
 	withGate(t)
 	md := pmetric.NewMetrics()
+	md.ResourceMetrics().AppendEmpty()
+	sourceLen := md.ResourceMetrics().Len()
+
 	shared := ShareMetrics(md)
 	require.True(t, IsSharedMetrics(shared))
-	// Skip the Detach call. Any mutation should panic at AssertMutable.
-	assert.PanicsWithValue(t,
-		"invalid access to cow-shared data: caller must call cow.Detach* before mutating (see pdata/xpdata/cow)",
-		func() {
-			shared.ResourceMetrics().AppendEmpty()
-		},
-	)
+
+	// Mutating the share through a useHandleLayout slice mutator
+	// (AppendEmpty) — no panic; auto-detach fires inside.
+	shared.ResourceMetrics().AppendEmpty()
+
+	// After auto-detach the wrapper observes the fresh state (cowRefs=0).
+	assert.False(t, IsSharedMetrics(shared), "auto-detach should clear cowRefs")
+
+	// The share now has its own mutated tree; the source is untouched.
+	assert.Equal(t, sourceLen+1, shared.ResourceMetrics().Len(),
+		"shared wrapper sees the mutation in its detached tree")
+	assert.Equal(t, sourceLen, md.ResourceMetrics().Len(),
+		"source's tree must be unchanged — detach gave shared a private clone")
 }
 
 func TestShareTraces_GateEnabled_BumpsCowRefs(t *testing.T) {

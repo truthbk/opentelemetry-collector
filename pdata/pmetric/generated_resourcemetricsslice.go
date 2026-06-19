@@ -98,6 +98,8 @@ func (es ResourceMetricsSlice) All() iter.Seq2[int, ResourceMetrics] {
 //	    // Here should set all the values for e.
 //	}
 func (es ResourceMetricsSlice) EnsureCapacity(newCap int) {
+	// Path Y Phase 5 auto-detach prelude — see message.go.tmpl MoveTo.
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	oldCap := cap(*es.getOrig())
 	if newCap <= oldCap {
@@ -112,6 +114,7 @@ func (es ResourceMetricsSlice) EnsureCapacity(newCap int) {
 // AppendEmpty will append to the end of the slice an empty ResourceMetrics.
 // It returns the newly added ResourceMetrics.
 func (es ResourceMetricsSlice) AppendEmpty() ResourceMetrics {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	*es.getOrig() = append(*es.getOrig(), internal.NewResourceMetrics())
 	return es.At(es.Len() - 1)
@@ -120,6 +123,8 @@ func (es ResourceMetricsSlice) AppendEmpty() ResourceMetrics {
 // MoveAndAppendTo moves all elements from the current slice and appends them to the dest.
 // The current slice will be cleared.
 func (es ResourceMetricsSlice) MoveAndAppendTo(dest ResourceMetricsSlice) {
+	es.getState().DetachIfShared()
+	dest.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
@@ -138,6 +143,7 @@ func (es ResourceMetricsSlice) MoveAndAppendTo(dest ResourceMetricsSlice) {
 // RemoveIf calls f sequentially for each element present in the slice.
 // If f returns true, the element is removed from the slice.
 func (es ResourceMetricsSlice) RemoveIf(f func(ResourceMetrics) bool) {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	newLen := 0
 	for i := 0; i < len(*es.getOrig()); i++ {
@@ -162,6 +168,7 @@ func (es ResourceMetricsSlice) RemoveIf(f func(ResourceMetrics) bool) {
 
 // CopyTo copies all elements from the current slice overriding the destination.
 func (es ResourceMetricsSlice) CopyTo(dest ResourceMetricsSlice) {
+	dest.getState().DetachIfShared()
 	dest.getState().AssertMutable()
 	if es.getOrig() == dest.getOrig() {
 		return
@@ -173,6 +180,7 @@ func (es ResourceMetricsSlice) CopyTo(dest ResourceMetricsSlice) {
 // provided less function so that two instances of ResourceMetricsSlice
 // can be compared.
 func (es ResourceMetricsSlice) Sort(less func(a, b ResourceMetrics) bool) {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	sort.SliceStable(*es.getOrig(), func(i, j int) bool { return less(es.At(i), es.At(j)) })
 }

@@ -104,6 +104,8 @@ func (es MetricSlice) All() iter.Seq2[int, Metric] {
 //	    // Here should set all the values for e.
 //	}
 func (es MetricSlice) EnsureCapacity(newCap int) {
+	// Path Y Phase 5 auto-detach prelude — see message.go.tmpl MoveTo.
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	oldCap := cap(*es.getOrig())
 	if newCap <= oldCap {
@@ -118,6 +120,7 @@ func (es MetricSlice) EnsureCapacity(newCap int) {
 // AppendEmpty will append to the end of the slice an empty Metric.
 // It returns the newly added Metric.
 func (es MetricSlice) AppendEmpty() Metric {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	*es.getOrig() = append(*es.getOrig(), internal.NewMetric())
 	return es.At(es.Len() - 1)
@@ -126,6 +129,8 @@ func (es MetricSlice) AppendEmpty() Metric {
 // MoveAndAppendTo moves all elements from the current slice and appends them to the dest.
 // The current slice will be cleared.
 func (es MetricSlice) MoveAndAppendTo(dest MetricSlice) {
+	es.getState().DetachIfShared()
+	dest.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
@@ -144,6 +149,7 @@ func (es MetricSlice) MoveAndAppendTo(dest MetricSlice) {
 // RemoveIf calls f sequentially for each element present in the slice.
 // If f returns true, the element is removed from the slice.
 func (es MetricSlice) RemoveIf(f func(Metric) bool) {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	newLen := 0
 	for i := 0; i < len(*es.getOrig()); i++ {
@@ -168,6 +174,7 @@ func (es MetricSlice) RemoveIf(f func(Metric) bool) {
 
 // CopyTo copies all elements from the current slice overriding the destination.
 func (es MetricSlice) CopyTo(dest MetricSlice) {
+	dest.getState().DetachIfShared()
 	dest.getState().AssertMutable()
 	if es.getOrig() == dest.getOrig() {
 		return
@@ -179,6 +186,7 @@ func (es MetricSlice) CopyTo(dest MetricSlice) {
 // provided less function so that two instances of MetricSlice
 // can be compared.
 func (es MetricSlice) Sort(less func(a, b Metric) bool) {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	sort.SliceStable(*es.getOrig(), func(i, j int) bool { return less(es.At(i), es.At(j)) })
 }

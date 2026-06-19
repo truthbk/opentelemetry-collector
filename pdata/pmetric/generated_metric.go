@@ -55,6 +55,14 @@ func NewMetric() Metric {
 // MoveTo moves all properties from the current struct overriding the destination and
 // resetting the current instance to its zero value
 func (ms Metric) MoveTo(dest Metric) {
+	// Path Y Phase 5 auto-detach prelude: if this wrapper is a cow.Share
+	// (state.cowRefs > 0) and a detacher closure is installed, trigger
+	// it before AssertMutable. The closure rebinds the top-level Handle
+	// to a freshly-cloned tree so this mutation writes to a private
+	// copy and leaves siblings/source untouched. Near-free fast path
+	// (one atomic Load + branch) when not shared.
+	ms.getState().DetachIfShared()
+	dest.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
@@ -271,6 +279,8 @@ func (ms Metric) Metadata() pcommon.Map {
 
 // CopyTo copies all properties from the current struct overriding the destination.
 func (ms Metric) CopyTo(dest Metric) {
+	// Path Y Phase 5 auto-detach prelude — see MoveTo for the doc.
+	dest.getState().DetachIfShared()
 	dest.getState().AssertMutable()
 	internal.CopyMetric(dest.getOrig(), ms.getOrig())
 }

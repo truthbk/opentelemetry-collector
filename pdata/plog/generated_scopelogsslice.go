@@ -101,6 +101,8 @@ func (es ScopeLogsSlice) All() iter.Seq2[int, ScopeLogs] {
 //	    // Here should set all the values for e.
 //	}
 func (es ScopeLogsSlice) EnsureCapacity(newCap int) {
+	// Path Y Phase 5 auto-detach prelude — see message.go.tmpl MoveTo.
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	oldCap := cap(*es.getOrig())
 	if newCap <= oldCap {
@@ -115,6 +117,7 @@ func (es ScopeLogsSlice) EnsureCapacity(newCap int) {
 // AppendEmpty will append to the end of the slice an empty ScopeLogs.
 // It returns the newly added ScopeLogs.
 func (es ScopeLogsSlice) AppendEmpty() ScopeLogs {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	*es.getOrig() = append(*es.getOrig(), internal.NewScopeLogs())
 	return es.At(es.Len() - 1)
@@ -123,6 +126,8 @@ func (es ScopeLogsSlice) AppendEmpty() ScopeLogs {
 // MoveAndAppendTo moves all elements from the current slice and appends them to the dest.
 // The current slice will be cleared.
 func (es ScopeLogsSlice) MoveAndAppendTo(dest ScopeLogsSlice) {
+	es.getState().DetachIfShared()
+	dest.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
@@ -141,6 +146,7 @@ func (es ScopeLogsSlice) MoveAndAppendTo(dest ScopeLogsSlice) {
 // RemoveIf calls f sequentially for each element present in the slice.
 // If f returns true, the element is removed from the slice.
 func (es ScopeLogsSlice) RemoveIf(f func(ScopeLogs) bool) {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	newLen := 0
 	for i := 0; i < len(*es.getOrig()); i++ {
@@ -165,6 +171,7 @@ func (es ScopeLogsSlice) RemoveIf(f func(ScopeLogs) bool) {
 
 // CopyTo copies all elements from the current slice overriding the destination.
 func (es ScopeLogsSlice) CopyTo(dest ScopeLogsSlice) {
+	dest.getState().DetachIfShared()
 	dest.getState().AssertMutable()
 	if es.getOrig() == dest.getOrig() {
 		return
@@ -176,6 +183,7 @@ func (es ScopeLogsSlice) CopyTo(dest ScopeLogsSlice) {
 // provided less function so that two instances of ScopeLogsSlice
 // can be compared.
 func (es ScopeLogsSlice) Sort(less func(a, b ScopeLogs) bool) {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	sort.SliceStable(*es.getOrig(), func(i, j int) bool { return less(es.At(i), es.At(j)) })
 }

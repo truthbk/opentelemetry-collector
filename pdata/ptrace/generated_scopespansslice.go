@@ -101,6 +101,8 @@ func (es ScopeSpansSlice) All() iter.Seq2[int, ScopeSpans] {
 //	    // Here should set all the values for e.
 //	}
 func (es ScopeSpansSlice) EnsureCapacity(newCap int) {
+	// Path Y Phase 5 auto-detach prelude — see message.go.tmpl MoveTo.
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	oldCap := cap(*es.getOrig())
 	if newCap <= oldCap {
@@ -115,6 +117,7 @@ func (es ScopeSpansSlice) EnsureCapacity(newCap int) {
 // AppendEmpty will append to the end of the slice an empty ScopeSpans.
 // It returns the newly added ScopeSpans.
 func (es ScopeSpansSlice) AppendEmpty() ScopeSpans {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	*es.getOrig() = append(*es.getOrig(), internal.NewScopeSpans())
 	return es.At(es.Len() - 1)
@@ -123,6 +126,8 @@ func (es ScopeSpansSlice) AppendEmpty() ScopeSpans {
 // MoveAndAppendTo moves all elements from the current slice and appends them to the dest.
 // The current slice will be cleared.
 func (es ScopeSpansSlice) MoveAndAppendTo(dest ScopeSpansSlice) {
+	es.getState().DetachIfShared()
+	dest.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
@@ -141,6 +146,7 @@ func (es ScopeSpansSlice) MoveAndAppendTo(dest ScopeSpansSlice) {
 // RemoveIf calls f sequentially for each element present in the slice.
 // If f returns true, the element is removed from the slice.
 func (es ScopeSpansSlice) RemoveIf(f func(ScopeSpans) bool) {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	newLen := 0
 	for i := 0; i < len(*es.getOrig()); i++ {
@@ -165,6 +171,7 @@ func (es ScopeSpansSlice) RemoveIf(f func(ScopeSpans) bool) {
 
 // CopyTo copies all elements from the current slice overriding the destination.
 func (es ScopeSpansSlice) CopyTo(dest ScopeSpansSlice) {
+	dest.getState().DetachIfShared()
 	dest.getState().AssertMutable()
 	if es.getOrig() == dest.getOrig() {
 		return
@@ -176,6 +183,7 @@ func (es ScopeSpansSlice) CopyTo(dest ScopeSpansSlice) {
 // provided less function so that two instances of ScopeSpansSlice
 // can be compared.
 func (es ScopeSpansSlice) Sort(less func(a, b ScopeSpans) bool) {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	sort.SliceStable(*es.getOrig(), func(i, j int) bool { return less(es.At(i), es.At(j)) })
 }

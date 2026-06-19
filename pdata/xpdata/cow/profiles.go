@@ -16,8 +16,13 @@ func ShareProfiles(pd pprofile.Profiles) pprofile.Profiles {
 	sourceOrig := internal.GetProfilesOrig(internal.ProfilesWrapper(pd))
 	sharedState := internal.NewState()
 	sharedState.IncCowRefs()
-	// TODO Path Y Phase 5: install per-signal detacher closure — see ShareMetrics.
-	return pprofile.Profiles(internal.NewProfilesWrapper(sourceOrig, sharedState))
+	wrapper := internal.NewProfilesWrapper(sourceOrig, sharedState)
+	// Path Y Phase 5 — see ShareMetrics for the full doc.
+	sharedHandle := internal.GetProfilesHandle(wrapper)
+	sharedState.SetDetacher(func() {
+		internal.DetachIfShared(sharedHandle, internal.CopyExportProfilesServiceRequest)
+	})
+	return pprofile.Profiles(wrapper)
 }
 
 // ReleaseProfiles — see ReleaseMetrics.

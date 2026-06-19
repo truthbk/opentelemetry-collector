@@ -48,16 +48,20 @@ func ShareMetrics(md pmetric.Metrics) pmetric.Metrics {
 	sourceOrig := internal.GetMetricsOrig(internal.MetricsWrapper(md))
 	sharedState := internal.NewState()
 	sharedState.IncCowRefs()
-	// TODO Path Y Phase 5: install the per-signal detacher closure here
-	// (sharedState.SetDetacher(func() { internal.DetachIfShared(handle,
-	// internal.CopyExportMetricsServiceRequest) })) so nested mutators
-	// can dispatch through State.DetachIfShared without knowing T. See
-	// the package-level doc on pdata/internal/detach.go for the wiring
-	// contract between the generic free function and the nested-wrapper
-	// method on State. Today the detacher stays nil; nested mutators
-	// don't yet trigger auto-detach because Phase 4 hasn't emitted the
-	// prelude code in the generated wrappers.
-	return pmetric.Metrics(internal.NewMetricsWrapper(sourceOrig, sharedState))
+	wrapper := internal.NewMetricsWrapper(sourceOrig, sharedState)
+	// Path Y Phase 5: install the per-signal detacher closure on the
+	// shared state. When a nested mutator's prelude calls
+	// state.DetachIfShared() and observes cowRefs > 0, it invokes this
+	// closure, which deep-clones the orig tree via
+	// CopyExportMetricsServiceRequest and rebinds the wrapper's Handle
+	// to the new {orig, state} pair. The closure captures the wrapper's
+	// Handle by reference (via GetMetricsHandle) so the rebind affects
+	// every derived nested/slice wrapper through Handle indirection.
+	sharedHandle := internal.GetMetricsHandle(wrapper)
+	sharedState.SetDetacher(func() {
+		internal.DetachIfShared(sharedHandle, internal.CopyExportMetricsServiceRequest)
+	})
+	return pmetric.Metrics(wrapper)
 }
 
 // ReleaseMetrics decrements the cowRefs counter on the share's State.

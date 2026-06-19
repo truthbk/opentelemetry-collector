@@ -98,6 +98,8 @@ func (es ResourceSpansSlice) All() iter.Seq2[int, ResourceSpans] {
 //	    // Here should set all the values for e.
 //	}
 func (es ResourceSpansSlice) EnsureCapacity(newCap int) {
+	// Path Y Phase 5 auto-detach prelude — see message.go.tmpl MoveTo.
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	oldCap := cap(*es.getOrig())
 	if newCap <= oldCap {
@@ -112,6 +114,7 @@ func (es ResourceSpansSlice) EnsureCapacity(newCap int) {
 // AppendEmpty will append to the end of the slice an empty ResourceSpans.
 // It returns the newly added ResourceSpans.
 func (es ResourceSpansSlice) AppendEmpty() ResourceSpans {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	*es.getOrig() = append(*es.getOrig(), internal.NewResourceSpans())
 	return es.At(es.Len() - 1)
@@ -120,6 +123,8 @@ func (es ResourceSpansSlice) AppendEmpty() ResourceSpans {
 // MoveAndAppendTo moves all elements from the current slice and appends them to the dest.
 // The current slice will be cleared.
 func (es ResourceSpansSlice) MoveAndAppendTo(dest ResourceSpansSlice) {
+	es.getState().DetachIfShared()
+	dest.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
@@ -138,6 +143,7 @@ func (es ResourceSpansSlice) MoveAndAppendTo(dest ResourceSpansSlice) {
 // RemoveIf calls f sequentially for each element present in the slice.
 // If f returns true, the element is removed from the slice.
 func (es ResourceSpansSlice) RemoveIf(f func(ResourceSpans) bool) {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	newLen := 0
 	for i := 0; i < len(*es.getOrig()); i++ {
@@ -162,6 +168,7 @@ func (es ResourceSpansSlice) RemoveIf(f func(ResourceSpans) bool) {
 
 // CopyTo copies all elements from the current slice overriding the destination.
 func (es ResourceSpansSlice) CopyTo(dest ResourceSpansSlice) {
+	dest.getState().DetachIfShared()
 	dest.getState().AssertMutable()
 	if es.getOrig() == dest.getOrig() {
 		return
@@ -173,6 +180,7 @@ func (es ResourceSpansSlice) CopyTo(dest ResourceSpansSlice) {
 // provided less function so that two instances of ResourceSpansSlice
 // can be compared.
 func (es ResourceSpansSlice) Sort(less func(a, b ResourceSpans) bool) {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	sort.SliceStable(*es.getOrig(), func(i, j int) bool { return less(es.At(i), es.At(j)) })
 }

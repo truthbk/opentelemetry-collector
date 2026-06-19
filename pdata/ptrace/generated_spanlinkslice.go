@@ -107,6 +107,8 @@ func (es SpanLinkSlice) All() iter.Seq2[int, SpanLink] {
 //	    // Here should set all the values for e.
 //	}
 func (es SpanLinkSlice) EnsureCapacity(newCap int) {
+	// Path Y Phase 5 auto-detach prelude — see message.go.tmpl MoveTo.
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	oldCap := cap(*es.getOrig())
 	if newCap <= oldCap {
@@ -121,6 +123,7 @@ func (es SpanLinkSlice) EnsureCapacity(newCap int) {
 // AppendEmpty will append to the end of the slice an empty SpanLink.
 // It returns the newly added SpanLink.
 func (es SpanLinkSlice) AppendEmpty() SpanLink {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	*es.getOrig() = append(*es.getOrig(), internal.NewSpanLink())
 	return es.At(es.Len() - 1)
@@ -129,6 +132,8 @@ func (es SpanLinkSlice) AppendEmpty() SpanLink {
 // MoveAndAppendTo moves all elements from the current slice and appends them to the dest.
 // The current slice will be cleared.
 func (es SpanLinkSlice) MoveAndAppendTo(dest SpanLinkSlice) {
+	es.getState().DetachIfShared()
+	dest.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	dest.getState().AssertMutable()
 	// If they point to the same data, they are the same, nothing to do.
@@ -147,6 +152,7 @@ func (es SpanLinkSlice) MoveAndAppendTo(dest SpanLinkSlice) {
 // RemoveIf calls f sequentially for each element present in the slice.
 // If f returns true, the element is removed from the slice.
 func (es SpanLinkSlice) RemoveIf(f func(SpanLink) bool) {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	newLen := 0
 	for i := 0; i < len(*es.getOrig()); i++ {
@@ -171,6 +177,7 @@ func (es SpanLinkSlice) RemoveIf(f func(SpanLink) bool) {
 
 // CopyTo copies all elements from the current slice overriding the destination.
 func (es SpanLinkSlice) CopyTo(dest SpanLinkSlice) {
+	dest.getState().DetachIfShared()
 	dest.getState().AssertMutable()
 	if es.getOrig() == dest.getOrig() {
 		return
@@ -182,6 +189,7 @@ func (es SpanLinkSlice) CopyTo(dest SpanLinkSlice) {
 // provided less function so that two instances of SpanLinkSlice
 // can be compared.
 func (es SpanLinkSlice) Sort(less func(a, b SpanLink) bool) {
+	es.getState().DetachIfShared()
 	es.getState().AssertMutable()
 	sort.SliceStable(*es.getOrig(), func(i, j int) bool { return less(es.At(i), es.At(j)) })
 }
