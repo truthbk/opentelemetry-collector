@@ -137,6 +137,56 @@ func walkNestedFields(parent *messageStruct, parentPath []PathSegment, topLevelO
 	}
 }
 
+// RenderSliceSyntheticParent emits a Go expression that constructs a top-level
+// orig tree whose leaf is the slice the caller is wrapping. `parentSegments`
+// is the path from the top-level down to (but not including) the slice
+// itself — i.e. element.nestedPath[:-1]. `sliceFieldName` is the field name
+// of the slice on its parent struct (element.nestedPath[-1].FieldName).
+// `sliceVar` is the Go variable name carrying the *[]*Element value
+// (typically "*orig" — dereferenced because the standalone constructor
+// receives `orig *[]*Element`).
+//
+// Examples:
+//
+//	Top-level slice (ResourceMetricsSlice, parentSegments=[], sliceField="ResourceMetrics", sliceVar="*orig"):
+//	    &internal.ExportMetricsServiceRequest{ResourceMetrics: *orig}
+//
+//	Nested slice (ScopeMetricsSlice, parentSegments=[SI(ResourceMetrics, ResourceMetrics)],
+//	              sliceField="ScopeMetrics", sliceVar="*orig"):
+//	    &internal.ExportMetricsServiceRequest{
+//	        ResourceMetrics: []*internal.ResourceMetrics{{
+//	            ScopeMetrics: *orig,
+//	        }},
+//	    }
+//
+// This mirrors RenderSyntheticParent but plants the entire slice value at
+// the leaf instead of a single-element-wrapped scalar.
+func RenderSliceSyntheticParent(topLevelOriginName string, parentSegments []PathSegment, sliceFieldName, sliceVar string) string {
+	var sb strings.Builder
+	sb.WriteString("&internal.")
+	sb.WriteString(topLevelOriginName)
+	sb.WriteString("{")
+	for _, seg := range parentSegments {
+		if seg.Kind != PathSegmentSliceIndex {
+			return "/* unsupported: FieldAccess segment in slice-synthetic-parent render */"
+		}
+		sb.WriteString(seg.FieldName)
+		sb.WriteString(": []*internal.")
+		sb.WriteString(seg.ChildOriginName)
+		sb.WriteString("{{")
+	}
+	sb.WriteString(sliceFieldName)
+	sb.WriteString(": ")
+	sb.WriteString(sliceVar)
+	// Close: 1 for the outer top-level struct + 2 per parent segment
+	// (slice literal + inner struct literal).
+	sb.WriteString("}")
+	for i := 0; i < 2*len(parentSegments); i++ {
+		sb.WriteString("}")
+	}
+	return sb.String()
+}
+
 // RenderSyntheticParent emits a Go expression that constructs a single-element
 // top-level orig tree wrapping `leafOrigVar` at the slice-index path
 // described by segments. The result is a struct literal of the form:

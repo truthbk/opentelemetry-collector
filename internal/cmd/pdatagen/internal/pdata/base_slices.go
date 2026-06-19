@@ -51,6 +51,39 @@ func (ss *messageSlice) generateInternal(packageInfo *PackageInfo) []byte {
 
 func (ss *messageSlice) templateFields(packageInfo *PackageInfo) map[string]any {
 	hasWrapper := usedByOtherDataTypes(ss.packageName)
+
+	// Path Y Phase 4 — slice-side path info derived from the element's
+	// nestedPath. The element's path encodes the FULL chain from the
+	// top-level Handle.orig down to the element struct (including the
+	// SliceIndex segment that addresses individual elements). The slice
+	// itself sits ONE LEVEL ABOVE the element: at the parent struct +
+	// the slice field name. So:
+	//
+	//   - parentNestedPath = element.nestedPath[:-1]
+	//       (indices the slice wrapper needs to carry; empty for top-level slices)
+	//   - sliceFieldName   = element.nestedPath[-1].FieldName
+	//       (the slice's field name on its parent's struct)
+	//   - elementIndexVar  = element.nestedPath[-1].IndexVar
+	//       (the int field name a slice element wrapper uses)
+	//   - topLevelOriginName = element.topLevelOriginName
+	//
+	// All four are empty for pcommon slices (walker skips pcommon, so
+	// element.nestedPath stays nil). Phase 4 templates check len > 0 /
+	// non-empty before branching to the new layout.
+	var parentNestedPath []PathSegment
+	var sliceFieldName, elementIndexVar, topLevelOriginName string
+	var sliceSyntheticParent string
+	if elem := ss.element; elem != nil && len(elem.nestedPath) > 0 {
+		topLevelOriginName = elem.topLevelOriginName
+		parentNestedPath = elem.nestedPath[:len(elem.nestedPath)-1]
+		last := elem.nestedPath[len(elem.nestedPath)-1]
+		sliceFieldName = last.FieldName
+		elementIndexVar = last.IndexVar
+		sliceSyntheticParent = RenderSliceSyntheticParent(
+			topLevelOriginName, parentNestedPath, sliceFieldName, "*orig",
+		)
+	}
+
 	return map[string]any{
 		"hasWrapper":        usedByOtherDataTypes(ss.packageName),
 		"structName":        ss.structName,
@@ -62,6 +95,13 @@ func (ss *messageSlice) templateFields(packageInfo *PackageInfo) map[string]any 
 		"packageName":       packageInfo.name,
 		"imports":           packageInfo.imports,
 		"testImports":       packageInfo.testImports,
+
+		// Path Y Phase 4 slice-side path info (see comment above).
+		"parentNestedPath":     parentNestedPath,
+		"sliceFieldName":       sliceFieldName,
+		"elementIndexVar":      elementIndexVar,
+		"topLevelOriginName":   topLevelOriginName,
+		"sliceSyntheticParent": sliceSyntheticParent,
 	}
 }
 
