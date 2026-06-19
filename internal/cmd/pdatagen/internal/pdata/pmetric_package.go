@@ -74,6 +74,7 @@ var pmetric = &Package{
 
 var metrics = &messageStruct{
 	structName:    "Metrics",
+	isTopLevel:    true,
 	description:   "// Metrics is the top-level struct that is propagated through the metrics pipeline.\n// Use NewMetrics to create new instance, zero-initialized instance is not valid for use.",
 	protoName:     "ExportMetricsServiceRequest",
 	upstreamProto: "gootlpcollectormetrics.ExportMetricsServiceRequest",
@@ -86,7 +87,6 @@ var metrics = &messageStruct{
 		},
 	},
 	hasWrapper: true,
-	isTopLevel: true,
 }
 
 var metricsData = &messageStruct{

@@ -91,6 +91,18 @@ func (ms *messageStruct) templateFields(packageInfo *PackageInfo) map[string]any
 	if !hasWrapper {
 		hasWrapper = usedByOtherDataTypes(ms.packageName)
 	}
+
+	// Path Y Phase 4 — synthetic parent is only meaningful for
+	// nested-non-pcommon types (where nestedPath is non-empty). For
+	// top-level types and pcommon types, the syntheticParent string
+	// is left empty; the upcoming step 2b.ii templates branch on
+	// `len .nestedPath > 0` before emitting it. Mirrors the guard in
+	// messageSlice.templateFields().
+	var syntheticParent string
+	if len(ms.nestedPath) > 0 {
+		syntheticParent = renderSyntheticParent(ms.topLevelOriginName, ms.nestedPath, "orig")
+	}
+
 	return map[string]any{
 		"messageStruct": ms,
 		"fields":        ms.fields,
@@ -117,11 +129,11 @@ func (ms *messageStruct) templateFields(packageInfo *PackageInfo) map[string]any
 		// syntheticParent is the pre-rendered "&internal.{T}{...}"
 		// expression that nested-wrapper standalone constructors emit
 		// to synthesize a single-element parent tree wrapping the
-		// caller's orig.
+		// caller's orig. Empty when nestedPath is empty.
 		"isTopLevel":         ms.isTopLevel,
 		"nestedPath":         ms.nestedPath,
 		"topLevelOriginName": ms.topLevelOriginName,
-		"syntheticParent":    RenderSyntheticParent(ms.topLevelOriginName, ms.nestedPath, "orig"),
+		"syntheticParent":    syntheticParent,
 	}
 }
 

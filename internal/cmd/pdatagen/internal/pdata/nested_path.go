@@ -137,7 +137,7 @@ func walkNestedFields(parent *messageStruct, parentPath []PathSegment, topLevelO
 	}
 }
 
-// RenderSliceSyntheticParent emits a Go expression that constructs a top-level
+// renderSliceSyntheticParent emits a Go expression that constructs a top-level
 // orig tree whose leaf is the slice the caller is wrapping. `parentSegments`
 // is the path from the top-level down to (but not including) the slice
 // itself — i.e. element.nestedPath[:-1]. `sliceFieldName` is the field name
@@ -159,9 +159,12 @@ func walkNestedFields(parent *messageStruct, parentPath []PathSegment, topLevelO
 //	        }},
 //	    }
 //
-// This mirrors RenderSyntheticParent but plants the entire slice value at
+// This mirrors renderSyntheticParent but plants the entire slice value at
 // the leaf instead of a single-element-wrapped scalar.
-func RenderSliceSyntheticParent(topLevelOriginName string, parentSegments []PathSegment, sliceFieldName, sliceVar string) string {
+//
+// Consumed by base_slices.go's templateFields() and surfaced to slice.go.tmpl
+// as `{{ .sliceSyntheticParent }}` in Phase 4 step 2b.ii.
+func renderSliceSyntheticParent(topLevelOriginName string, parentSegments []PathSegment, sliceFieldName, sliceVar string) string {
 	var sb strings.Builder
 	sb.WriteString("&internal.")
 	sb.WriteString(topLevelOriginName)
@@ -187,7 +190,7 @@ func RenderSliceSyntheticParent(topLevelOriginName string, parentSegments []Path
 	return sb.String()
 }
 
-// RenderSyntheticParent emits a Go expression that constructs a single-element
+// renderSyntheticParent emits a Go expression that constructs a single-element
 // top-level orig tree wrapping `leafOrigVar` at the slice-index path
 // described by segments. The result is a struct literal of the form:
 //
@@ -210,7 +213,10 @@ func RenderSliceSyntheticParent(topLevelOriginName string, parentSegments []Path
 // Only SliceIndex segments are supported. FieldAccess segments are reserved
 // for pcommon-targeted paths, but pcommon types stay inline {orig, state}
 // per the Phase 1 decision and never need synthetic-parent rendering.
-func RenderSyntheticParent(topLevelOriginName string, segments []PathSegment, leafOrigVar string) string {
+//
+// Consumed by base_struct.go's templateFields() and surfaced to message.go.tmpl
+// as `{{ .syntheticParent }}` in Phase 4 step 2b.ii.
+func renderSyntheticParent(topLevelOriginName string, segments []PathSegment, leafOrigVar string) string {
 	var sb strings.Builder
 	sb.WriteString("&internal.")
 	sb.WriteString(topLevelOriginName)

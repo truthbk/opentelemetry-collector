@@ -79,7 +79,7 @@ func (ss *messageSlice) templateFields(packageInfo *PackageInfo) map[string]any 
 		last := elem.nestedPath[len(elem.nestedPath)-1]
 		sliceFieldName = last.FieldName
 		elementIndexVar = last.IndexVar
-		sliceSyntheticParent = RenderSliceSyntheticParent(
+		sliceSyntheticParent = renderSliceSyntheticParent(
 			topLevelOriginName, parentNestedPath, sliceFieldName, "*orig",
 		)
 	}
