@@ -1,0 +1,13 @@
+goos: darwin
+goarch: arm64
+pkg: go.opentelemetry.io/collector/pdata/pmetric
+cpu: Apple M1 Max
+BenchmarkDeepAccessMetrics-10    	   42213	     57543 ns/op	 434.46 MB/s	       0 B/op	       0 allocs/op
+BenchmarkDeepAccessMetrics-10    	   39849	     58000 ns/op	 431.04 MB/s	       0 B/op	       0 allocs/op
+BenchmarkDeepAccessMetrics-10    	   43720	     57083 ns/op	 437.96 MB/s	       0 B/op	       0 allocs/op
+BenchmarkDeepAccessMetrics-10    	   42488	     57380 ns/op	 435.69 MB/s	       0 B/op	       0 allocs/op
+BenchmarkDeepAccessMetrics-10    	   41403	     57465 ns/op	 435.05 MB/s	       0 B/op	       0 allocs/op
+PASS
+ok  	go.opentelemetry.io/collector/pdata/pmetric	13.298s
+PASS
+ok  	go.opentelemetry.io/collector/pdata/pmetric/pmetricotlp	0.635s

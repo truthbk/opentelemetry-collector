@@ -1,0 +1,31 @@
+goos: darwin
+goarch: arm64
+pkg: go.opentelemetry.io/collector/internal/fanoutconsumer
+cpu: Apple M1 Max
+BenchmarkConditionalFanoutMetrics/hit=0pct/shape=rich_100x5x50x10-10         	      26	  86439122 ns/op	62632372 B/op	 1257727 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=0pct/shape=rich_100x5x50x10-10         	      31	  80753429 ns/op	62632588 B/op	 1257732 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=0pct/shape=rich_100x5x50x10-10         	      28	  81916107 ns/op	62632735 B/op	 1257731 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=0pct/shape=rich_100x5x50x10-10         	      31	  79123478 ns/op	62632310 B/op	 1257731 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=0pct/shape=rich_100x5x50x10-10         	      30	  80929299 ns/op	62632154 B/op	 1257731 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=10pct/shape=rich_100x5x50x10-10        	      30	  76948847 ns/op	62632281 B/op	 1257729 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=10pct/shape=rich_100x5x50x10-10        	      30	  78527064 ns/op	62631954 B/op	 1257728 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=10pct/shape=rich_100x5x50x10-10        	      30	  77317842 ns/op	62633063 B/op	 1257733 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=10pct/shape=rich_100x5x50x10-10        	      30	  78292957 ns/op	62632050 B/op	 1257729 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=10pct/shape=rich_100x5x50x10-10        	      28	  80432152 ns/op	62633077 B/op	 1257734 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=20pct/shape=rich_100x5x50x10-10        	      31	  84412087 ns/op	62632200 B/op	 1257728 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=20pct/shape=rich_100x5x50x10-10        	      28	  92560716 ns/op	62632690 B/op	 1257730 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=20pct/shape=rich_100x5x50x10-10        	      21	 100172617 ns/op	62632939 B/op	 1257730 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=20pct/shape=rich_100x5x50x10-10        	      26	  88000452 ns/op	62632638 B/op	 1257730 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=20pct/shape=rich_100x5x50x10-10        	      26	  87177694 ns/op	62632484 B/op	 1257732 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=50pct/shape=rich_100x5x50x10-10        	      28	  82039954 ns/op	62632439 B/op	 1257731 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=50pct/shape=rich_100x5x50x10-10        	      28	  78372874 ns/op	62632134 B/op	 1257728 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=50pct/shape=rich_100x5x50x10-10        	      28	  79606446 ns/op	62633062 B/op	 1257732 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=50pct/shape=rich_100x5x50x10-10        	      31	  88010852 ns/op	62632979 B/op	 1257732 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=50pct/shape=rich_100x5x50x10-10        	      26	  82661261 ns/op	62633566 B/op	 1257734 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=100pct/shape=rich_100x5x50x10-10       	      26	  78804367 ns/op	62631608 B/op	 1257726 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=100pct/shape=rich_100x5x50x10-10       	      30	  80700761 ns/op	62632244 B/op	 1257730 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=100pct/shape=rich_100x5x50x10-10       	      28	  79532205 ns/op	62632891 B/op	 1257731 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=100pct/shape=rich_100x5x50x10-10       	      28	  82541238 ns/op	62632044 B/op	 1257729 allocs/op
+BenchmarkConditionalFanoutMetrics/hit=100pct/shape=rich_100x5x50x10-10       	      28	  78849394 ns/op	62632555 B/op	 1257731 allocs/op
+PASS
+ok  	go.opentelemetry.io/collector/internal/fanoutconsumer	59.030s

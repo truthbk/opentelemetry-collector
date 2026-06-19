@@ -1,0 +1,31 @@
+goos: darwin
+goarch: arm64
+pkg: go.opentelemetry.io/collector/internal/fanoutconsumer
+cpu: Apple M1 Max
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=0pct/shape=rich_100x5x50x10-10         	      36	  68265674 ns/op	45272018 B/op	  929232 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=0pct/shape=rich_100x5x50x10-10         	      36	  71460359 ns/op	45270784 B/op	  929230 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=0pct/shape=rich_100x5x50x10-10         	      36	  73882784 ns/op	45270114 B/op	  929226 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=0pct/shape=rich_100x5x50x10-10         	      26	  93734162 ns/op	45270068 B/op	  929226 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=0pct/shape=rich_100x5x50x10-10         	      32	  89515482 ns/op	45270802 B/op	  929229 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=10pct/shape=rich_100x5x50x10-10        	      36	  69817865 ns/op	46717387 B/op	  956605 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=10pct/shape=rich_100x5x50x10-10        	      33	  69077802 ns/op	46848640 B/op	  959092 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=10pct/shape=rich_100x5x50x10-10        	      38	  62857186 ns/op	46641849 B/op	  955168 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=10pct/shape=rich_100x5x50x10-10        	      36	  63650117 ns/op	46717682 B/op	  956605 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=10pct/shape=rich_100x5x50x10-10        	      37	  63556626 ns/op	46677766 B/op	  955861 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=20pct/shape=rich_100x5x50x10-10        	      38	  64567614 ns/op	48468407 B/op	  989742 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=20pct/shape=rich_100x5x50x10-10        	      37	  65157425 ns/op	48555673 B/op	  991379 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=20pct/shape=rich_100x5x50x10-10        	      37	  65448019 ns/op	48556036 B/op	  991382 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=20pct/shape=rich_100x5x50x10-10        	      37	  64920812 ns/op	48554901 B/op	  991378 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=20pct/shape=rich_100x5x50x10-10        	      36	  64447738 ns/op	48646797 B/op	  993107 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=50pct/shape=rich_100x5x50x10-10        	      33	  70333032 ns/op	53688776 B/op	 1088505 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=50pct/shape=rich_100x5x50x10-10        	      36	  68590616 ns/op	53952542 B/op	 1093485 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=50pct/shape=rich_100x5x50x10-10        	      37	  68624047 ns/op	53716492 B/op	 1089041 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=50pct/shape=rich_100x5x50x10-10        	      37	  67482530 ns/op	53717317 B/op	 1089043 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=50pct/shape=rich_100x5x50x10-10        	      38	  69238662 ns/op	53951769 B/op	 1093483 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=100pct/shape=rich_100x5x50x10-10       	      31	  71694300 ns/op	62632077 B/op	 1257732 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=100pct/shape=rich_100x5x50x10-10       	      31	  76191759 ns/op	62633886 B/op	 1257738 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=100pct/shape=rich_100x5x50x10-10       	      31	  72783694 ns/op	62633025 B/op	 1257735 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=100pct/shape=rich_100x5x50x10-10       	      32	  74931029 ns/op	62632224 B/op	 1257732 allocs/op
+BenchmarkConditionalFanoutMetricsAutoDetach/hit=100pct/shape=rich_100x5x50x10-10       	      32	  72905124 ns/op	62632217 B/op	 1257732 allocs/op
+PASS
+ok  	go.opentelemetry.io/collector/internal/fanoutconsumer	61.772s
