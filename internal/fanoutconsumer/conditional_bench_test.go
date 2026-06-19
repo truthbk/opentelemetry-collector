@@ -111,3 +111,99 @@ func benchConditional(b *testing.B, hitEvery int, gen func() pmetric.Metrics) {
 		}
 	}
 }
+
+// conditionalMutatorMetricsAutoDetach is the Phase-5 sibling of
+// conditionalMutatorMetrics: same shape, same hit pattern, but it does
+// NOT call cow.DetachMetrics explicitly. Under Phase 5's codegen-injected
+// auto-detach prelude, mutating a cow.Share'd wrapper triggers detach
+// transparently — the RemoveIf slice mutator's prelude (
+// `state.DetachIfShared()` before `state.AssertMutable()`) fires inside
+// when cowRefs > 0 and the per-signal detacher closure is installed.
+// This is the bench that validates Phase 5 actually delivers the
+// deferred-clone benefit without requiring processor authors to opt
+// into explicit detach.
+type conditionalMutatorMetricsAutoDetach struct {
+	hitEvery int
+	counter  int
+}
+
+func (c *conditionalMutatorMetricsAutoDetach) Capabilities() consumer.Capabilities {
+	return consumer.Capabilities{MutatesData: true}
+}
+
+func (c *conditionalMutatorMetricsAutoDetach) ConsumeMetrics(_ context.Context, md pmetric.Metrics) error {
+	c.counter++
+	if c.hitEvery == 0 || c.counter%c.hitEvery != 0 {
+		// no-match path: do nothing. Under Phase 5 gate ON, the share
+		// stays intact; the fanout's eager-clone never fired (cow.Share
+		// took its place). Zero clone cost paid on this iteration.
+		return nil
+	}
+	// hit path: no explicit cow.DetachMetrics. The RemoveIf below
+	// triggers state.DetachIfShared() inside its prelude, which
+	// invokes the per-signal detacher closure installed by
+	// cow.ShareMetrics; that deep-clones the source tree and rebinds
+	// md's Handle to the new tree. Subsequent mutations write to the
+	// private clone; source is untouched.
+	rms := md.ResourceMetrics()
+	if rms.Len() > 0 {
+		rms.RemoveIf(func(_ pmetric.ResourceMetrics) bool { return false })
+	}
+	return nil
+}
+
+// BenchmarkConditionalFanoutMetricsAutoDetach — Phase-5 auto-detach
+// variant of BenchmarkConditionalFanoutMetrics. Same 4-consumer fanout
+// (1 conditional mutator + 3 readonly), same hit-rate sweep, same rich
+// shape. The mutator here does NOT call cow.DetachMetrics explicitly;
+// Phase 5's prelude inside RemoveIf is responsible for the rebind.
+//
+// Expected (gate ON):
+//   - hit=0pct  — auto-detach never fires; ~zero clone cost (the
+//     fanout's eager-clone is replaced by cheap cow.Share at dispatch)
+//   - hit=100pct — auto-detach fires every call; cost equals one
+//     full clone per call (matches the explicit-Detach variant's ceiling)
+//
+// Compared against BenchmarkConditionalFanoutMetrics (explicit Detach),
+// this should produce essentially identical numbers — Phase 5 makes the
+// explicit call redundant for slice-mutator paths.
+func BenchmarkConditionalFanoutMetricsAutoDetach(b *testing.B) {
+	hitRates := []struct {
+		name     string
+		hitEvery int
+	}{
+		{"hit=0pct", 0},
+		{"hit=10pct", 10},
+		{"hit=20pct", 5},
+		{"hit=50pct", 2},
+		{"hit=100pct", 1},
+	}
+	for _, hr := range hitRates {
+		b.Run(hr.name, func(b *testing.B) {
+			b.Run("shape=rich_100x5x50x10", func(b *testing.B) {
+				benchConditionalAutoDetach(b, hr.hitEvery, func() pmetric.Metrics {
+					return testdata.GenerateMetricsManyResources(100, 5, 50, 10)
+				})
+			})
+		})
+	}
+}
+
+func benchConditionalAutoDetach(b *testing.B, hitEvery int, gen func() pmetric.Metrics) {
+	b.Helper()
+	consumers := []consumer.Metrics{
+		&conditionalMutatorMetricsAutoDetach{hitEvery: hitEvery},
+		consumertest.NewNop(),
+		consumertest.NewNop(),
+		consumertest.NewNop(),
+	}
+	fanout := NewMetrics(consumers)
+	ctx := context.Background()
+	b.ReportAllocs()
+	for b.Loop() {
+		md := gen()
+		if err := fanout.ConsumeMetrics(ctx, md); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
