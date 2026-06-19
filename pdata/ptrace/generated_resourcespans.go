@@ -66,7 +66,13 @@ func (ms ResourceSpans) Resource() pcommon.Resource {
 
 // ScopeSpans returns the ScopeSpans associated with this ResourceSpans.
 func (ms ResourceSpans) ScopeSpans() ScopeSpansSlice {
-	return newScopeSpansSlice(&ms.getOrig().ScopeSpans, ms.getState())
+	// Tree-connected (nested parent): slice shares ms's Handle + indices
+	// so cow.Share detach (Phase 5) rebinds the shared tree in place
+	// across parent and all derived slice/element wrappers.
+	return ScopeSpansSlice{
+		h:     ms.h,
+		rsIdx: ms.rsIdx,
+	}
 }
 
 // SchemaUrl returns the schemaurl associated with this ResourceSpans.

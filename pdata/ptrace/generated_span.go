@@ -175,7 +175,15 @@ func (ms Span) SetDroppedAttributesCount(v uint32) {
 
 // Events returns the Events associated with this Span.
 func (ms Span) Events() SpanEventSlice {
-	return newSpanEventSlice(&ms.getOrig().Events, ms.getState())
+	// Tree-connected (nested parent): slice shares ms's Handle + indices
+	// so cow.Share detach (Phase 5) rebinds the shared tree in place
+	// across parent and all derived slice/element wrappers.
+	return SpanEventSlice{
+		h:     ms.h,
+		rsIdx: ms.rsIdx,
+		ssIdx: ms.ssIdx,
+		sIdx:  ms.sIdx,
+	}
 }
 
 // DroppedEventsCount returns the droppedeventscount associated with this Span.
@@ -191,7 +199,15 @@ func (ms Span) SetDroppedEventsCount(v uint32) {
 
 // Links returns the Links associated with this Span.
 func (ms Span) Links() SpanLinkSlice {
-	return newSpanLinkSlice(&ms.getOrig().Links, ms.getState())
+	// Tree-connected (nested parent): slice shares ms's Handle + indices
+	// so cow.Share detach (Phase 5) rebinds the shared tree in place
+	// across parent and all derived slice/element wrappers.
+	return SpanLinkSlice{
+		h:     ms.h,
+		rsIdx: ms.rsIdx,
+		ssIdx: ms.ssIdx,
+		sIdx:  ms.sIdx,
+	}
 }
 
 // DroppedLinksCount returns the droppedlinkscount associated with this Span.

@@ -20,13 +20,22 @@ import (
 //
 // Must use NewResourceLogsSlice function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-slice layout: carries the top-level Handle (shared with
+// the parent tree) and the index path that locates this slice's
+// position inside that tree. The slice's own elements are indexed by
+// At()/AppendEmpty(); the indices the slice carries are its PARENT's
+// indices (the slice IS a field on the parent struct).
 type ResourceLogsSlice struct {
-	orig  *[]*internal.ResourceLogs
-	state *internal.State
+	h *internal.Handle[internal.ExportLogsServiceRequest]
 }
 
 func newResourceLogsSlice(orig *[]*internal.ResourceLogs, state *internal.State) ResourceLogsSlice {
-	return ResourceLogsSlice{orig: orig, state: state}
+	// Path Y "always-h": synthesize a top-level parent tree whose target
+	// slice IS the caller's orig (by pointer; not a copy). Mutations
+	// through this wrapper propagate to *orig.
+	return ResourceLogsSlice{
+		h: internal.NewHandle(&internal.ExportLogsServiceRequest{ResourceLogs: *orig}, state),
+	}
 }
 
 // NewResourceLogsSlice creates a ResourceLogsSliceWrapper with 0 elements.
@@ -52,7 +61,13 @@ func (es ResourceLogsSlice) Len() int {
 //	    ... // Do something with the element
 //	}
 func (es ResourceLogsSlice) At(i int) ResourceLogs {
-	return newResourceLogs((*es.getOrig())[i], es.getState())
+	// Tree-connected: element shares the slice's Handle + parent indices.
+	// Direct struct literal avoids the standalone synthetic-Handle path
+	// so cow.Share detach (Phase 5) can rebind the shared tree in place.
+	return ResourceLogs{
+		h:     es.h,
+		rlIdx: i,
+	}
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -163,9 +178,9 @@ func (es ResourceLogsSlice) Sort(less func(a, b ResourceLogs) bool) {
 }
 
 func (ms ResourceLogsSlice) getOrig() *[]*internal.ResourceLogs {
-	return ms.orig
+	return &ms.h.GetOrig().ResourceLogs
 }
 
 func (ms ResourceLogsSlice) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

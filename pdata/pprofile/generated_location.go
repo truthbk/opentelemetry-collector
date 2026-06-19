@@ -72,6 +72,13 @@ func (ms Location) SetAddress(v uint64) {
 
 // Lines returns the Lines associated with this Location.
 func (ms Location) Lines() LineSlice {
+	// Fall-back: ms is either hasWrapper-but-not-top-level (e.g.
+	// ProfilesData) or has no nestedPath; either way ms has no Handle
+	// to propagate. Use the standalone new<X>Slice constructor — under
+	// useHandleLayout it synthesizes a disconnected Handle wrapping
+	// orig by pointer, so reads/writes still flow through; cow.Share
+	// detach won't propagate into the slice from here (these parents
+	// aren't part of the live signal tree).
 	return newLineSlice(&ms.getOrig().Lines, ms.getState())
 }
 

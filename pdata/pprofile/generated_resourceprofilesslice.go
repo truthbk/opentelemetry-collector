@@ -20,13 +20,22 @@ import (
 //
 // Must use NewResourceProfilesSlice function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-slice layout: carries the top-level Handle (shared with
+// the parent tree) and the index path that locates this slice's
+// position inside that tree. The slice's own elements are indexed by
+// At()/AppendEmpty(); the indices the slice carries are its PARENT's
+// indices (the slice IS a field on the parent struct).
 type ResourceProfilesSlice struct {
-	orig  *[]*internal.ResourceProfiles
-	state *internal.State
+	h *internal.Handle[internal.ExportProfilesServiceRequest]
 }
 
 func newResourceProfilesSlice(orig *[]*internal.ResourceProfiles, state *internal.State) ResourceProfilesSlice {
-	return ResourceProfilesSlice{orig: orig, state: state}
+	// Path Y "always-h": synthesize a top-level parent tree whose target
+	// slice IS the caller's orig (by pointer; not a copy). Mutations
+	// through this wrapper propagate to *orig.
+	return ResourceProfilesSlice{
+		h: internal.NewHandle(&internal.ExportProfilesServiceRequest{ResourceProfiles: *orig}, state),
+	}
 }
 
 // NewResourceProfilesSlice creates a ResourceProfilesSliceWrapper with 0 elements.
@@ -52,7 +61,13 @@ func (es ResourceProfilesSlice) Len() int {
 //	    ... // Do something with the element
 //	}
 func (es ResourceProfilesSlice) At(i int) ResourceProfiles {
-	return newResourceProfiles((*es.getOrig())[i], es.getState())
+	// Tree-connected: element shares the slice's Handle + parent indices.
+	// Direct struct literal avoids the standalone synthetic-Handle path
+	// so cow.Share detach (Phase 5) can rebind the shared tree in place.
+	return ResourceProfiles{
+		h:     es.h,
+		rpIdx: i,
+	}
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -163,9 +178,9 @@ func (es ResourceProfilesSlice) Sort(less func(a, b ResourceProfiles) bool) {
 }
 
 func (ms ResourceProfilesSlice) getOrig() *[]*internal.ResourceProfiles {
-	return ms.orig
+	return &ms.h.GetOrig().ResourceProfiles
 }
 
 func (ms ResourceProfilesSlice) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

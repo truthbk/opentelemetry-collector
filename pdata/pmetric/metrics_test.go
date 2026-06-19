@@ -130,7 +130,12 @@ func TestHistogramWithNilSum(t *testing.T) {
 	histogramDataPoints.AppendEmpty()
 	dest := ilm.Metrics().AppendEmpty()
 	histo.CopyTo(dest)
-	assert.Equal(t, histo, dest)
+	// Semantic equality (Path Y Phase 4): histo is at mIdx=0 and dest is
+	// at mIdx=1 within the same parent tree — the wrappers carry
+	// different indices even though CopyTo made their DATA equal.
+	// Compare *getOrig() to assert data equivalence independent of the
+	// position-bearing wrapper struct.
+	assert.Equal(t, *histo.getOrig(), *dest.getOrig())
 }
 
 func TestHistogramWithValidSum(t *testing.T) {
@@ -142,7 +147,8 @@ func TestHistogramWithValidSum(t *testing.T) {
 	histogramDataPoints.At(0).SetSum(10)
 	dest := ilm.Metrics().AppendEmpty()
 	histo.CopyTo(dest)
-	assert.Equal(t, histo, dest)
+	// Semantic equality — see TestHistogramWithNilSum.
+	assert.Equal(t, *histo.getOrig(), *dest.getOrig())
 }
 
 func TestOtlpToInternalReadOnly(t *testing.T) {

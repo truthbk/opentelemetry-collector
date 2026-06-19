@@ -20,13 +20,22 @@ import (
 //
 // Must use NewResourceSpansSlice function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-slice layout: carries the top-level Handle (shared with
+// the parent tree) and the index path that locates this slice's
+// position inside that tree. The slice's own elements are indexed by
+// At()/AppendEmpty(); the indices the slice carries are its PARENT's
+// indices (the slice IS a field on the parent struct).
 type ResourceSpansSlice struct {
-	orig  *[]*internal.ResourceSpans
-	state *internal.State
+	h *internal.Handle[internal.ExportTraceServiceRequest]
 }
 
 func newResourceSpansSlice(orig *[]*internal.ResourceSpans, state *internal.State) ResourceSpansSlice {
-	return ResourceSpansSlice{orig: orig, state: state}
+	// Path Y "always-h": synthesize a top-level parent tree whose target
+	// slice IS the caller's orig (by pointer; not a copy). Mutations
+	// through this wrapper propagate to *orig.
+	return ResourceSpansSlice{
+		h: internal.NewHandle(&internal.ExportTraceServiceRequest{ResourceSpans: *orig}, state),
+	}
 }
 
 // NewResourceSpansSlice creates a ResourceSpansSliceWrapper with 0 elements.
@@ -52,7 +61,13 @@ func (es ResourceSpansSlice) Len() int {
 //	    ... // Do something with the element
 //	}
 func (es ResourceSpansSlice) At(i int) ResourceSpans {
-	return newResourceSpans((*es.getOrig())[i], es.getState())
+	// Tree-connected: element shares the slice's Handle + parent indices.
+	// Direct struct literal avoids the standalone synthetic-Handle path
+	// so cow.Share detach (Phase 5) can rebind the shared tree in place.
+	return ResourceSpans{
+		h:     es.h,
+		rsIdx: i,
+	}
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -163,9 +178,9 @@ func (es ResourceSpansSlice) Sort(less func(a, b ResourceSpans) bool) {
 }
 
 func (ms ResourceSpansSlice) getOrig() *[]*internal.ResourceSpans {
-	return ms.orig
+	return &ms.h.GetOrig().ResourceSpans
 }
 
 func (ms ResourceSpansSlice) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

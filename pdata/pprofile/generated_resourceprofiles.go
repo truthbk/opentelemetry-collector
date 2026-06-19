@@ -66,7 +66,13 @@ func (ms ResourceProfiles) Resource() pcommon.Resource {
 
 // ScopeProfiles returns the ScopeProfiles associated with this ResourceProfiles.
 func (ms ResourceProfiles) ScopeProfiles() ScopeProfilesSlice {
-	return newScopeProfilesSlice(&ms.getOrig().ScopeProfiles, ms.getState())
+	// Tree-connected (nested parent): slice shares ms's Handle + indices
+	// so cow.Share detach (Phase 5) rebinds the shared tree in place
+	// across parent and all derived slice/element wrappers.
+	return ScopeProfilesSlice{
+		h:     ms.h,
+		rpIdx: ms.rpIdx,
+	}
 }
 
 // SchemaUrl returns the schemaurl associated with this ResourceProfiles.

@@ -20,13 +20,26 @@ import (
 //
 // Must use NewLogRecordSlice function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-slice layout: carries the top-level Handle (shared with
+// the parent tree) and the index path that locates this slice's
+// position inside that tree. The slice's own elements are indexed by
+// At()/AppendEmpty(); the indices the slice carries are its PARENT's
+// indices (the slice IS a field on the parent struct).
 type LogRecordSlice struct {
-	orig  *[]*internal.LogRecord
-	state *internal.State
+	h     *internal.Handle[internal.ExportLogsServiceRequest]
+	rlIdx int
+	slIdx int
 }
 
 func newLogRecordSlice(orig *[]*internal.LogRecord, state *internal.State) LogRecordSlice {
-	return LogRecordSlice{orig: orig, state: state}
+	// Path Y "always-h": synthesize a top-level parent tree whose target
+	// slice IS the caller's orig (by pointer; not a copy). Mutations
+	// through this wrapper propagate to *orig.
+	return LogRecordSlice{
+		h:     internal.NewHandle(&internal.ExportLogsServiceRequest{ResourceLogs: []*internal.ResourceLogs{{ScopeLogs: []*internal.ScopeLogs{{LogRecords: *orig}}}}}, state),
+		rlIdx: 0,
+		slIdx: 0,
+	}
 }
 
 // NewLogRecordSlice creates a LogRecordSliceWrapper with 0 elements.
@@ -52,7 +65,15 @@ func (es LogRecordSlice) Len() int {
 //	    ... // Do something with the element
 //	}
 func (es LogRecordSlice) At(i int) LogRecord {
-	return newLogRecord((*es.getOrig())[i], es.getState())
+	// Tree-connected: element shares the slice's Handle + parent indices.
+	// Direct struct literal avoids the standalone synthetic-Handle path
+	// so cow.Share detach (Phase 5) can rebind the shared tree in place.
+	return LogRecord{
+		h:     es.h,
+		rlIdx: es.rlIdx,
+		slIdx: es.slIdx,
+		lrIdx: i,
+	}
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -163,9 +184,9 @@ func (es LogRecordSlice) Sort(less func(a, b LogRecord) bool) {
 }
 
 func (ms LogRecordSlice) getOrig() *[]*internal.LogRecord {
-	return ms.orig
+	return &ms.h.GetOrig().ResourceLogs[ms.rlIdx].ScopeLogs[ms.slIdx].LogRecords
 }
 
 func (ms LogRecordSlice) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

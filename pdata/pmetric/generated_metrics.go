@@ -47,7 +47,13 @@ func (ms Metrics) MoveTo(dest Metrics) {
 
 // ResourceMetrics returns the ResourceMetrics associated with this Metrics.
 func (ms Metrics) ResourceMetrics() ResourceMetricsSlice {
-	return newResourceMetricsSlice(&ms.getOrig().ResourceMetrics, ms.getState())
+	// Tree-connected (top-level parent): ms is a typedef of
+	// internal.MetricsWrapper; cross the package boundary
+	// via the generated GetMetricsHandle accessor since
+	// the unexported h field isn't visible from this package.
+	return ResourceMetricsSlice{
+		h: internal.GetMetricsHandle(internal.MetricsWrapper(ms)),
+	}
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.

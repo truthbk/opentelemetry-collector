@@ -20,13 +20,28 @@ import (
 //
 // Must use NewSpanLinkSlice function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-slice layout: carries the top-level Handle (shared with
+// the parent tree) and the index path that locates this slice's
+// position inside that tree. The slice's own elements are indexed by
+// At()/AppendEmpty(); the indices the slice carries are its PARENT's
+// indices (the slice IS a field on the parent struct).
 type SpanLinkSlice struct {
-	orig  *[]*internal.SpanLink
-	state *internal.State
+	h     *internal.Handle[internal.ExportTraceServiceRequest]
+	rsIdx int
+	ssIdx int
+	sIdx  int
 }
 
 func newSpanLinkSlice(orig *[]*internal.SpanLink, state *internal.State) SpanLinkSlice {
-	return SpanLinkSlice{orig: orig, state: state}
+	// Path Y "always-h": synthesize a top-level parent tree whose target
+	// slice IS the caller's orig (by pointer; not a copy). Mutations
+	// through this wrapper propagate to *orig.
+	return SpanLinkSlice{
+		h:     internal.NewHandle(&internal.ExportTraceServiceRequest{ResourceSpans: []*internal.ResourceSpans{{ScopeSpans: []*internal.ScopeSpans{{Spans: []*internal.Span{{Links: *orig}}}}}}}, state),
+		rsIdx: 0,
+		ssIdx: 0,
+		sIdx:  0,
+	}
 }
 
 // NewSpanLinkSlice creates a SpanLinkSliceWrapper with 0 elements.
@@ -52,7 +67,16 @@ func (es SpanLinkSlice) Len() int {
 //	    ... // Do something with the element
 //	}
 func (es SpanLinkSlice) At(i int) SpanLink {
-	return newSpanLink((*es.getOrig())[i], es.getState())
+	// Tree-connected: element shares the slice's Handle + parent indices.
+	// Direct struct literal avoids the standalone synthetic-Handle path
+	// so cow.Share detach (Phase 5) can rebind the shared tree in place.
+	return SpanLink{
+		h:     es.h,
+		rsIdx: es.rsIdx,
+		ssIdx: es.ssIdx,
+		sIdx:  es.sIdx,
+		lIdx:  i,
+	}
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -163,9 +187,9 @@ func (es SpanLinkSlice) Sort(less func(a, b SpanLink) bool) {
 }
 
 func (ms SpanLinkSlice) getOrig() *[]*internal.SpanLink {
-	return ms.orig
+	return &ms.h.GetOrig().ResourceSpans[ms.rsIdx].ScopeSpans[ms.ssIdx].Spans[ms.sIdx].Links
 }
 
 func (ms SpanLinkSlice) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

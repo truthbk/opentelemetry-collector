@@ -68,7 +68,14 @@ func (ms ScopeSpans) Scope() pcommon.InstrumentationScope {
 
 // Spans returns the Spans associated with this ScopeSpans.
 func (ms ScopeSpans) Spans() SpanSlice {
-	return newSpanSlice(&ms.getOrig().Spans, ms.getState())
+	// Tree-connected (nested parent): slice shares ms's Handle + indices
+	// so cow.Share detach (Phase 5) rebinds the shared tree in place
+	// across parent and all derived slice/element wrappers.
+	return SpanSlice{
+		h:     ms.h,
+		rsIdx: ms.rsIdx,
+		ssIdx: ms.ssIdx,
+	}
 }
 
 // SchemaUrl returns the schemaurl associated with this ScopeSpans.

@@ -47,7 +47,13 @@ func (ms Traces) MoveTo(dest Traces) {
 
 // ResourceSpans returns the ResourceSpans associated with this Traces.
 func (ms Traces) ResourceSpans() ResourceSpansSlice {
-	return newResourceSpansSlice(&ms.getOrig().ResourceSpans, ms.getState())
+	// Tree-connected (top-level parent): ms is a typedef of
+	// internal.TracesWrapper; cross the package boundary
+	// via the generated GetTracesHandle accessor since
+	// the unexported h field isn't visible from this package.
+	return ResourceSpansSlice{
+		h: internal.GetTracesHandle(internal.TracesWrapper(ms)),
+	}
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.

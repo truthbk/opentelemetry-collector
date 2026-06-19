@@ -18,6 +18,15 @@ func GetProfilesState(ms ProfilesWrapper) *State {
 	return ms.h.GetState()
 }
 
+// GetProfilesHandle returns the underlying Handle pointer so that
+// child slice/wrapper accessors in the per-signal packages (which cannot
+// access the unexported `h` field across the typedef boundary) can
+// propagate the parent's Handle into derived wrappers under the
+// Path Y {h, indices} layout.
+func GetProfilesHandle(ms ProfilesWrapper) *Handle[ExportProfilesServiceRequest] {
+	return ms.h
+}
+
 func NewProfilesWrapper(orig *ExportProfilesServiceRequest, state *State) ProfilesWrapper {
 	return ProfilesWrapper{h: NewHandle(orig, state)}
 }

@@ -18,6 +18,15 @@ func GetMetricsState(ms MetricsWrapper) *State {
 	return ms.h.GetState()
 }
 
+// GetMetricsHandle returns the underlying Handle pointer so that
+// child slice/wrapper accessors in the per-signal packages (which cannot
+// access the unexported `h` field across the typedef boundary) can
+// propagate the parent's Handle into derived wrappers under the
+// Path Y {h, indices} layout.
+func GetMetricsHandle(ms MetricsWrapper) *Handle[ExportMetricsServiceRequest] {
+	return ms.h
+}
+
 func NewMetricsWrapper(orig *ExportMetricsServiceRequest, state *State) MetricsWrapper {
 	return MetricsWrapper{h: NewHandle(orig, state)}
 }

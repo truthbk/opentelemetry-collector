@@ -20,13 +20,24 @@ import (
 //
 // Must use NewScopeSpansSlice function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-slice layout: carries the top-level Handle (shared with
+// the parent tree) and the index path that locates this slice's
+// position inside that tree. The slice's own elements are indexed by
+// At()/AppendEmpty(); the indices the slice carries are its PARENT's
+// indices (the slice IS a field on the parent struct).
 type ScopeSpansSlice struct {
-	orig  *[]*internal.ScopeSpans
-	state *internal.State
+	h     *internal.Handle[internal.ExportTraceServiceRequest]
+	rsIdx int
 }
 
 func newScopeSpansSlice(orig *[]*internal.ScopeSpans, state *internal.State) ScopeSpansSlice {
-	return ScopeSpansSlice{orig: orig, state: state}
+	// Path Y "always-h": synthesize a top-level parent tree whose target
+	// slice IS the caller's orig (by pointer; not a copy). Mutations
+	// through this wrapper propagate to *orig.
+	return ScopeSpansSlice{
+		h:     internal.NewHandle(&internal.ExportTraceServiceRequest{ResourceSpans: []*internal.ResourceSpans{{ScopeSpans: *orig}}}, state),
+		rsIdx: 0,
+	}
 }
 
 // NewScopeSpansSlice creates a ScopeSpansSliceWrapper with 0 elements.
@@ -52,7 +63,14 @@ func (es ScopeSpansSlice) Len() int {
 //	    ... // Do something with the element
 //	}
 func (es ScopeSpansSlice) At(i int) ScopeSpans {
-	return newScopeSpans((*es.getOrig())[i], es.getState())
+	// Tree-connected: element shares the slice's Handle + parent indices.
+	// Direct struct literal avoids the standalone synthetic-Handle path
+	// so cow.Share detach (Phase 5) can rebind the shared tree in place.
+	return ScopeSpans{
+		h:     es.h,
+		rsIdx: es.rsIdx,
+		ssIdx: i,
+	}
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -163,9 +181,9 @@ func (es ScopeSpansSlice) Sort(less func(a, b ScopeSpans) bool) {
 }
 
 func (ms ScopeSpansSlice) getOrig() *[]*internal.ScopeSpans {
-	return ms.orig
+	return &ms.h.GetOrig().ResourceSpans[ms.rsIdx].ScopeSpans
 }
 
 func (ms ScopeSpansSlice) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

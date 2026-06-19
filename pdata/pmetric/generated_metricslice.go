@@ -20,13 +20,26 @@ import (
 //
 // Must use NewMetricSlice function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-slice layout: carries the top-level Handle (shared with
+// the parent tree) and the index path that locates this slice's
+// position inside that tree. The slice's own elements are indexed by
+// At()/AppendEmpty(); the indices the slice carries are its PARENT's
+// indices (the slice IS a field on the parent struct).
 type MetricSlice struct {
-	orig  *[]*internal.Metric
-	state *internal.State
+	h     *internal.Handle[internal.ExportMetricsServiceRequest]
+	rmIdx int
+	smIdx int
 }
 
 func newMetricSlice(orig *[]*internal.Metric, state *internal.State) MetricSlice {
-	return MetricSlice{orig: orig, state: state}
+	// Path Y "always-h": synthesize a top-level parent tree whose target
+	// slice IS the caller's orig (by pointer; not a copy). Mutations
+	// through this wrapper propagate to *orig.
+	return MetricSlice{
+		h:     internal.NewHandle(&internal.ExportMetricsServiceRequest{ResourceMetrics: []*internal.ResourceMetrics{{ScopeMetrics: []*internal.ScopeMetrics{{Metrics: *orig}}}}}, state),
+		rmIdx: 0,
+		smIdx: 0,
+	}
 }
 
 // NewMetricSlice creates a MetricSliceWrapper with 0 elements.
@@ -52,7 +65,15 @@ func (es MetricSlice) Len() int {
 //	    ... // Do something with the element
 //	}
 func (es MetricSlice) At(i int) Metric {
-	return newMetric((*es.getOrig())[i], es.getState())
+	// Tree-connected: element shares the slice's Handle + parent indices.
+	// Direct struct literal avoids the standalone synthetic-Handle path
+	// so cow.Share detach (Phase 5) can rebind the shared tree in place.
+	return Metric{
+		h:     es.h,
+		rmIdx: es.rmIdx,
+		smIdx: es.smIdx,
+		mIdx:  i,
+	}
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -163,9 +184,9 @@ func (es MetricSlice) Sort(less func(a, b Metric) bool) {
 }
 
 func (ms MetricSlice) getOrig() *[]*internal.Metric {
-	return ms.orig
+	return &ms.h.GetOrig().ResourceMetrics[ms.rmIdx].ScopeMetrics[ms.smIdx].Metrics
 }
 
 func (ms MetricSlice) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

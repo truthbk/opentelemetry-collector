@@ -20,13 +20,28 @@ import (
 //
 // Must use NewSampleSlice function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-slice layout: carries the top-level Handle (shared with
+// the parent tree) and the index path that locates this slice's
+// position inside that tree. The slice's own elements are indexed by
+// At()/AppendEmpty(); the indices the slice carries are its PARENT's
+// indices (the slice IS a field on the parent struct).
 type SampleSlice struct {
-	orig  *[]*internal.Sample
-	state *internal.State
+	h     *internal.Handle[internal.ExportProfilesServiceRequest]
+	rpIdx int
+	spIdx int
+	pIdx  int
 }
 
 func newSampleSlice(orig *[]*internal.Sample, state *internal.State) SampleSlice {
-	return SampleSlice{orig: orig, state: state}
+	// Path Y "always-h": synthesize a top-level parent tree whose target
+	// slice IS the caller's orig (by pointer; not a copy). Mutations
+	// through this wrapper propagate to *orig.
+	return SampleSlice{
+		h:     internal.NewHandle(&internal.ExportProfilesServiceRequest{ResourceProfiles: []*internal.ResourceProfiles{{ScopeProfiles: []*internal.ScopeProfiles{{Profiles: []*internal.Profile{{Samples: *orig}}}}}}}, state),
+		rpIdx: 0,
+		spIdx: 0,
+		pIdx:  0,
+	}
 }
 
 // NewSampleSlice creates a SampleSliceWrapper with 0 elements.
@@ -52,7 +67,16 @@ func (es SampleSlice) Len() int {
 //	    ... // Do something with the element
 //	}
 func (es SampleSlice) At(i int) Sample {
-	return newSample((*es.getOrig())[i], es.getState())
+	// Tree-connected: element shares the slice's Handle + parent indices.
+	// Direct struct literal avoids the standalone synthetic-Handle path
+	// so cow.Share detach (Phase 5) can rebind the shared tree in place.
+	return Sample{
+		h:     es.h,
+		rpIdx: es.rpIdx,
+		spIdx: es.spIdx,
+		pIdx:  es.pIdx,
+		sIdx:  i,
+	}
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -163,9 +187,9 @@ func (es SampleSlice) Sort(less func(a, b Sample) bool) {
 }
 
 func (ms SampleSlice) getOrig() *[]*internal.Sample {
-	return ms.orig
+	return &ms.h.GetOrig().ResourceProfiles[ms.rpIdx].ScopeProfiles[ms.spIdx].Profiles[ms.pIdx].Samples
 }
 
 func (ms SampleSlice) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

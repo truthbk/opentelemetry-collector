@@ -18,6 +18,15 @@ func GetLogsState(ms LogsWrapper) *State {
 	return ms.h.GetState()
 }
 
+// GetLogsHandle returns the underlying Handle pointer so that
+// child slice/wrapper accessors in the per-signal packages (which cannot
+// access the unexported `h` field across the typedef boundary) can
+// propagate the parent's Handle into derived wrappers under the
+// Path Y {h, indices} layout.
+func GetLogsHandle(ms LogsWrapper) *Handle[ExportLogsServiceRequest] {
+	return ms.h
+}
+
 func NewLogsWrapper(orig *ExportLogsServiceRequest, state *State) LogsWrapper {
 	return LogsWrapper{h: NewHandle(orig, state)}
 }

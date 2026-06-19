@@ -18,6 +18,15 @@ func GetTracesState(ms TracesWrapper) *State {
 	return ms.h.GetState()
 }
 
+// GetTracesHandle returns the underlying Handle pointer so that
+// child slice/wrapper accessors in the per-signal packages (which cannot
+// access the unexported `h` field across the typedef boundary) can
+// propagate the parent's Handle into derived wrappers under the
+// Path Y {h, indices} layout.
+func GetTracesHandle(ms TracesWrapper) *Handle[ExportTraceServiceRequest] {
+	return ms.h
+}
+
 func NewTracesWrapper(orig *ExportTraceServiceRequest, state *State) TracesWrapper {
 	return TracesWrapper{h: NewHandle(orig, state)}
 }

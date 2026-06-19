@@ -50,21 +50,49 @@ func (ms ProfilesDictionary) MoveTo(dest ProfilesDictionary) {
 
 // MappingTable returns the MappingTable associated with this ProfilesDictionary.
 func (ms ProfilesDictionary) MappingTable() MappingSlice {
+	// Fall-back: ms is either hasWrapper-but-not-top-level (e.g.
+	// ProfilesData) or has no nestedPath; either way ms has no Handle
+	// to propagate. Use the standalone new<X>Slice constructor — under
+	// useHandleLayout it synthesizes a disconnected Handle wrapping
+	// orig by pointer, so reads/writes still flow through; cow.Share
+	// detach won't propagate into the slice from here (these parents
+	// aren't part of the live signal tree).
 	return newMappingSlice(&ms.getOrig().MappingTable, ms.getState())
 }
 
 // LocationTable returns the LocationTable associated with this ProfilesDictionary.
 func (ms ProfilesDictionary) LocationTable() LocationSlice {
+	// Fall-back: ms is either hasWrapper-but-not-top-level (e.g.
+	// ProfilesData) or has no nestedPath; either way ms has no Handle
+	// to propagate. Use the standalone new<X>Slice constructor — under
+	// useHandleLayout it synthesizes a disconnected Handle wrapping
+	// orig by pointer, so reads/writes still flow through; cow.Share
+	// detach won't propagate into the slice from here (these parents
+	// aren't part of the live signal tree).
 	return newLocationSlice(&ms.getOrig().LocationTable, ms.getState())
 }
 
 // FunctionTable returns the FunctionTable associated with this ProfilesDictionary.
 func (ms ProfilesDictionary) FunctionTable() FunctionSlice {
+	// Fall-back: ms is either hasWrapper-but-not-top-level (e.g.
+	// ProfilesData) or has no nestedPath; either way ms has no Handle
+	// to propagate. Use the standalone new<X>Slice constructor — under
+	// useHandleLayout it synthesizes a disconnected Handle wrapping
+	// orig by pointer, so reads/writes still flow through; cow.Share
+	// detach won't propagate into the slice from here (these parents
+	// aren't part of the live signal tree).
 	return newFunctionSlice(&ms.getOrig().FunctionTable, ms.getState())
 }
 
 // LinkTable returns the LinkTable associated with this ProfilesDictionary.
 func (ms ProfilesDictionary) LinkTable() LinkSlice {
+	// Fall-back: ms is either hasWrapper-but-not-top-level (e.g.
+	// ProfilesData) or has no nestedPath; either way ms has no Handle
+	// to propagate. Use the standalone new<X>Slice constructor — under
+	// useHandleLayout it synthesizes a disconnected Handle wrapping
+	// orig by pointer, so reads/writes still flow through; cow.Share
+	// detach won't propagate into the slice from here (these parents
+	// aren't part of the live signal tree).
 	return newLinkSlice(&ms.getOrig().LinkTable, ms.getState())
 }
 
@@ -75,11 +103,25 @@ func (ms ProfilesDictionary) StringTable() pcommon.StringSlice {
 
 // AttributeTable returns the AttributeTable associated with this ProfilesDictionary.
 func (ms ProfilesDictionary) AttributeTable() KeyValueAndUnitSlice {
+	// Fall-back: ms is either hasWrapper-but-not-top-level (e.g.
+	// ProfilesData) or has no nestedPath; either way ms has no Handle
+	// to propagate. Use the standalone new<X>Slice constructor — under
+	// useHandleLayout it synthesizes a disconnected Handle wrapping
+	// orig by pointer, so reads/writes still flow through; cow.Share
+	// detach won't propagate into the slice from here (these parents
+	// aren't part of the live signal tree).
 	return newKeyValueAndUnitSlice(&ms.getOrig().AttributeTable, ms.getState())
 }
 
 // StackTable returns the StackTable associated with this ProfilesDictionary.
 func (ms ProfilesDictionary) StackTable() StackSlice {
+	// Fall-back: ms is either hasWrapper-but-not-top-level (e.g.
+	// ProfilesData) or has no nestedPath; either way ms has no Handle
+	// to propagate. Use the standalone new<X>Slice constructor — under
+	// useHandleLayout it synthesizes a disconnected Handle wrapping
+	// orig by pointer, so reads/writes still flow through; cow.Share
+	// detach won't propagate into the slice from here (these parents
+	// aren't part of the live signal tree).
 	return newStackSlice(&ms.getOrig().StackTable, ms.getState())
 }
 

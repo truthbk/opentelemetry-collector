@@ -47,7 +47,13 @@ func (ms Logs) MoveTo(dest Logs) {
 
 // ResourceLogs returns the ResourceLogs associated with this Logs.
 func (ms Logs) ResourceLogs() ResourceLogsSlice {
-	return newResourceLogsSlice(&ms.getOrig().ResourceLogs, ms.getState())
+	// Tree-connected (top-level parent): ms is a typedef of
+	// internal.LogsWrapper; cross the package boundary
+	// via the generated GetLogsHandle accessor since
+	// the unexported h field isn't visible from this package.
+	return ResourceLogsSlice{
+		h: internal.GetLogsHandle(internal.LogsWrapper(ms)),
+	}
 }
 
 // CopyTo copies all properties from the current struct overriding the destination.

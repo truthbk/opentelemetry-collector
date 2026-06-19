@@ -20,13 +20,24 @@ import (
 //
 // Must use NewScopeProfilesSlice function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-slice layout: carries the top-level Handle (shared with
+// the parent tree) and the index path that locates this slice's
+// position inside that tree. The slice's own elements are indexed by
+// At()/AppendEmpty(); the indices the slice carries are its PARENT's
+// indices (the slice IS a field on the parent struct).
 type ScopeProfilesSlice struct {
-	orig  *[]*internal.ScopeProfiles
-	state *internal.State
+	h     *internal.Handle[internal.ExportProfilesServiceRequest]
+	rpIdx int
 }
 
 func newScopeProfilesSlice(orig *[]*internal.ScopeProfiles, state *internal.State) ScopeProfilesSlice {
-	return ScopeProfilesSlice{orig: orig, state: state}
+	// Path Y "always-h": synthesize a top-level parent tree whose target
+	// slice IS the caller's orig (by pointer; not a copy). Mutations
+	// through this wrapper propagate to *orig.
+	return ScopeProfilesSlice{
+		h:     internal.NewHandle(&internal.ExportProfilesServiceRequest{ResourceProfiles: []*internal.ResourceProfiles{{ScopeProfiles: *orig}}}, state),
+		rpIdx: 0,
+	}
 }
 
 // NewScopeProfilesSlice creates a ScopeProfilesSliceWrapper with 0 elements.
@@ -52,7 +63,14 @@ func (es ScopeProfilesSlice) Len() int {
 //	    ... // Do something with the element
 //	}
 func (es ScopeProfilesSlice) At(i int) ScopeProfiles {
-	return newScopeProfiles((*es.getOrig())[i], es.getState())
+	// Tree-connected: element shares the slice's Handle + parent indices.
+	// Direct struct literal avoids the standalone synthetic-Handle path
+	// so cow.Share detach (Phase 5) can rebind the shared tree in place.
+	return ScopeProfiles{
+		h:     es.h,
+		rpIdx: es.rpIdx,
+		spIdx: i,
+	}
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -163,9 +181,9 @@ func (es ScopeProfilesSlice) Sort(less func(a, b ScopeProfiles) bool) {
 }
 
 func (ms ScopeProfilesSlice) getOrig() *[]*internal.ScopeProfiles {
-	return ms.orig
+	return &ms.h.GetOrig().ResourceProfiles[ms.rpIdx].ScopeProfiles
 }
 
 func (ms ScopeProfilesSlice) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

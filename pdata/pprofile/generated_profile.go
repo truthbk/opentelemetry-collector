@@ -70,7 +70,15 @@ func (ms Profile) SampleType() ValueType {
 
 // Samples returns the Samples associated with this Profile.
 func (ms Profile) Samples() SampleSlice {
-	return newSampleSlice(&ms.getOrig().Samples, ms.getState())
+	// Tree-connected (nested parent): slice shares ms's Handle + indices
+	// so cow.Share detach (Phase 5) rebinds the shared tree in place
+	// across parent and all derived slice/element wrappers.
+	return SampleSlice{
+		h:     ms.h,
+		rpIdx: ms.rpIdx,
+		spIdx: ms.spIdx,
+		pIdx:  ms.pIdx,
+	}
 }
 
 // Time returns the time associated with this Profile.

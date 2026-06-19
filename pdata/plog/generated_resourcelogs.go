@@ -66,7 +66,13 @@ func (ms ResourceLogs) Resource() pcommon.Resource {
 
 // ScopeLogs returns the ScopeLogs associated with this ResourceLogs.
 func (ms ResourceLogs) ScopeLogs() ScopeLogsSlice {
-	return newScopeLogsSlice(&ms.getOrig().ScopeLogs, ms.getState())
+	// Tree-connected (nested parent): slice shares ms's Handle + indices
+	// so cow.Share detach (Phase 5) rebinds the shared tree in place
+	// across parent and all derived slice/element wrappers.
+	return ScopeLogsSlice{
+		h:     ms.h,
+		rlIdx: ms.rlIdx,
+	}
 }
 
 // SchemaUrl returns the schemaurl associated with this ResourceLogs.

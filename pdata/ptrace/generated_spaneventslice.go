@@ -20,13 +20,28 @@ import (
 //
 // Must use NewSpanEventSlice function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-slice layout: carries the top-level Handle (shared with
+// the parent tree) and the index path that locates this slice's
+// position inside that tree. The slice's own elements are indexed by
+// At()/AppendEmpty(); the indices the slice carries are its PARENT's
+// indices (the slice IS a field on the parent struct).
 type SpanEventSlice struct {
-	orig  *[]*internal.SpanEvent
-	state *internal.State
+	h     *internal.Handle[internal.ExportTraceServiceRequest]
+	rsIdx int
+	ssIdx int
+	sIdx  int
 }
 
 func newSpanEventSlice(orig *[]*internal.SpanEvent, state *internal.State) SpanEventSlice {
-	return SpanEventSlice{orig: orig, state: state}
+	// Path Y "always-h": synthesize a top-level parent tree whose target
+	// slice IS the caller's orig (by pointer; not a copy). Mutations
+	// through this wrapper propagate to *orig.
+	return SpanEventSlice{
+		h:     internal.NewHandle(&internal.ExportTraceServiceRequest{ResourceSpans: []*internal.ResourceSpans{{ScopeSpans: []*internal.ScopeSpans{{Spans: []*internal.Span{{Events: *orig}}}}}}}, state),
+		rsIdx: 0,
+		ssIdx: 0,
+		sIdx:  0,
+	}
 }
 
 // NewSpanEventSlice creates a SpanEventSliceWrapper with 0 elements.
@@ -52,7 +67,16 @@ func (es SpanEventSlice) Len() int {
 //	    ... // Do something with the element
 //	}
 func (es SpanEventSlice) At(i int) SpanEvent {
-	return newSpanEvent((*es.getOrig())[i], es.getState())
+	// Tree-connected: element shares the slice's Handle + parent indices.
+	// Direct struct literal avoids the standalone synthetic-Handle path
+	// so cow.Share detach (Phase 5) can rebind the shared tree in place.
+	return SpanEvent{
+		h:     es.h,
+		rsIdx: es.rsIdx,
+		ssIdx: es.ssIdx,
+		sIdx:  es.sIdx,
+		eIdx:  i,
+	}
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -163,9 +187,9 @@ func (es SpanEventSlice) Sort(less func(a, b SpanEvent) bool) {
 }
 
 func (ms SpanEventSlice) getOrig() *[]*internal.SpanEvent {
-	return ms.orig
+	return &ms.h.GetOrig().ResourceSpans[ms.rsIdx].ScopeSpans[ms.ssIdx].Spans[ms.sIdx].Events
 }
 
 func (ms SpanEventSlice) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

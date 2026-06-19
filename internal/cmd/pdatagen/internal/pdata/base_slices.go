@@ -73,7 +73,8 @@ func (ss *messageSlice) templateFields(packageInfo *PackageInfo) map[string]any 
 	var parentNestedPath []PathSegment
 	var sliceFieldName, elementIndexVar, topLevelOriginName string
 	var sliceSyntheticParent string
-	if elem := ss.element; elem != nil && len(elem.nestedPath) > 0 {
+	useHandleLayout := false
+	if elem := ss.element; elem != nil && elem.useHandleLayout {
 		topLevelOriginName = elem.topLevelOriginName
 		parentNestedPath = elem.nestedPath[:len(elem.nestedPath)-1]
 		last := elem.nestedPath[len(elem.nestedPath)-1]
@@ -82,6 +83,7 @@ func (ss *messageSlice) templateFields(packageInfo *PackageInfo) map[string]any 
 		sliceSyntheticParent = renderSliceSyntheticParent(
 			topLevelOriginName, parentNestedPath, sliceFieldName, "*orig",
 		)
+		useHandleLayout = true
 	}
 
 	return map[string]any{
@@ -102,6 +104,7 @@ func (ss *messageSlice) templateFields(packageInfo *PackageInfo) map[string]any 
 		"elementIndexVar":      elementIndexVar,
 		"topLevelOriginName":   topLevelOriginName,
 		"sliceSyntheticParent": sliceSyntheticParent,
+		"useHandleLayout":      useHandleLayout,
 	}
 }
 

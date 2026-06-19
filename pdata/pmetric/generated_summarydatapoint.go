@@ -99,6 +99,13 @@ func (ms SummaryDataPoint) SetSum(v float64) {
 
 // QuantileValues returns the QuantileValues associated with this SummaryDataPoint.
 func (ms SummaryDataPoint) QuantileValues() SummaryDataPointValueAtQuantileSlice {
+	// Fall-back: ms is either hasWrapper-but-not-top-level (e.g.
+	// ProfilesData) or has no nestedPath; either way ms has no Handle
+	// to propagate. Use the standalone new<X>Slice constructor — under
+	// useHandleLayout it synthesizes a disconnected Handle wrapping
+	// orig by pointer, so reads/writes still flow through; cow.Share
+	// detach won't propagate into the slice from here (these parents
+	// aren't part of the live signal tree).
 	return newSummaryDataPointValueAtQuantileSlice(&ms.getOrig().QuantileValues, ms.getState())
 }
 

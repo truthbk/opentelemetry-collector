@@ -68,7 +68,14 @@ func (ms ScopeMetrics) Scope() pcommon.InstrumentationScope {
 
 // Metrics returns the Metrics associated with this ScopeMetrics.
 func (ms ScopeMetrics) Metrics() MetricSlice {
-	return newMetricSlice(&ms.getOrig().Metrics, ms.getState())
+	// Tree-connected (nested parent): slice shares ms's Handle + indices
+	// so cow.Share detach (Phase 5) rebinds the shared tree in place
+	// across parent and all derived slice/element wrappers.
+	return MetricSlice{
+		h:     ms.h,
+		rmIdx: ms.rmIdx,
+		smIdx: ms.smIdx,
+	}
 }
 
 // SchemaUrl returns the schemaurl associated with this ScopeMetrics.

@@ -20,13 +20,24 @@ import (
 //
 // Must use NewScopeMetricsSlice function to create new instances.
 // Important: zero-initialized instance is not valid for use.
+// Path Y nested-slice layout: carries the top-level Handle (shared with
+// the parent tree) and the index path that locates this slice's
+// position inside that tree. The slice's own elements are indexed by
+// At()/AppendEmpty(); the indices the slice carries are its PARENT's
+// indices (the slice IS a field on the parent struct).
 type ScopeMetricsSlice struct {
-	orig  *[]*internal.ScopeMetrics
-	state *internal.State
+	h     *internal.Handle[internal.ExportMetricsServiceRequest]
+	rmIdx int
 }
 
 func newScopeMetricsSlice(orig *[]*internal.ScopeMetrics, state *internal.State) ScopeMetricsSlice {
-	return ScopeMetricsSlice{orig: orig, state: state}
+	// Path Y "always-h": synthesize a top-level parent tree whose target
+	// slice IS the caller's orig (by pointer; not a copy). Mutations
+	// through this wrapper propagate to *orig.
+	return ScopeMetricsSlice{
+		h:     internal.NewHandle(&internal.ExportMetricsServiceRequest{ResourceMetrics: []*internal.ResourceMetrics{{ScopeMetrics: *orig}}}, state),
+		rmIdx: 0,
+	}
 }
 
 // NewScopeMetricsSlice creates a ScopeMetricsSliceWrapper with 0 elements.
@@ -52,7 +63,14 @@ func (es ScopeMetricsSlice) Len() int {
 //	    ... // Do something with the element
 //	}
 func (es ScopeMetricsSlice) At(i int) ScopeMetrics {
-	return newScopeMetrics((*es.getOrig())[i], es.getState())
+	// Tree-connected: element shares the slice's Handle + parent indices.
+	// Direct struct literal avoids the standalone synthetic-Handle path
+	// so cow.Share detach (Phase 5) can rebind the shared tree in place.
+	return ScopeMetrics{
+		h:     es.h,
+		rmIdx: es.rmIdx,
+		smIdx: i,
+	}
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -163,9 +181,9 @@ func (es ScopeMetricsSlice) Sort(less func(a, b ScopeMetrics) bool) {
 }
 
 func (ms ScopeMetricsSlice) getOrig() *[]*internal.ScopeMetrics {
-	return ms.orig
+	return &ms.h.GetOrig().ResourceMetrics[ms.rmIdx].ScopeMetrics
 }
 
 func (ms ScopeMetricsSlice) getState() *internal.State {
-	return ms.state
+	return ms.h.GetState()
 }

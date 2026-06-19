@@ -68,7 +68,14 @@ func (ms ScopeLogs) Scope() pcommon.InstrumentationScope {
 
 // LogRecords returns the LogRecords associated with this ScopeLogs.
 func (ms ScopeLogs) LogRecords() LogRecordSlice {
-	return newLogRecordSlice(&ms.getOrig().LogRecords, ms.getState())
+	// Tree-connected (nested parent): slice shares ms's Handle + indices
+	// so cow.Share detach (Phase 5) rebinds the shared tree in place
+	// across parent and all derived slice/element wrappers.
+	return LogRecordSlice{
+		h:     ms.h,
+		rlIdx: ms.rlIdx,
+		slIdx: ms.slIdx,
+	}
 }
 
 // SchemaUrl returns the schemaurl associated with this ScopeLogs.

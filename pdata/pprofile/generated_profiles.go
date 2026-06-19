@@ -47,7 +47,13 @@ func (ms Profiles) MoveTo(dest Profiles) {
 
 // ResourceProfiles returns the ResourceProfiles associated with this Profiles.
 func (ms Profiles) ResourceProfiles() ResourceProfilesSlice {
-	return newResourceProfilesSlice(&ms.getOrig().ResourceProfiles, ms.getState())
+	// Tree-connected (top-level parent): ms is a typedef of
+	// internal.ProfilesWrapper; cross the package boundary
+	// via the generated GetProfilesHandle accessor since
+	// the unexported h field isn't visible from this package.
+	return ResourceProfilesSlice{
+		h: internal.GetProfilesHandle(internal.ProfilesWrapper(ms)),
+	}
 }
 
 // Dictionary returns the dictionary associated with this Profiles.

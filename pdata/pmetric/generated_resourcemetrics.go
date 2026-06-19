@@ -66,7 +66,13 @@ func (ms ResourceMetrics) Resource() pcommon.Resource {
 
 // ScopeMetrics returns the ScopeMetrics associated with this ResourceMetrics.
 func (ms ResourceMetrics) ScopeMetrics() ScopeMetricsSlice {
-	return newScopeMetricsSlice(&ms.getOrig().ScopeMetrics, ms.getState())
+	// Tree-connected (nested parent): slice shares ms's Handle + indices
+	// so cow.Share detach (Phase 5) rebinds the shared tree in place
+	// across parent and all derived slice/element wrappers.
+	return ScopeMetricsSlice{
+		h:     ms.h,
+		rmIdx: ms.rmIdx,
+	}
 }
 
 // SchemaUrl returns the schemaurl associated with this ResourceMetrics.

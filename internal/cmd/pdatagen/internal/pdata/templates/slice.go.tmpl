@@ -21,6 +21,18 @@ import (
 // Important: zero-initialized instance is not valid for use.
 {{- if .hasWrapper }}
 type {{ .structName }} internal.{{ .structName }}Wrapper
+{{- else if .useHandleLayout }}
+// Path Y nested-slice layout: carries the top-level Handle (shared with
+// the parent tree) and the index path that locates this slice's
+// position inside that tree. The slice's own elements are indexed by
+// At()/AppendEmpty(); the indices the slice carries are its PARENT's
+// indices (the slice IS a field on the parent struct).
+type {{ .structName }} struct {
+	h *internal.Handle[internal.{{ .topLevelOriginName }}]
+	{{- range .parentNestedPath }}
+	{{ .IndexVar }} int
+	{{- end }}
+}
 {{- else }}
 type {{ .structName }} struct {
 	orig *[]{{ if .elementNullable }}*{{ end }}internal.{{ .elementOriginName }}
@@ -31,6 +43,16 @@ type {{ .structName }} struct {
 func new{{ .structName }}(orig *[]{{ if .elementNullable }}*{{ end }}internal.{{ .elementOriginName }}, state *internal.State) {{ .structName }} {
 	{{- if .hasWrapper }}
 	return {{ .structName }}(internal.New{{ .structName }}Wrapper(orig, state))
+	{{- else if .useHandleLayout }}
+	// Path Y "always-h": synthesize a top-level parent tree whose target
+	// slice IS the caller's orig (by pointer; not a copy). Mutations
+	// through this wrapper propagate to *orig.
+	return {{ .structName }}{
+		h: internal.NewHandle({{ .sliceSyntheticParent }}, state),
+		{{- range .parentNestedPath }}
+		{{ .IndexVar }}: 0,
+		{{- end }}
+	}
 	{{- else }}
 	return {{ .structName }}{orig: orig, state: state}
 	{{- end }}
@@ -58,7 +80,20 @@ func (es {{ .structName }}) Len() int {
 //       ... // Do something with the element
 //   }
 func (es {{ .structName }}) At(i int) {{ .elementName }} {
+	{{- if .useHandleLayout }}
+	// Tree-connected: element shares the slice's Handle + parent indices.
+	// Direct struct literal avoids the standalone synthetic-Handle path
+	// so cow.Share detach (Phase 5) can rebind the shared tree in place.
+	return {{ .elementName }}{
+		h: es.h,
+		{{- range .parentNestedPath }}
+		{{ .IndexVar }}: es.{{ .IndexVar }},
+		{{- end }}
+		{{ .elementIndexVar }}: i,
+	}
+	{{- else }}
 	return new{{ .elementName }}({{ if not .elementNullable }}&{{ end }}(*es.{{ .origAccessor }})[i], es.{{ .stateAccessor }})
+	{{- end }}
 }
 
 // All returns an iterator over index-value pairs in the slice.
@@ -179,6 +214,8 @@ func (es {{ .structName }}) Sort(less func(a, b {{ .elementName }}) bool) {
 func (ms {{ .structName }}) getOrig() *[]{{ if .elementNullable }}*{{ end }}internal.{{ .elementOriginName }} {
 {{- if .hasWrapper }}
 	return internal.Get{{ .structName }}Orig(internal.{{ .structName }}Wrapper(ms))
+{{- else if .useHandleLayout }}
+	return &ms.h.GetOrig(){{- range .parentNestedPath }}.{{ .FieldName }}[ms.{{ .IndexVar }}]{{- end }}.{{ .sliceFieldName }}
 {{- else }}
 	return ms.orig
 {{- end }}
@@ -187,6 +224,8 @@ func (ms {{ .structName }}) getOrig() *[]{{ if .elementNullable }}*{{ end }}inte
 func (ms {{ .structName }}) getState() *internal.State {
 {{- if .hasWrapper }}
 	return internal.Get{{ .structName }}State(internal.{{ .structName }}Wrapper(ms))
+{{- else if .useHandleLayout }}
+	return ms.h.GetState()
 {{- else }}
 	return ms.state
 {{- end }}
