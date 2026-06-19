@@ -17,6 +17,9 @@ func (ms {{ .structName }}) {{ .fieldName }}() {{ .packageName }}{{ .returnType 
 
 // Set{{ .fieldName }} replaces the {{ .lowerFieldName }} associated with this {{ .structName }}.
 func (ms {{ .structName }}) Set{{ .fieldName }}(v {{ .returnType }}) {
+	{{- if .useHandleLayout }}
+	ms.{{ .stateAccessor }}.DetachIfShared()
+	{{- end }}
 	ms.{{ .stateAccessor }}.AssertMutable()
 	ms.{{ .origAccessor }}.{{ .originFieldName }} = v
 }`
@@ -92,6 +95,9 @@ func (pf *PrimitiveField) templateFields(ms *messageStruct) map[string]any {
 		"stateAccessor":    stateAccessor(ms.getHasWrapper()),
 		"originStructName": ms.protoName,
 		"originFieldName":  pf.fieldName,
+		// Path Y Phase 5: gates the DetachIfShared prelude in the Set
+		// template on whether the parent ms uses the new Handle layout.
+		"useHandleLayout": ms.useHandleLayout,
 	}
 }
 

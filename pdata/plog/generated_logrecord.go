@@ -78,6 +78,7 @@ func (ms LogRecord) Timestamp() pcommon.Timestamp {
 
 // SetTimestamp replaces the timestamp associated with this LogRecord.
 func (ms LogRecord) SetTimestamp(v pcommon.Timestamp) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().TimeUnixNano = uint64(v)
 }
@@ -89,6 +90,7 @@ func (ms LogRecord) ObservedTimestamp() pcommon.Timestamp {
 
 // SetObservedTimestamp replaces the observedtimestamp associated with this LogRecord.
 func (ms LogRecord) SetObservedTimestamp(v pcommon.Timestamp) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().ObservedTimeUnixNano = uint64(v)
 }
@@ -100,6 +102,7 @@ func (ms LogRecord) SeverityNumber() SeverityNumber {
 
 // SetSeverityNumber replaces the severitynumber associated with this LogRecord.
 func (ms LogRecord) SetSeverityNumber(v SeverityNumber) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().SeverityNumber = internal.SeverityNumber(v)
 }
@@ -111,6 +114,7 @@ func (ms LogRecord) SeverityText() string {
 
 // SetSeverityText replaces the severitytext associated with this LogRecord.
 func (ms LogRecord) SetSeverityText(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().SeverityText = v
 }
@@ -132,6 +136,7 @@ func (ms LogRecord) DroppedAttributesCount() uint32 {
 
 // SetDroppedAttributesCount replaces the droppedattributescount associated with this LogRecord.
 func (ms LogRecord) SetDroppedAttributesCount(v uint32) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().DroppedAttributesCount = v
 }
@@ -143,6 +148,7 @@ func (ms LogRecord) Flags() LogRecordFlags {
 
 // SetFlags replaces the flags associated with this LogRecord.
 func (ms LogRecord) SetFlags(v LogRecordFlags) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().Flags = uint32(v)
 }
@@ -154,6 +160,7 @@ func (ms LogRecord) TraceID() pcommon.TraceID {
 
 // SetTraceID replaces the traceid associated with this LogRecord.
 func (ms LogRecord) SetTraceID(v pcommon.TraceID) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().TraceId = internal.TraceID(v)
 }
@@ -165,6 +172,7 @@ func (ms LogRecord) SpanID() pcommon.SpanID {
 
 // SetSpanID replaces the spanid associated with this LogRecord.
 func (ms LogRecord) SetSpanID(v pcommon.SpanID) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().SpanId = internal.SpanID(v)
 }
@@ -176,6 +184,7 @@ func (ms LogRecord) EventName() string {
 
 // SetEventName replaces the eventname associated with this LogRecord.
 func (ms LogRecord) SetEventName(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().EventName = v
 }

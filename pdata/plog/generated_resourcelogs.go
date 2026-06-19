@@ -90,6 +90,7 @@ func (ms ResourceLogs) SchemaUrl() string {
 
 // SetSchemaUrl replaces the schemaurl associated with this ResourceLogs.
 func (ms ResourceLogs) SetSchemaUrl(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().SchemaUrl = v
 }

@@ -93,6 +93,7 @@ func (ms ScopeSpans) SchemaUrl() string {
 
 // SetSchemaUrl replaces the schemaurl associated with this ScopeSpans.
 func (ms ScopeSpans) SetSchemaUrl(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().SchemaUrl = v
 }

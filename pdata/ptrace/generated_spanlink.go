@@ -82,6 +82,7 @@ func (ms SpanLink) TraceID() pcommon.TraceID {
 
 // SetTraceID replaces the traceid associated with this SpanLink.
 func (ms SpanLink) SetTraceID(v pcommon.TraceID) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().TraceId = internal.TraceID(v)
 }
@@ -93,6 +94,7 @@ func (ms SpanLink) SpanID() pcommon.SpanID {
 
 // SetSpanID replaces the spanid associated with this SpanLink.
 func (ms SpanLink) SetSpanID(v pcommon.SpanID) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().SpanId = internal.SpanID(v)
 }
@@ -114,6 +116,7 @@ func (ms SpanLink) DroppedAttributesCount() uint32 {
 
 // SetDroppedAttributesCount replaces the droppedattributescount associated with this SpanLink.
 func (ms SpanLink) SetDroppedAttributesCount(v uint32) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().DroppedAttributesCount = v
 }
@@ -125,6 +128,7 @@ func (ms SpanLink) Flags() uint32 {
 
 // SetFlags replaces the flags associated with this SpanLink.
 func (ms SpanLink) SetFlags(v uint32) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().Flags = v
 }

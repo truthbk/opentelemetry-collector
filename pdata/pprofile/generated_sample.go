@@ -80,6 +80,7 @@ func (ms Sample) StackIndex() int32 {
 
 // SetStackIndex replaces the stackindex associated with this Sample.
 func (ms Sample) SetStackIndex(v int32) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().StackIndex = v
 }
@@ -96,6 +97,7 @@ func (ms Sample) LinkIndex() int32 {
 
 // SetLinkIndex replaces the linkindex associated with this Sample.
 func (ms Sample) SetLinkIndex(v int32) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().LinkIndex = v
 }

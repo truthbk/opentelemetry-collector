@@ -79,6 +79,7 @@ func (ms Span) TraceID() pcommon.TraceID {
 
 // SetTraceID replaces the traceid associated with this Span.
 func (ms Span) SetTraceID(v pcommon.TraceID) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().TraceId = internal.TraceID(v)
 }
@@ -90,6 +91,7 @@ func (ms Span) SpanID() pcommon.SpanID {
 
 // SetSpanID replaces the spanid associated with this Span.
 func (ms Span) SetSpanID(v pcommon.SpanID) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().SpanId = internal.SpanID(v)
 }
@@ -106,6 +108,7 @@ func (ms Span) ParentSpanID() pcommon.SpanID {
 
 // SetParentSpanID replaces the parentspanid associated with this Span.
 func (ms Span) SetParentSpanID(v pcommon.SpanID) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().ParentSpanId = internal.SpanID(v)
 }
@@ -117,6 +120,7 @@ func (ms Span) Flags() uint32 {
 
 // SetFlags replaces the flags associated with this Span.
 func (ms Span) SetFlags(v uint32) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().Flags = v
 }
@@ -128,6 +132,7 @@ func (ms Span) Name() string {
 
 // SetName replaces the name associated with this Span.
 func (ms Span) SetName(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().Name = v
 }
@@ -139,6 +144,7 @@ func (ms Span) Kind() SpanKind {
 
 // SetKind replaces the kind associated with this Span.
 func (ms Span) SetKind(v SpanKind) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().Kind = internal.SpanKind(v)
 }
@@ -150,6 +156,7 @@ func (ms Span) StartTimestamp() pcommon.Timestamp {
 
 // SetStartTimestamp replaces the starttimestamp associated with this Span.
 func (ms Span) SetStartTimestamp(v pcommon.Timestamp) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().StartTimeUnixNano = uint64(v)
 }
@@ -161,6 +168,7 @@ func (ms Span) EndTimestamp() pcommon.Timestamp {
 
 // SetEndTimestamp replaces the endtimestamp associated with this Span.
 func (ms Span) SetEndTimestamp(v pcommon.Timestamp) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().EndTimeUnixNano = uint64(v)
 }
@@ -177,6 +185,7 @@ func (ms Span) DroppedAttributesCount() uint32 {
 
 // SetDroppedAttributesCount replaces the droppedattributescount associated with this Span.
 func (ms Span) SetDroppedAttributesCount(v uint32) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().DroppedAttributesCount = v
 }
@@ -201,6 +210,7 @@ func (ms Span) DroppedEventsCount() uint32 {
 
 // SetDroppedEventsCount replaces the droppedeventscount associated with this Span.
 func (ms Span) SetDroppedEventsCount(v uint32) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().DroppedEventsCount = v
 }
@@ -225,6 +235,7 @@ func (ms Span) DroppedLinksCount() uint32 {
 
 // SetDroppedLinksCount replaces the droppedlinkscount associated with this Span.
 func (ms Span) SetDroppedLinksCount(v uint32) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().DroppedLinksCount = v
 }

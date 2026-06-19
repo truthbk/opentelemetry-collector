@@ -90,6 +90,7 @@ func (ms ResourceProfiles) SchemaUrl() string {
 
 // SetSchemaUrl replaces the schemaurl associated with this ResourceProfiles.
 func (ms ResourceProfiles) SetSchemaUrl(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().SchemaUrl = v
 }

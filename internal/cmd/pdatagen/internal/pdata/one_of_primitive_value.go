@@ -17,6 +17,9 @@ func (ms {{ .structName }}) {{ .accessorFieldName }}() {{ .returnType }} {
 
 // Set{{ .accessorFieldName }} replaces the {{ .lowerFieldName }} associated with this {{ .structName }}.
 func (ms {{ .structName }}) Set{{ .accessorFieldName }}(v {{ .returnType }}) {
+	{{- if .useHandleLayout }}
+	ms.{{ .stateAccessor }}.DetachIfShared()
+	{{- end }}
 	ms.{{ .stateAccessor }}.AssertMutable()
 	var ov *internal.{{ .originStructType }}
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
@@ -121,6 +124,7 @@ func (opv *OneOfPrimitiveValue) templateFields(ms *messageStruct, of *OneOfField
 		"oneOfName":               proto.ExtractNameFromFull(ms.protoName + "_" + opv.originFieldName),
 		"origAccessor":            origAccessor(ms.getHasWrapper()),
 		"stateAccessor":           stateAccessor(ms.getHasWrapper()),
+		"useHandleLayout":         ms.useHandleLayout,
 	}
 }
 

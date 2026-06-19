@@ -96,6 +96,7 @@ func (ms Profile) Time() pcommon.Timestamp {
 
 // SetTime replaces the time associated with this Profile.
 func (ms Profile) SetTime(v pcommon.Timestamp) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().TimeUnixNano = uint64(v)
 }
@@ -107,6 +108,7 @@ func (ms Profile) DurationNano() uint64 {
 
 // SetDurationNano replaces the durationnano associated with this Profile.
 func (ms Profile) SetDurationNano(v uint64) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().DurationNano = v
 }
@@ -123,6 +125,7 @@ func (ms Profile) Period() int64 {
 
 // SetPeriod replaces the period associated with this Profile.
 func (ms Profile) SetPeriod(v int64) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().Period = v
 }
@@ -134,6 +137,7 @@ func (ms Profile) ProfileID() ProfileID {
 
 // SetProfileID replaces the profileid associated with this Profile.
 func (ms Profile) SetProfileID(v ProfileID) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().ProfileId = internal.ProfileID(v)
 }
@@ -145,6 +149,7 @@ func (ms Profile) DroppedAttributesCount() uint32 {
 
 // SetDroppedAttributesCount replaces the droppedattributescount associated with this Profile.
 func (ms Profile) SetDroppedAttributesCount(v uint32) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().DroppedAttributesCount = v
 }
@@ -156,6 +161,7 @@ func (ms Profile) OriginalPayloadFormat() string {
 
 // SetOriginalPayloadFormat replaces the originalpayloadformat associated with this Profile.
 func (ms Profile) SetOriginalPayloadFormat(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().OriginalPayloadFormat = v
 }

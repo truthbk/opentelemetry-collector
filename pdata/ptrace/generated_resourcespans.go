@@ -90,6 +90,7 @@ func (ms ResourceSpans) SchemaUrl() string {
 
 // SetSchemaUrl replaces the schemaurl associated with this ResourceSpans.
 func (ms ResourceSpans) SetSchemaUrl(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().SchemaUrl = v
 }

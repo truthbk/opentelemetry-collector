@@ -90,6 +90,7 @@ func (ms ResourceMetrics) SchemaUrl() string {
 
 // SetSchemaUrl replaces the schemaurl associated with this ResourceMetrics.
 func (ms ResourceMetrics) SetSchemaUrl(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().SchemaUrl = v
 }

@@ -17,6 +17,9 @@ func (ms {{ .structName }}) {{ .fieldName }}() {{ .packageName }}{{ .returnType 
 
 // Set{{ .fieldName }} replaces the {{ .lowerFieldName }} associated with this {{ .structName }}.
 func (ms {{ .structName }}) Set{{ .fieldName }}(v {{ .packageName }}{{ .returnType }}) {
+	{{- if .useHandleLayout }}
+	ms.{{ .stateAccessor }}.DetachIfShared()
+	{{- end }}
 	ms.{{ .stateAccessor }}.AssertMutable()
 	ms.{{ .origAccessor }}.{{ .originFieldName }} = {{ .messageType }}(v)
 }`
@@ -121,6 +124,8 @@ func (ptf *TypedField) templateFields(ms *messageStruct) map[string]any {
 		"messageType":     messageType,
 		"origAccessor":    origAccessor(ms.getHasWrapper()),
 		"stateAccessor":   stateAccessor(ms.getHasWrapper()),
+		// Path Y Phase 5: see primitive_field.go for the prelude rationale.
+		"useHandleLayout": ms.useHandleLayout,
 	}
 }
 

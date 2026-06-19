@@ -30,6 +30,9 @@ func (ms {{ .structName }}) {{ .fieldName }}() {{ .returnType }} {
 //
 // Calling this function on zero-initialized {{ .structName }} will cause a panic.
 func (ms {{ .structName }}) SetEmpty{{ .fieldName }}() {{ .returnType }} {
+	{{- if .useHandleLayout }}
+	ms.{{ .stateAccessor }}.DetachIfShared()
+	{{- end }}
 	ms.{{ .stateAccessor }}.AssertMutable()
 	var ov *internal.{{ .originStructType }}
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
@@ -120,6 +123,7 @@ func (omv *OneOfMessageValue) templateFields(ms *messageStruct, of *OneOfField) 
 		"oneOfName":               proto.ExtractNameFromFull(ms.protoName + "_" + omv.fieldName),
 		"origAccessor":            origAccessor(ms.getHasWrapper()),
 		"stateAccessor":           stateAccessor(ms.getHasWrapper()),
+		"useHandleLayout":         ms.useHandleLayout,
 	}
 }
 

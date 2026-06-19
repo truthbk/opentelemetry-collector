@@ -81,6 +81,7 @@ func (ms SpanEvent) Timestamp() pcommon.Timestamp {
 
 // SetTimestamp replaces the timestamp associated with this SpanEvent.
 func (ms SpanEvent) SetTimestamp(v pcommon.Timestamp) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().TimeUnixNano = uint64(v)
 }
@@ -92,6 +93,7 @@ func (ms SpanEvent) Name() string {
 
 // SetName replaces the name associated with this SpanEvent.
 func (ms SpanEvent) SetName(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().Name = v
 }
@@ -108,6 +110,7 @@ func (ms SpanEvent) DroppedAttributesCount() uint32 {
 
 // SetDroppedAttributesCount replaces the droppedattributescount associated with this SpanEvent.
 func (ms SpanEvent) SetDroppedAttributesCount(v uint32) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().DroppedAttributesCount = v
 }

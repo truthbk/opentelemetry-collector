@@ -93,6 +93,7 @@ func (ms ScopeProfiles) SchemaUrl() string {
 
 // SetSchemaUrl replaces the schemaurl associated with this ScopeProfiles.
 func (ms ScopeProfiles) SetSchemaUrl(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().SchemaUrl = v
 }

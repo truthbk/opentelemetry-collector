@@ -93,6 +93,7 @@ func (ms ScopeLogs) SchemaUrl() string {
 
 // SetSchemaUrl replaces the schemaurl associated with this ScopeLogs.
 func (ms ScopeLogs) SetSchemaUrl(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().SchemaUrl = v
 }

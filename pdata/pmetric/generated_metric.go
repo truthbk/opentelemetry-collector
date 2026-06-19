@@ -80,6 +80,7 @@ func (ms Metric) Name() string {
 
 // SetName replaces the name associated with this Metric.
 func (ms Metric) SetName(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().Name = v
 }
@@ -91,6 +92,7 @@ func (ms Metric) Description() string {
 
 // SetDescription replaces the description associated with this Metric.
 func (ms Metric) SetDescription(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().Description = v
 }
@@ -102,6 +104,7 @@ func (ms Metric) Unit() string {
 
 // SetUnit replaces the unit associated with this Metric.
 func (ms Metric) SetUnit(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().Unit = v
 }
@@ -144,6 +147,7 @@ func (ms Metric) Gauge() Gauge {
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) SetEmptyGauge() Gauge {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	var ov *internal.Metric_Gauge
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
@@ -173,6 +177,7 @@ func (ms Metric) Sum() Sum {
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) SetEmptySum() Sum {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	var ov *internal.Metric_Sum
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
@@ -202,6 +207,7 @@ func (ms Metric) Histogram() Histogram {
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) SetEmptyHistogram() Histogram {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	var ov *internal.Metric_Histogram
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
@@ -231,6 +237,7 @@ func (ms Metric) ExponentialHistogram() ExponentialHistogram {
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) SetEmptyExponentialHistogram() ExponentialHistogram {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	var ov *internal.Metric_ExponentialHistogram
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {
@@ -260,6 +267,7 @@ func (ms Metric) Summary() Summary {
 //
 // Calling this function on zero-initialized Metric will cause a panic.
 func (ms Metric) SetEmptySummary() Summary {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	var ov *internal.Metric_Summary
 	if !metadata.PdataUseProtoPoolingFeatureGate.IsEnabled() {

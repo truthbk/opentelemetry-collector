@@ -93,6 +93,7 @@ func (ms ScopeMetrics) SchemaUrl() string {
 
 // SetSchemaUrl replaces the schemaurl associated with this ScopeMetrics.
 func (ms ScopeMetrics) SetSchemaUrl(v string) {
+	ms.getState().DetachIfShared()
 	ms.getState().AssertMutable()
 	ms.getOrig().SchemaUrl = v
 }

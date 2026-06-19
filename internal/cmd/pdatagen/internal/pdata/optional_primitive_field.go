@@ -22,12 +22,18 @@ func (ms {{ .structName }}) Has{{ .fieldName }}() bool {
 
 // Set{{ .fieldName }} replaces the {{ .lowerFieldName }} associated with this {{ .structName }}.
 func (ms {{ .structName }}) Set{{ .fieldName }}(v {{ .returnType }}) {
+	{{- if .useHandleLayout }}
+	ms.{{ .stateAccessor }}.DetachIfShared()
+	{{- end }}
 	ms.{{ .stateAccessor }}.AssertMutable()
 	ms.{{ .origAccessor }}.Set{{ .fieldName }}(v)
 }
 
 // Remove{{ .fieldName }} removes the {{ .lowerFieldName }} associated with this {{ .structName }}.
 func (ms {{ .structName }}) Remove{{ .fieldName }}() {
+	{{- if .useHandleLayout }}
+	ms.{{ .stateAccessor }}.DetachIfShared()
+	{{- end }}
 	ms.{{ .stateAccessor }}.AssertMutable()
 	ms.{{ .origAccessor }}.Remove{{ .fieldName }}()
 }`
@@ -99,6 +105,8 @@ func (opv *OptionalPrimitiveField) templateFields(ms *messageStruct) map[string]
 		"originStructType": ms.getOriginFullName() + "_" + opv.fieldName,
 		"origAccessor":     origAccessor(ms.getHasWrapper()),
 		"stateAccessor":    stateAccessor(ms.getHasWrapper()),
+		// Path Y Phase 5: see primitive_field.go.
+		"useHandleLayout":  ms.useHandleLayout,
 	}
 }
 
