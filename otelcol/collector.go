@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
 	"sync"
 	"sync/atomic"
 
@@ -83,6 +84,23 @@ type CollectorSettings struct {
 
 	// SkipSettingGRPCLogger avoids setting the grpc logger
 	SkipSettingGRPCLogger bool
+
+	// OpaqueReferencePatterns declares additional syntaxes for configuration values
+	// that are a *reference* to a secret rather than the secret itself, such as a
+	// distribution's own secret-backend handle.
+	//
+	// The pre-expansion configuration view reported to extensions (see
+	// extensioncapabilities.ConfigSnapshot) masks every configopaque field, except
+	// where the authored value is a whole ${...} provider reference: a reference names
+	// a secret without disclosing it, so preserving it lets a management plane read
+	// back and rewrite the field without ever holding its value. These patterns extend
+	// that exemption to reference syntaxes the Collector does not resolve itself.
+	//
+	// A pattern must match a leaf in its entirety; it is applied to the whole value
+	// regardless of how it is anchored, so no pattern can expose an interpolated value
+	// such as "Bearer SEC[token]". Values that merely contain a reference are always
+	// masked, as are literals.
+	OpaqueReferencePatterns []*regexp.Regexp
 }
 
 // (Internal note) Collector Lifecycle:
@@ -216,7 +234,8 @@ func (col *Collector) setupConfigurationComponents(ctx context.Context) error {
 
 	// Build a pre-expansion view of the configuration (with provider references
 	// such as ${env:FOO} still intact and configopaque.String fields redacted).
-	unexpandedConf := redactByMirroring(col.configProvider.mapResolver.UnexpandedConf(), conf)
+	unexpandedConf := redactor{extraReferencePatterns: col.set.OpaqueReferencePatterns}.
+		redactByMirroring(col.configProvider.mapResolver.UnexpandedConf(), conf)
 
 	// Wrap the buildZapLogger to append LoggingOptions from collector settings,
 	// since service.Settings.LoggingOptions is deprecated.

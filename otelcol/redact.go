@@ -23,28 +23,37 @@ var redactedMask = func() string {
 	return string(b)
 }()
 
+// redactor masks a pre-expansion configuration view. The zero value preserves
+// only ${...} provider references; extraReferencePatterns adds the distro-specific
+// reference syntaxes supplied through CollectorSettings.OpaqueReferencePatterns.
+type redactor struct {
+	extraReferencePatterns []*regexp.Regexp
+}
+
 // redactByMirroring returns a copy of raw conf where every leaf set to redactedMask
 // in the redacted view is copied over, unless the corresponding pre-expansion leaf
-// is exactly a ${...} provider reference that does not embed a non-empty env-provider
-// literal default. A default such as ${env:NAME:-literal} is masked because the
-// fallback is configuration text, not a provider lookup.
-func redactByMirroring(raw, redacted *confmap.Conf) *confmap.Conf {
+// is a whole reference rather than a value: exactly a ${...} provider reference that
+// does not embed a non-empty env-provider literal default, or a whole-leaf match of
+// one of the redactor's extra reference patterns. A default such as
+// ${env:NAME:-literal} is masked because the fallback is configuration text, not a
+// provider lookup.
+func (r redactor) redactByMirroring(raw, redacted *confmap.Conf) *confmap.Conf {
 	if raw == nil || redacted == nil {
 		return raw
 	}
-	redactedRaw := applyMask(raw.ToStringMap(), redacted.ToStringMap())
+	redactedRaw := r.applyMask(raw.ToStringMap(), redacted.ToStringMap())
 	return confmap.NewFromStringMap(redactedRaw.(map[string]any))
 }
 
 // applyMask recursively applies redaction to `raw` by mirroring it with the redacted structure.
 // It mutates raw and returns it.
-func applyMask(raw, redacted any) any {
+func (r redactor) applyMask(raw, redacted any) any {
 	switch redVal := redacted.(type) {
 	case map[string]any:
 		if rawMap, ok := raw.(map[string]any); ok {
 			for k, rawMapVal := range rawMap {
 				if redMapVal, ok := redVal[k]; ok {
-					rawMap[k] = applyMask(rawMapVal, redMapVal)
+					rawMap[k] = r.applyMask(rawMapVal, redMapVal)
 				}
 			}
 		}
@@ -52,7 +61,7 @@ func applyMask(raw, redacted any) any {
 		switch rawVal := raw.(type) {
 		case []any:
 			for i := 0; i < min(len(rawVal), len(redVal)); i++ {
-				rawVal[i] = applyMask(rawVal[i], redVal[i])
+				rawVal[i] = r.applyMask(rawVal[i], redVal[i])
 			}
 		case map[string]any:
 			// configopaque.MapList accepts a map as input but marshals as a list
@@ -72,13 +81,13 @@ func applyMask(raw, redacted any) any {
 				}
 				rawMapVal, ok := rawVal[name]
 				if ok {
-					rawVal[name] = applyMask(rawMapVal, redMapVal)
+					rawVal[name] = r.applyMask(rawMapVal, redMapVal)
 				}
 			}
 		}
 	case string:
 		if redVal == redactedMask {
-			if rawVal, ok := raw.(string); !ok || !preserveUnexpandedProviderReference(rawVal) {
+			if rawVal, ok := raw.(string); !ok || !r.preserveUnexpandedReference(rawVal) {
 				return redactedMask
 			}
 		}
@@ -90,21 +99,35 @@ func applyMask(raw, redacted any) any {
 // Nested braces, such as ${env:A:-${env:B}}, do not match and stay masked.
 var providerReferenceRegexp = regexp.MustCompile(`^\$\{[^}]*\}$`)
 
-// preserveUnexpandedProviderReference reports whether an unexpanded opaque leaf
-// should stay visible. A whole ${...} reference is preserved unless its scheme is
-// env and the opaque value uses the env provider's ":-" default suffix with a
-// non-empty literal. An empty default (${env:NAME:-}) embeds no literal and is
-// preserved. Other schemes, including a file path that happens to contain ":-",
-// are left unchanged. The scheme cannot contain ":", so the first colon is the split.
-func preserveUnexpandedProviderReference(raw string) bool {
-	if !providerReferenceRegexp.MatchString(raw) {
-		return false
+// preserveUnexpandedReference reports whether an unexpanded opaque leaf should stay
+// visible, because it is a reference to a value rather than the value itself.
+//
+// A whole ${...} provider reference is preserved unless its scheme is env and the
+// opaque value uses the env provider's ":-" default suffix with a non-empty literal.
+// An empty default (${env:NAME:-}) embeds no literal and is preserved. Other schemes,
+// including a file path that happens to contain ":-", are left unchanged. The scheme
+// cannot contain ":", so the first colon is the split.
+//
+// A leaf that is not a provider reference is preserved if one of the extra reference
+// patterns matches it in full. Patterns are applied to the whole leaf regardless of
+// how they are anchored, so a pattern cannot make an interpolated value visible.
+func (r redactor) preserveUnexpandedReference(raw string) bool {
+	if providerReferenceRegexp.MatchString(raw) {
+		uri := raw[2 : len(raw)-1]
+		scheme, opaque, ok := strings.Cut(uri, ":")
+		if !ok || scheme != "env" {
+			return true
+		}
+		_, def, hasDefault := strings.Cut(opaque, ":-")
+		return !hasDefault || def == ""
 	}
-	uri := raw[2 : len(raw)-1]
-	scheme, opaque, ok := strings.Cut(uri, ":")
-	if !ok || scheme != "env" {
-		return true
+	for _, re := range r.extraReferencePatterns {
+		if re == nil {
+			continue
+		}
+		if loc := re.FindStringIndex(raw); loc != nil && loc[0] == 0 && loc[1] == len(raw) {
+			return true
+		}
 	}
-	_, def, hasDefault := strings.Cut(opaque, ":-")
-	return !hasDefault || def == ""
+	return false
 }
