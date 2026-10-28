@@ -4,6 +4,7 @@
 package otelcol
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -381,7 +382,7 @@ func TestRedactWithPreExpansion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			pre := confmap.NewFromStringMap(tt.pre)
 			red := confmap.NewFromStringMap(tt.redacted)
-			got := redactByMirroring(pre, red)
+			got := redactor{}.redactByMirroring(pre, red)
 			require.NotNil(t, got)
 			assert.Equal(t, tt.want, got.ToStringMap())
 		})
@@ -389,13 +390,126 @@ func TestRedactWithPreExpansion(t *testing.T) {
 }
 
 func TestRedactWithPreExpansion_NilPreExpansion(t *testing.T) {
-	got := redactByMirroring(nil, confmap.New())
+	got := redactor{}.redactByMirroring(nil, confmap.New())
 	assert.Nil(t, got)
 }
 
 func TestRedactWithPreExpansion_NilRedacted(t *testing.T) {
 	pre := confmap.NewFromStringMap(map[string]any{"a": "b"})
-	got := redactByMirroring(pre, nil)
+	got := redactor{}.redactByMirroring(pre, nil)
 	require.NotNil(t, got)
 	assert.Equal(t, map[string]any{"a": "b"}, got.ToStringMap())
+}
+
+func TestRedactWithExtraReferencePatterns(t *testing.T) {
+	// A distribution whose secret backend resolves ENC[...] and SEC[...] handles.
+	patterns := []*regexp.Regexp{
+		regexp.MustCompile(`^ENC\[[^\]]*\]$`),
+		regexp.MustCompile(`^SEC\[[^\]]*\]$`),
+	}
+
+	tests := []struct {
+		name     string
+		patterns []*regexp.Regexp
+		value    string
+		want     string
+	}{
+		{
+			name:  "handle is masked without patterns",
+			value: "ENC[api_key]",
+			want:  redactedMask,
+		},
+		{
+			name:     "whole handle is preserved",
+			patterns: patterns,
+			value:    "ENC[api_key]",
+			want:     "ENC[api_key]",
+		},
+		{
+			name:     "second syntax is preserved",
+			patterns: patterns,
+			value:    "SEC[api_key]",
+			want:     "SEC[api_key]",
+		},
+		{
+			name:     "interpolated handle is masked",
+			patterns: patterns,
+			value:    "Bearer SEC[token]",
+			want:     redactedMask,
+		},
+		{
+			name:     "two handles in one leaf are masked",
+			patterns: patterns,
+			value:    "ENC[a]ENC[b]",
+			want:     redactedMask,
+		},
+		{
+			name:     "literal is masked",
+			patterns: patterns,
+			value:    "hunter2",
+			want:     redactedMask,
+		},
+		{
+			// An unanchored pattern must not expose an interpolated value: the
+			// match is required to span the whole leaf whatever the pattern says.
+			name:     "unanchored pattern cannot expose interpolation",
+			patterns: []*regexp.Regexp{regexp.MustCompile(`ENC\[[^\]]*\]`)},
+			value:    "Bearer ENC[token]",
+			want:     redactedMask,
+		},
+		{
+			name:     "unanchored pattern still preserves a whole handle",
+			patterns: []*regexp.Regexp{regexp.MustCompile(`ENC\[[^\]]*\]`)},
+			value:    "ENC[token]",
+			want:     "ENC[token]",
+		},
+		{
+			name:     "provider references are preserved alongside extra patterns",
+			patterns: patterns,
+			value:    "${env:API_KEY}",
+			want:     "${env:API_KEY}",
+		},
+		{
+			name:     "env default literal stays masked alongside extra patterns",
+			patterns: patterns,
+			value:    "${env:API_KEY:-hunter2}",
+			want:     redactedMask,
+		},
+		{
+			name:     "nil pattern is skipped",
+			patterns: []*regexp.Regexp{nil},
+			value:    "ENC[api_key]",
+			want:     redactedMask,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pre := confmap.NewFromStringMap(map[string]any{
+				"exporters": map[string]any{"foo": map[string]any{"token": tt.value}},
+			})
+			red := confmap.NewFromStringMap(map[string]any{
+				"exporters": map[string]any{"foo": map[string]any{"token": redactedMask}},
+			})
+
+			got := redactor{extraReferencePatterns: tt.patterns}.redactByMirroring(pre, red)
+			require.NotNil(t, got)
+			assert.Equal(t, map[string]any{
+				"exporters": map[string]any{"foo": map[string]any{"token": tt.want}},
+			}, got.ToStringMap())
+		})
+	}
+}
+
+// A non-opaque field is never masked, so an extra pattern changes nothing for it.
+func TestExtraReferencePatternsDoNotAffectNonOpaqueFields(t *testing.T) {
+	pre := confmap.NewFromStringMap(map[string]any{"endpoint": "Bearer ENC[token]"})
+	red := confmap.NewFromStringMap(map[string]any{"endpoint": "Bearer ENC[token]"})
+
+	got := redactor{extraReferencePatterns: []*regexp.Regexp{
+		regexp.MustCompile(`^ENC\[[^\]]*\]$`),
+	}}.redactByMirroring(pre, red)
+
+	require.NotNil(t, got)
+	assert.Equal(t, map[string]any{"endpoint": "Bearer ENC[token]"}, got.ToStringMap())
 }
